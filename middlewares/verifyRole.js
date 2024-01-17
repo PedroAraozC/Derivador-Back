@@ -1,10 +1,18 @@
+const { conectarBDUsuariosMySql } = require("../config/dbUsuariosMYSQL");
 const User = require("../models/User");
 
 const verifyRole = async (req, res, next) => {
   try {
     const id = req.id;
-    const user = await User.findById(id);
-    if (user.tipoDeUsuario == "admin") {
+
+    const connection = await conectarBDUsuariosMySql();
+    const [result] = await connection.execute(
+      'SELECT * FROM usuario WHERE id = ?',
+      [id]
+    );
+    await connection.end();
+
+    if (result[0].tipoDeUsuario == "admin") {
       next();
     } else {
       throw new Error("Usted no está autorizado");
