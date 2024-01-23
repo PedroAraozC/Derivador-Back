@@ -6,8 +6,13 @@ const verifyRole = async (req, res, next) => {
     const id = req.id;
 
     const connection = await conectarBDUsuariosMySql();
+//     SELECT usuario.*, tipoDeUsuario.rol AS tipoDeUsuario
+// FROM usuario
+// JOIN tipoDeUsuario ON usuario.tipoDeUsuario_id = tipoDeUsuario.id
+// WHERE usuario.id = ?;
+
     const [result] = await connection.execute(
-      'SELECT * FROM usuario WHERE id = ?',
+      '    SELECT usuario.*, tipoDeUsuario.rol AS tipoDeUsuario FROM usuario JOIN tipoDeUsuario ON usuario.tipoDeUsuario_id = tipoDeUsuario.id WHERE usuario.id = ?',
       [id]
     );
     await connection.end();

@@ -7,8 +7,8 @@ const { conectarBDUsuariosMySql } = require("../config/dbUsuariosMYSQL");
 //MYSQL
 const agregarUsuario = async (req, res) => {
     try {
-
-        const { nombreUsuario, contraseña, contraseñaRepetida } = req.body;
+//AGREGAR TIPO DE USUARIO ID PARA EL ALTA
+        const { nombreUsuario, contraseña, contraseñaRepetida,tipoDeUsuario } = req.body;
 
         if (contraseña !== contraseñaRepetida) {
             throw new Error("Las contraseñas no coinciden");
@@ -26,8 +26,8 @@ const agregarUsuario = async (req, res) => {
         if (user.length == 0) {
 
             const [result] = await connection.execute(
-                'INSERT INTO usuario (nombreUsuario, contraseña) VALUES (?, ?)',
-                [nombreUsuario, hashedPassword]
+                'INSERT INTO usuario (nombreUsuario, contraseña,tipoDeUsuario_id) VALUES (?, ?,?)',
+                [nombreUsuario, hashedPassword,tipoDeUsuario]
             );
 
             await connection.end();
