@@ -92,52 +92,83 @@ const getAuthStatus = async (req, res) => {
     }
 };
 
-//MONGO DB
-// const agregarUsuario = async (req, res) => {
-//     try {
-//         console.log(req.body);
 
-//         const { userName, password, repeatPassword } = req.body;
+const obtenerUsuarios = async (req, res) => {
+  try {
+    const connection = await conectarBDUsuariosMySql();
 
-//         if (password !== repeatPassword)
-//             throw new CustomError("Las contraseñas no coinciden", 400);
-//         const salt = await bcrypt.genSalt(10);
-//         const passwordEncrypted = await bcrypt.hash(password, salt);
-//         const user = new User({
-//             nombreUsuario: userName,
-//             contraseña: passwordEncrypted,
-//         });
-//         await user.save();
-//         res.status(200).json({ message: "Usuario creado con exito" });
-//     } catch (error) {
-//         res
-//             .status(error.code || 500)
-//             .json({ message: error.message || "algo explotó :(" });
-//     }
-// }
+    if (req.params.id) {
+      const [user] = await connection.execute(
+        "SELECT usuario.*, tipoDeUsuario.rol AS tipoDeUsuario FROM usuario JOIN tipoDeUsuario ON usuario.tipoDeUsuario_id = tipoDeUsuario.id WHERE usuario.id = ?",
+        [req.params.id]
+      );
 
+      if (user.length == 0) throw new CustomError("Usuario no encontrado", 404);
+      res.status(200).json({ user });
+    } else {
+      const [users] = await connection.execute(
+        "SELECT usuario.*, tipoDeUsuario.rol AS tipoDeUsuario FROM usuario JOIN tipoDeUsuario ON usuario.tipoDeUsuario_id = tipoDeUsuario.id"
+      );
 
-// const login = async (req, res) => {
-//     try {
-//         const { nombreUsuario, contraseña } = req.body;
-//         if (!nombreUsuario || !contraseña)
-//             throw new CustomError("Usuario y contraseña son requeridas", 400);
-//         const user = await User.findOne({ nombreUsuario });
-//         if (!user) throw new CustomError("Usuario no encontrado", 404);
-//         const passOk = await bcrypt.compare(contraseña, user.contraseña);
-//         if (!passOk) throw new CustomError("Contraseña incorrecta", 400);
-//         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY, {
-//             expiresIn: "8h",
-//         });
-//         res
-//             .status(200)
-//             .json({ message: "Ingreso correcto", ok: true, user, token });
-//     } catch (error) {
-//         res
-//             .status(error.code || 500)
-//             .json({ message: error.message || "algo explotó :|" });
-//     }
-// };
+      res.status(200).json({ users });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
 
+const editarUsuario = async (req, res) => {
+  try {
+    const { id, nombreUsuario, tipoDeUsuario } = req.body;
+    const userId = req.params.id;
 
-module.exports = { login, agregarUsuario, getAuthStatus }
+    const sql =
+      "UPDATE usuario SET id = ?, nombreUsuario = ?,tipoDeUsuario_id=? WHERE id = ?";
+    const values = [id, nombreUsuario, tipoDeUsuario, userId];
+
+    const connection = await conectarBDUsuariosMySql();
+    const [user] = await connection.execute(
+      "SELECT * FROM usuario WHERE nombreUsuario = ?",
+      [nombreUsuario]
+    );
+    if (user.length == 0 || user[0].id == id) {
+      const [result] = await connection.execute(sql, values);
+      // El resultado puede contener información sobre la cantidad de filas afectadas, etc.
+      console.log("Filas actualizadas:", result.affectedRows);
+      res
+        .status(200)
+        .json({ message: "usuario modificado con exito", nombreUsuario });
+    } else {
+      res
+        .status(400)
+        .json({
+          message: "Usuario ya existente",
+          userName: user[0].nombreUsuario,
+        });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+
+const borrarUsuario = async (req, res) => {
+  const { id } = req.body;
+
+  const sql = "DELETE FROM usuario WHERE id = ?";
+  const values = [id];
+
+  try {
+    const connection = await conectarBDUsuariosMySql();
+    const [result] = await connection.execute(sql, values);
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "usuario eliminado con éxito" });
+    } else {
+      res.status(400).json({ message: "Usuario no encontrado" });
+    }
+  } catch (error) {
+    console.error("Error al eliminar el usuario:", error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+
+module.exports = { login, agregarUsuario, getAuthStatus, obtenerUsuarios,editarUsuario, borrarUsuario }
