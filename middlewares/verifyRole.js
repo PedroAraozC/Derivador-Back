@@ -1,11 +1,11 @@
-const { conectarBDUsuariosMySql } = require("../config/dbUsuariosMYSQL");
+const { conectarBDEstadisticasMySql } = require("../config/dbEstadisticasMYSQL");
 const User = require("../models/User");
 
 const verifyRole = async (req, res, next) => {
   try {
     const id = req.id;
 
-    const connection = await conectarBDUsuariosMySql();
+    const connection = await conectarBDEstadisticasMySql();
 //     SELECT usuario.*, tipoDeUsuario.rol AS tipoDeUsuario
 // FROM usuario
 // JOIN tipoDeUsuario ON usuario.tipoDeUsuario_id = tipoDeUsuario.id

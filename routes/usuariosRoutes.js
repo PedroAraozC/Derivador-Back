@@ -2,7 +2,7 @@ const { Router } = require("express");
 const auth = require("../middlewares/auth");
 const validateFields = require("../middlewares/validateFields");
 const { check } = require("express-validator");
-const { login, agregarUsuario, getAuthStatus, obtenerUsuarios, editarUsuario, borrarUsuario } = require("../controllers/ditecUsuariosControllers");
+const { login, agregarUsuario, getAuthStatus, obtenerUsuarios, editarUsuario, borrarUsuario } = require("../controllers/usuariosControllers");
 const verifyRole = require("../middlewares/verifyRole")
 
 const router = Router();
@@ -21,6 +21,6 @@ router.post("/alta", auth, verifyRole, agregarUsuario);
 router.get("/authStatus", auth, getAuthStatus);
 router.get("/listar/:id?",auth,verifyRole,obtenerUsuarios)
 router.put("/:id",auth,verifyRole,editarUsuario)
-router.delete("/",auth,verifyRole,borrarUsuario)
+router.delete("/",[auth,verifyRole, check("id").not().isEmpty(), validateFields,],borrarUsuario)
 
 module.exports = router;

@@ -2,7 +2,7 @@ const CustomError = require("../utils/customError");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const { conectarBDUsuariosMySql } = require("../config/dbUsuariosMYSQL");
+const { conectarBDEstadisticasMySql } = require("../config/dbEstadisticasMYSQL");
 
 //MYSQL
 const agregarUsuario = async (req, res) => {
@@ -17,7 +17,7 @@ const agregarUsuario = async (req, res) => {
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(contraseña, saltRounds);
 
-        const connection = await conectarBDUsuariosMySql();
+        const connection = await conectarBDEstadisticasMySql();
 
         const [user] = await connection.execute(
             'SELECT * FROM usuario WHERE nombreUsuario = ?',
@@ -47,7 +47,7 @@ const login = async (req, res) => {
         if (!nombreUsuario || !password)
             throw new CustomError("Usuario y contraseña son requeridas", 400);
 
-        const connection = await conectarBDUsuariosMySql();
+        const connection = await conectarBDEstadisticasMySql();
         const [result] = await connection.execute(
             'SELECT * FROM usuario WHERE nombreUsuario = ?',
             [nombreUsuario]
@@ -75,7 +75,7 @@ const getAuthStatus = async (req, res) => {
     try {
         const id = req.id;
 
-        const connection = await conectarBDUsuariosMySql();
+        const connection = await conectarBDEstadisticasMySql();
         const [user] = await connection.execute(
             'SELECT * FROM usuario WHERE id = ?',
             [id]
@@ -95,7 +95,7 @@ const getAuthStatus = async (req, res) => {
 
 const obtenerUsuarios = async (req, res) => {
   try {
-    const connection = await conectarBDUsuariosMySql();
+    const connection = await conectarBDEstadisticasMySql();
 
     if (req.params.id) {
       const [user] = await connection.execute(
@@ -119,19 +119,19 @@ const obtenerUsuarios = async (req, res) => {
 
 const editarUsuario = async (req, res) => {
   try {
-    const { id, nombreUsuario, tipoDeUsuario } = req.body;
+    const { nombreUsuario, tipoDeUsuario } = req.body;
     const userId = req.params.id;
 
     const sql =
-      "UPDATE usuario SET id = ?, nombreUsuario = ?,tipoDeUsuario_id=? WHERE id = ?";
-    const values = [id, nombreUsuario, tipoDeUsuario, userId];
+      "UPDATE usuario SET nombreUsuario = ?,tipoDeUsuario_id=? WHERE id = ?";
+    const values = [nombreUsuario, tipoDeUsuario, userId];
 
-    const connection = await conectarBDUsuariosMySql();
+    const connection = await conectarBDEstadisticasMySql();
     const [user] = await connection.execute(
       "SELECT * FROM usuario WHERE nombreUsuario = ?",
       [nombreUsuario]
     );
-    if (user.length == 0 || user[0].id == id) {
+    if (user.length == 0 || user[0].id == userId) {
       const [result] = await connection.execute(sql, values);
       // El resultado puede contener información sobre la cantidad de filas afectadas, etc.
       console.log("Filas actualizadas:", result.affectedRows);
@@ -158,7 +158,7 @@ const borrarUsuario = async (req, res) => {
   const values = [id];
 
   try {
-    const connection = await conectarBDUsuariosMySql();
+    const connection = await conectarBDEstadisticasMySql();
     const [result] = await connection.execute(sql, values);
     if (result.affectedRows > 0) {
       res.status(200).json({ message: "usuario eliminado con éxito" });
