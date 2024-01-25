@@ -58,7 +58,7 @@ const login = async (req, res) => {
         const passOk = await bcrypt.compare(password, result[0].contraseña);
         if (!passOk) throw new CustomError("Contraseña incorrecta", 400);
         const token = jwt.sign({ id: result[0].id }, process.env.JWT_SECRET_KEY, {
-            expiresIn: "8h",
+            expiresIn: "1h",
         });
         const { contraseña, ...usuarioSinContraseña } = result[0];
         res
