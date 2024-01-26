@@ -48,9 +48,14 @@ const login = async (req, res) => {
             throw new CustomError("Usuario y contraseña son requeridas", 400);
 
         const connection = await conectarBDEstadisticasMySql();
+        // const [result] = await connection.execute(
+        //     'SELECT * FROM usuario WHERE nombreUsuario = ?',
+        //     [nombreUsuario]
+        // );
+
         const [result] = await connection.execute(
-            'SELECT * FROM usuario WHERE nombreUsuario = ?',
-            [nombreUsuario]
+          '    SELECT usuario.*, tipoDeUsuario.rol AS tipoDeUsuario FROM usuario JOIN tipoDeUsuario ON usuario.tipoDeUsuario_id = tipoDeUsuario.id WHERE usuario.nombreUsuario = ?',
+          [nombreUsuario]
         );
 
         await connection.end();
