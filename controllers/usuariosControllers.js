@@ -5,7 +5,7 @@ const User = require("../models/User");
 const { conectarBDEstadisticasMySql } = require("../config/dbEstadisticasMYSQL");
 
 //MYSQL
-const agregarUsuario = async (req, res) => {
+const agregarUsuario = async (req, res) => { //falta
     try {
 //AGREGAR TIPO DE USUARIO ID PARA EL ALTA
         const { nombreUsuario, contraseña, contraseñaRepetida,tipoDeUsuario } = req.body;
@@ -43,32 +43,37 @@ const agregarUsuario = async (req, res) => {
 
 const login = async (req, res) => {
     try {
-        const { nombreUsuario, password } = req.body;
-        if (!nombreUsuario || !password)
+        const { dni, password } = req.body;
+        if (!dni || !password)
             throw new CustomError("Usuario y contraseña son requeridas", 400);
 
         const connection = await conectarBDEstadisticasMySql();
-        // const [result] = await connection.execute(
-        //     'SELECT * FROM usuario WHERE nombreUsuario = ?',
-        //     [nombreUsuario]
-        // );
 
         const [result] = await connection.execute(
-          '    SELECT usuario.*, tipoDeUsuario.rol AS tipoDeUsuario FROM usuario JOIN tipoDeUsuario ON usuario.tipoDeUsuario_id = tipoDeUsuario.id WHERE usuario.nombreUsuario = ?',
-          [nombreUsuario]
+          '    SELECT persona.*, tipo_usuario.nombre_tusuario AS tipoDeUsuario FROM persona JOIN tipo_usuario ON persona.id_tusuario = tipo_usuario.id_tusuario WHERE persona.documento_persona = ?',[dni]
         );
 
-        await connection.end();
         if (result.length == 0) throw new CustomError("Usuario no encontrado", 404);
-        const passOk = await bcrypt.compare(password, result[0].contraseña);
+
+        const permiso_persona = await connection.execute('SELECT permiso_persona.*,proceso.nombre_proceso AS proceso,proceso.habilita AS habilitado FROM permiso_persona JOIN proceso ON permiso_persona.id_proceso=proceso.id_proceso WHERE permiso_persona.id_persona = ?',[result[0].id_persona]) 
+    
+        await connection.end();
+
+      if(result[0].clave.includes("$2b$")){
+        const passOk = await bcrypt.compare(password, result[0].clave);
         if (!passOk) throw new CustomError("Contraseña incorrecta", 400);
-        const token = jwt.sign({ id: result[0].id }, process.env.JWT_SECRET_KEY, {
+      }else if (password !== result[0].clave){
+         throw new CustomError("Contraseña incorrecta", 400);
+      }
+
+        const token = jwt.sign({ id: result[0].id_persona }, process.env.JWT_SECRET_KEY, {
             expiresIn: "1h",
         });
-        const { contraseña, ...usuarioSinContraseña } = result[0];
+        const { clave, ...usuarioSinContraseña } = result[0];
+    
         res
             .status(200)
-            .json({ message: "Ingreso correcto", ok: true, token, user: usuarioSinContraseña });
+            .json({ message: "Ingreso correcto", ok: true,token, user: {usuarioSinContraseña,permisos:permiso_persona[0]} });
     } catch (error) {
         res
             .status(error.code || 500)
@@ -82,12 +87,12 @@ const getAuthStatus = async (req, res) => {
 
         const connection = await conectarBDEstadisticasMySql();
         const [user] = await connection.execute(
-            'SELECT * FROM usuario WHERE id = ?',
+            'SELECT * FROM persona WHERE id_persona = ?',
             [id]
         );
 
         if (user.length == 0) throw new CustomError("Autenticación fallida", 401);
-        const { contraseña, ...usuarioSinContraseña } = user[0];
+        const { clave, ...usuarioSinContraseña } = user[0];
         res.status(200).json({ usuarioSinContraseña });
     } catch (error) {
         res.status(error.code || 500).json({
@@ -97,32 +102,34 @@ const getAuthStatus = async (req, res) => {
     }
 };
 
-
 const obtenerUsuarios = async (req, res) => {
   try {
     const connection = await conectarBDEstadisticasMySql();
 
     if (req.params.id) {
       const [user] = await connection.execute(
-        "SELECT usuario.*, tipoDeUsuario.rol AS tipoDeUsuario FROM usuario JOIN tipoDeUsuario ON usuario.tipoDeUsuario_id = tipoDeUsuario.id WHERE usuario.id = ?",
-        [req.params.id]
+        'SELECT persona.*, tipo_usuario.nombre_tusuario AS tipoDeUsuario FROM persona JOIN tipo_usuario ON persona.id_tusuario = tipo_usuario.id_tusuario WHERE persona.id_persona = ?',[req.params.id]
       );
 
       if (user.length == 0) throw new CustomError("Usuario no encontrado", 404);
-      res.status(200).json({ user });
+      const { clave, ...usuarioSinContraseña } = user[0];
+      res.status(200).json({ usuarioSinContraseña });
     } else {
       const [users] = await connection.execute(
-        "SELECT usuario.*, tipoDeUsuario.rol AS tipoDeUsuario FROM usuario JOIN tipoDeUsuario ON usuario.tipoDeUsuario_id = tipoDeUsuario.id"
+        'SELECT persona.*, tipo_usuario.nombre_tusuario AS tipoDeUsuario FROM persona JOIN tipo_usuario ON persona.id_tusuario = tipo_usuario.id_tusuario'
       );
-
-      res.status(200).json({ users });
+      const usuariosSinClave = users.map(usuario => {
+        const { clave, ...usuarioSinClave } = usuario;
+        return usuarioSinClave;
+      });
+      res.status(200).json({ usuariosSinClave });
     }
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
 };
 
-const editarUsuario = async (req, res) => {
+const editarUsuario = async (req, res) => {//falta
   try {
     const { nombreUsuario, tipoDeUsuario } = req.body;
     const userId = req.params.id;
@@ -159,19 +166,19 @@ const editarUsuario = async (req, res) => {
 const borrarUsuario = async (req, res) => {
   const { id } = req.body;
 
-  const sql = "DELETE FROM usuario WHERE id = ?";
+  const sql = "DELETE FROM persona WHERE id_persona = ?";
   const values = [id];
 
   try {
     const connection = await conectarBDEstadisticasMySql();
     const [result] = await connection.execute(sql, values);
     if (result.affectedRows > 0) {
-      res.status(200).json({ message: "usuario eliminado con éxito" });
+      res.status(200).json({ message: "persona eliminada con éxito" });
     } else {
-      res.status(400).json({ message: "Usuario no encontrado" });
+      res.status(400).json({ message: "persona no encontrada" });
     }
   } catch (error) {
-    console.error("Error al eliminar el usuario:", error);
+    console.error("Error al eliminar la persona:", error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
 };

@@ -10,8 +10,8 @@ const router = Router();
 router.post(
     "/login",
     [
-        check("nombreUsuario", "El nombre de usuario no cumple con los requisitos").not().isEmpty().isLength({ min: 4, max: 15 }),
-        check("password", "La contraseña no cumple con los requisitos").isLength({ min: 6, max: 30 }),
+        check("dni", "El DNI de usuario no cumple con los requisitos").not().isEmpty().isInt().isLength({ min: 7, max: 8 }),
+        check("password", "La contraseña no cumple con los requisitos").isLength({ min: 4, max: 30 }),
         validateFields,
     ],
     login
