@@ -1,6 +1,6 @@
 const mysql = require('mysql2/promise');
 
-const conectarBDUsuariosMySql = async () => {
+const conectarBDEstadisticasMySql = async () => {
     try {
         const connection = await mysql.createConnection({
             host: process.env.HOST,
@@ -14,4 +14,4 @@ const conectarBDUsuariosMySql = async () => {
     }
 }
 
-module.exports = { conectarBDUsuariosMySql } 
+module.exports = { conectarBDEstadisticasMySql } 
