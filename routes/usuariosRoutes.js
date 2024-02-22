@@ -2,7 +2,7 @@ const { Router } = require("express");
 const auth = require("../middlewares/auth");
 const validateFields = require("../middlewares/validateFields");
 const { check } = require("express-validator");
-const { login, agregarUsuario, getAuthStatus, obtenerUsuarios, editarUsuario, borrarUsuario } = require("../controllers/usuariosControllers");
+const { login, getAuthStatus, obtenerUsuarios, editarUsuario, borrarUsuario, agregarUsuarioMYSQL, validarUsuarioMYSQL, obtenerCiudadanoPorEmailMYSQL, obtenerCiudadanoPorDNIMYSQL } = require("../controllers/usuariosControllers");
 const verifyRole = require("../middlewares/verifyRole")
 
 const router = Router();
@@ -17,10 +17,22 @@ router.post(
     login
 );
 
-router.post("/alta", auth, verifyRole, agregarUsuario);
+// router.post("/alta", auth, verifyRole, agregarUsuario);
 router.get("/authStatus", auth, getAuthStatus);
 router.get("/listar/:id?",auth,verifyRole,obtenerUsuarios)
-router.put("/:id",auth,verifyRole,editarUsuario)
+// router.put("/:id",auth,verifyRole,editarUsuario)
 router.delete("/",[auth,verifyRole, check("id").not().isEmpty(), validateFields,],borrarUsuario)
+
+router.get('/dni/:dni', obtenerCiudadanoPorDNIMYSQL);
+router.get('/email/:email', obtenerCiudadanoPorEmailMYSQL);  
+router.put("/", validarUsuarioMYSQL)
+router.post("/registro",
+// [
+//     check("nombre_ciudadano","el nombre es obligatorio").not().isEmpty(),
+//     check("clave_ciudadano","el password es obligatorio").not().isEmpty(),
+   
+// ],
+agregarUsuarioMYSQL)
+
 
 module.exports = router;

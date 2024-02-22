@@ -3,43 +3,55 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { conectarBDEstadisticasMySql } = require("../config/dbEstadisticasMYSQL");
+const nodemailer = require('nodemailer');
+const moment = require('moment-timezone');
 
-//MYSQL
-const agregarUsuario = async (req, res) => { //falta
-    try {
-//AGREGAR TIPO DE USUARIO ID PARA EL ALTA
-        const { nombreUsuario, contraseña, contraseñaRepetida,tipoDeUsuario } = req.body;
-
-        if (contraseña !== contraseñaRepetida) {
-            throw new Error("Las contraseñas no coinciden");
-        }
-
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(contraseña, saltRounds);
-
-        const connection = await conectarBDEstadisticasMySql();
-
-        const [user] = await connection.execute(
-            'SELECT * FROM usuario WHERE nombreUsuario = ?',
-            [nombreUsuario]
-        );
-        if (user.length == 0) {
-
-            const [result] = await connection.execute(
-                'INSERT INTO usuario (nombreUsuario, contraseña,tipoDeUsuario_id) VALUES (?, ?,?)',
-                [nombreUsuario, hashedPassword,tipoDeUsuario]
-            );
-
-            await connection.end();
-
-            res.status(200).json({ message: "Usuario creado con éxito", insertedId: result.insertId });
-        } else {
-            res.status(400).json({ message: "Usuario ya existente", userName: user[0].nombreUsuario });
-        }
-    } catch (error) {
-        res.status(500).json({ message: error.message || "Algo salió mal :(" });
+// Configurar el transporte de Nodemailer
+const transporter = nodemailer.createTransport({
+    service: 'Zoho',
+    auth: {
+      user: 'develop.ditec@zohomail.com', 
+       pass: process.env.PASSWORD_MAIL
+       
     }
-};
+  });
+
+
+// const agregarUsuario = async (req, res) => {
+//     try {
+
+//         const { nombreUsuario, contraseña, contraseñaRepetida,tipoDeUsuario } = req.body;
+
+//         if (contraseña !== contraseñaRepetida) {
+//             throw new Error("Las contraseñas no coinciden");
+//         }
+
+//         const saltRounds = 10;
+//         const hashedPassword = await bcrypt.hash(contraseña, saltRounds);
+
+//         const connection = await conectarBDEstadisticasMySql();
+
+//         const [user] = await connection.execute(
+//             'SELECT * FROM usuario WHERE nombreUsuario = ?',
+//             [nombreUsuario]
+//         );
+//         if (user.length == 0) {
+
+//             const [result] = await connection.execute(
+//                 'INSERT INTO usuario (nombreUsuario, contraseña,tipoDeUsuario_id) VALUES (?, ?,?)',
+//                 [nombreUsuario, hashedPassword,tipoDeUsuario]
+//             );
+
+//             await connection.end();
+
+//             res.status(200).json({ message: "Usuario creado con éxito", insertedId: result.insertId });
+//         } else {
+//             res.status(400).json({ message: "Usuario ya existente", userName: user[0].nombreUsuario });
+//         }
+//     } catch (error) {
+//         res.status(500).json({ message: error.message || "Algo salió mal :(" });
+//     }
+// };
 
 const login = async (req, res) => {
     try {
@@ -183,4 +195,186 @@ const borrarUsuario = async (req, res) => {
   }
 };
 
-module.exports = { login, agregarUsuario, getAuthStatus, obtenerUsuarios,editarUsuario, borrarUsuario }
+const obtenerCiudadanoPorDNIMYSQL = async (req, res) => {
+  let connection;
+  try {
+      connection = await conectarBDEstadisticasMySql();
+
+      const userDNI = req.params.dni;
+      const queryResult = await connection.query("SELECT * FROM persona WHERE documento_persona = ?", [userDNI]);
+
+      if (queryResult.length > 0) {
+          const ciudadano = queryResult[0]; // Suponiendo que solo hay un usuario con ese DNI
+          if (ciudadano.length > 0) {
+              res.status(200).json({ ciudadano });
+          } else {
+              res.status(200).json({ message: "Usuario no encontrado" });
+          }
+      } else {
+          res.status(200).json({ message: "Usuario no encontrado" });
+      }
+  } catch (error) {
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+      if (connection) {
+          connection.end();
+      }
+  }
+};
+
+const obtenerCiudadanoPorEmailMYSQL = async (req, res) => { 
+  let connection;
+  try {
+      connection = await conectarBDEstadisticasMySql();
+
+      const userEmail = req.params.email;
+      const queryResult = await connection.query("SELECT * FROM persona WHERE email_persona = ?", [userEmail]);
+
+      if (queryResult.length > 0) {
+          const ciudadano = queryResult[0]; // Suponiendo que solo hay un usuario con ese DNI
+          if (ciudadano.length > 0) {
+              res.status(200).json({ ciudadano });
+          } else {
+              res.status(200).json({ message: "Usuario no encontrado" });
+          }
+      } else {
+          res.status(200).json({ message: "Usuario no encontrado" });
+      }
+  } catch (error) {
+      res.status(500).json({ message: error.message || "Algo salió mal :(" }); 
+  } finally {
+      if (connection) {
+          connection.end();
+      }
+  }
+};
+
+const generarCodigo=(numero)=> {
+  const numeroInvertido = parseInt(numero.toString().split('').reverse().join(''));
+  const ultimosCuatroDigitos = numeroInvertido % 10000;
+  return ultimosCuatroDigitos;
+}
+
+const validarUsuarioMYSQL = async (req, res) => {
+  let connection;
+  try {
+      const { email_persona, codigo_verif } = req.body;
+
+      // Establecer la conexión a la base de datos MySQL
+      connection = await conectarBDEstadisticasMySql();
+
+      // Consultar el usuario por su email
+      const [result] = await connection.query('SELECT * FROM persona WHERE email_persona = ?', [email_persona]);
+
+      // Verificar si se encontró el usuario
+      if (result.length > 0) {
+          const usuario = result[0];
+          const codigo = generarCodigo(usuario.documento_persona);
+
+          // Verificar si el usuario ya está validado
+          if (!usuario.validado) {
+              // Verificar si el código de verificación coincide
+              if (codigo === codigo_verif) {
+                  // Actualizar el estado de validación del usuario
+                  await connection.query('UPDATE persona SET validado = 1, habilita = 1 WHERE email_persona = ?', [email_persona]);
+                  return res.status(200).json({ message: "Usuario validado con éxito", ok: true });
+              } else {
+                  // El código de verificación no coincide
+                  return res.status(200).json({ message: "El código de verificación es incorrecto", ok: false });
+              }
+          } else {
+              // El usuario ya está validado
+              return res.status(400).json({ message: "El usuario ya está validado" });
+          }
+      } else {
+          // No se encontró el usuario
+          return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+  } catch (error) {
+      return res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+      // Cerrar la conexión a la base de datos
+      if (connection) {
+          connection.end();
+      }
+  }
+};
+
+const agregarUsuarioMYSQL = async (req, res) => {
+  let connection;
+  try {
+      const {     
+          documento_persona,
+          nombre_persona,
+          apellido_persona,
+          email_persona,
+          clave,
+          telefono_persona,
+          domicilio_persona,
+          id_provincia,
+          localidad_persona,
+          id_pais,
+          fecha_nacimiento_persona,
+          id_genero,
+          id_tdocumento,
+          validado,
+          habilita
+      } = req.body;
+
+      const hashedPassword = await bcrypt.hash(clave, 10);
+
+      const fechaStr = fecha_nacimiento_persona;
+      const fechaFormateada = moment(fechaStr).format('YYYY-MM-DD');
+
+      const codigoValidacion=generarCodigo(documento_persona);
+
+      // Establecer la conexión a la base de datos MySQL
+      connection = await conectarBDEstadisticasMySql();
+
+      // Consultar si ya existe un usuario con el mismo email o documento
+      const [resultEmail] = await connection.query('SELECT * FROM persona WHERE email_persona = ?', [email_persona]);
+      if (resultEmail.length > 0) {
+          return res.status(400).json({ message: "Email ya registrado", userEmail: email_persona });
+      }
+
+      const [resultDocumento] = await connection.query('SELECT * FROM persona WHERE documento_persona = ?', [documento_persona]);
+      if (resultDocumento.length > 0) {
+          return res.status(400).json({ message: "DNI ya registrado", userDNI: documento_persona });
+      }
+
+      // Insertar el nuevo usuario
+      const [resultInsert] = await connection.query(
+          'INSERT INTO persona (documento_persona, nombre_persona, apellido_persona, email_persona, clave, telefono_persona, domicilio_persona, id_provincia, id_pais, localidad_persona, validado, habilita, fecha_nacimiento_persona, id_genero, id_tdocumento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [documento_persona, nombre_persona.toUpperCase(), apellido_persona.toUpperCase(), email_persona, hashedPassword, telefono_persona, domicilio_persona.toUpperCase(), id_provincia, id_pais, localidad_persona.toUpperCase(), validado, habilita, fechaFormateada, id_genero, id_tdocumento]
+      );
+
+      // Enviar correo electrónico al usuario recién registrado
+                          
+
+                              const mailOptions = {
+                                  from: 'develop.ditec@zohomail.com', // Coloca tu dirección de correo electrónico
+                                  to: email_persona, // Utiliza el correo electrónico del usuario recién registrado
+                                  subject: 'Código de validación',
+                                  text: `Tu código de validación es: ${codigoValidacion}`
+                              };
+                              
+                              transporter.sendMail(mailOptions, (errorEmail, info) => {
+                                  if (errorEmail) {
+                                      console.error('Error al enviar el correo electrónico:', errorEmail);
+                                  } else {
+                                      console.log('Correo electrónico enviado correctamente:', info.response);
+                                  }
+                              });
+
+      return res.status(200).json({ message: "Ciudadano creado con éxito" });
+  } catch (error) {
+      return res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+      // Cerrar la conexión a la base de datos
+      if (connection) {
+          connection.end();
+      }
+  }
+};
+
+module.exports = { login, getAuthStatus, obtenerUsuarios,editarUsuario, borrarUsuario, obtenerCiudadanoPorDNIMYSQL, obtenerCiudadanoPorEmailMYSQL, validarUsuarioMYSQL, agregarUsuarioMYSQL}
