@@ -16,43 +16,6 @@ const transporter = nodemailer.createTransport({
     }
   });
 
-
-// const agregarUsuario = async (req, res) => {
-//     try {
-
-//         const { nombreUsuario, contraseña, contraseñaRepetida,tipoDeUsuario } = req.body;
-
-//         if (contraseña !== contraseñaRepetida) {
-//             throw new Error("Las contraseñas no coinciden");
-//         }
-
-//         const saltRounds = 10;
-//         const hashedPassword = await bcrypt.hash(contraseña, saltRounds);
-
-//         const connection = await conectarBDEstadisticasMySql();
-
-//         const [user] = await connection.execute(
-//             'SELECT * FROM usuario WHERE nombreUsuario = ?',
-//             [nombreUsuario]
-//         );
-//         if (user.length == 0) {
-
-//             const [result] = await connection.execute(
-//                 'INSERT INTO usuario (nombreUsuario, contraseña,tipoDeUsuario_id) VALUES (?, ?,?)',
-//                 [nombreUsuario, hashedPassword,tipoDeUsuario]
-//             );
-
-//             await connection.end();
-
-//             res.status(200).json({ message: "Usuario creado con éxito", insertedId: result.insertId });
-//         } else {
-//             res.status(400).json({ message: "Usuario ya existente", userName: user[0].nombreUsuario });
-//         }
-//     } catch (error) {
-//         res.status(500).json({ message: error.message || "Algo salió mal :(" });
-//     }
-// };
-
 const login = async (req, res) => {
     try {
         const { dni, password } = req.body;
@@ -71,13 +34,9 @@ const login = async (req, res) => {
     
         await connection.end();
 
-      if(result[0].clave.includes("$2b$")){
         const passOk = await bcrypt.compare(password, result[0].clave);
         if (!passOk) throw new CustomError("Contraseña incorrecta", 400);
-      }else if (password !== result[0].clave){
-         throw new CustomError("Contraseña incorrecta", 400);
-      }
-
+     
         const token = jwt.sign({ id: result[0].id_persona }, process.env.JWT_SECRET_KEY, {
             expiresIn: "1h",
         });
