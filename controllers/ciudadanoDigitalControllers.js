@@ -53,6 +53,7 @@ const obtenerPaisesMYSQL = async (req, res) => {
 
         // Verificar si se encontraron resultados
         if (rows && rows.length > 0) {
+            rows.sort((a, b) => a.nombre_pais.localeCompare(b.nombre_pais));
             res.status(200).json({ ciudadanos: rows });
         } else {
             res.status(404).json({ message: "No se encontraron usuarios" });
@@ -85,6 +86,7 @@ const obtenerProvinciasMYSQL = async (req, res) => {
 
         // Verificar si se encontraron resultados
         if (rows && rows.length > 0) {
+            rows.sort((a, b) => a.nombre_provincia.localeCompare(b.nombre_provincia));
             res.status(200).json({ ciudadanos: rows });
         } else {
             res.status(404).json({ message: "No se encontraron usuarios" });
