@@ -16,6 +16,30 @@ const transporter = nodemailer.createTransport({
     }
   });
 
+//funciones
+const enviarEmail=(codigo,email,res)=>{
+  const mailOptions = {
+    from: 'develop.ditec@zohomail.com', // Coloca tu dirección de correo electrónico
+    to: email, // Utiliza el correo electrónico del usuario recién registrado
+    subject: 'Código de validación',
+    text: `Tu código de validación es: ${codigo}`
+};
+
+transporter.sendMail(mailOptions, (errorEmail, info) => {
+    if (errorEmail) {
+      res.status(500).json({msg:'Error al enviar el correo electrónico:',error: errorEmail});
+    } else {
+      res.status(200).json({mge:'Correo electrónico enviado correctamente:',info: info.response});
+    }
+});
+}
+const generarCodigo=(numero)=> {
+  const numeroInvertido = parseInt(numero.toString().split('').reverse().join(''));
+  const ultimosCuatroDigitos = numeroInvertido % 10000;
+  return ultimosCuatroDigitos;
+}
+
+//controladores
 const login = async (req, res) => {
     try {
         const { dni, password } = req.body;
@@ -134,6 +158,47 @@ const editarUsuario = async (req, res) => {//falta
   }
 };
 
+const editarUsuarioCompleto = async (req, res) => {
+  let connection;
+  try {
+    const { documento_persona, nombre_persona, apellido_persona, email_persona, telefono_persona, domicilio_persona, localidad_persona,clave } = req.body;
+
+    const hashedPassword = await bcrypt.hash(clave, 10);
+
+      // Establecer la conexión a la base de datos MySQL
+      connection = await conectarBDEstadisticasMySql();
+
+      // Consultar el usuario por su documento
+      const [result] = await connection.query('SELECT * FROM persona WHERE documento_persona = ?', [documento_persona]);
+
+      // Verificar si se encontró el usuario
+      if (result.length > 0) {
+          const usuario = result[0];
+         
+
+             
+                  // Actualizar el usuario
+                  await connection.query(
+                    'UPDATE persona SET nombre_persona = ?, apellido_persona = ?, email_persona = ?, telefono_persona = ?, domicilio_persona = ?, localidad_persona = ?, clave = ? WHERE documento_persona = ?',
+                    [nombre_persona.toUpperCase(), apellido_persona.toUpperCase(), email_persona, telefono_persona, domicilio_persona.toUpperCase(),, localidad_persona.toUpperCase(),,hashedPassword, documento_persona]
+                  );
+        return res.status(200).json({ message: "Usuario editado con éxito", ok: true });
+          
+      
+      } else {
+          // No se encontró el usuario
+          return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+  } catch (error) {
+      return res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+      // Cerrar la conexión a la base de datos
+      if (connection) {
+          connection.end();
+      }
+  }
+};
+
 const borrarUsuario = async (req, res) => {
   const { id } = req.body;
 
@@ -207,12 +272,6 @@ const obtenerCiudadanoPorEmailMYSQL = async (req, res) => {
       }
   }
 };
-
-const generarCodigo=(numero)=> {
-  const numeroInvertido = parseInt(numero.toString().split('').reverse().join(''));
-  const ultimosCuatroDigitos = numeroInvertido % 10000;
-  return ultimosCuatroDigitos;
-}
 
 const validarUsuarioMYSQL = async (req, res) => {
   let connection;
@@ -308,22 +367,9 @@ const agregarUsuarioMYSQL = async (req, res) => {
       );
 
       // Enviar correo electrónico al usuario recién registrado
-                          
+        enviarEmail(codigoValidacion,email_persona,res);                 
 
-                              const mailOptions = {
-                                  from: 'develop.ditec@zohomail.com', // Coloca tu dirección de correo electrónico
-                                  to: email_persona, // Utiliza el correo electrónico del usuario recién registrado
-                                  subject: 'Código de validación',
-                                  text: `Tu código de validación es: ${codigoValidacion}`
-                              };
-                              
-                              transporter.sendMail(mailOptions, (errorEmail, info) => {
-                                  if (errorEmail) {
-                                      console.error('Error al enviar el correo electrónico:', errorEmail);
-                                  } else {
-                                      console.log('Correo electrónico enviado correctamente:', info.response);
-                                  }
-                              });
+
 
       return res.status(200).json({ message: "Ciudadano creado con éxito" });
   } catch (error) {
@@ -336,4 +382,15 @@ const agregarUsuarioMYSQL = async (req, res) => {
   }
 };
 
-module.exports = { login, getAuthStatus, obtenerUsuarios,editarUsuario, borrarUsuario, obtenerCiudadanoPorDNIMYSQL, obtenerCiudadanoPorEmailMYSQL, validarUsuarioMYSQL, agregarUsuarioMYSQL}
+const enviarEmailValidacion=(req,res)=>{
+
+const {email_persona,documento_persona}=req.body;
+
+const codigoValidacion=generarCodigo(documento_persona);
+
+enviarEmail(codigoValidacion,email_persona,res);
+
+}
+
+
+module.exports = { login, getAuthStatus, obtenerUsuarios,editarUsuario, borrarUsuario, obtenerCiudadanoPorDNIMYSQL, obtenerCiudadanoPorEmailMYSQL, validarUsuarioMYSQL, agregarUsuarioMYSQL,editarUsuarioCompleto,enviarEmailValidacion}
