@@ -6,18 +6,14 @@ const verifyRole = async (req, res, next) => {
     const id = req.id;
 
     const connection = await conectarBDEstadisticasMySql();
-//     SELECT usuario.*, tipoDeUsuario.rol AS tipoDeUsuario
-// FROM usuario
-// JOIN tipoDeUsuario ON usuario.tipoDeUsuario_id = tipoDeUsuario.id
-// WHERE usuario.id = ?;
 
     const [result] = await connection.execute(
-      '    SELECT usuario.*, tipoDeUsuario.rol AS tipoDeUsuario FROM usuario JOIN tipoDeUsuario ON usuario.tipoDeUsuario_id = tipoDeUsuario.id WHERE usuario.id = ?',
-      [id]
+      '    SELECT tipo_usuario.nombre_tusuario AS tipoDeUsuario FROM persona JOIN tipo_usuario ON persona.id_tusuario = tipo_usuario.id_tusuario WHERE persona.id_persona = ?',[id]
     );
+
     await connection.end();
 
-    if (result[0].tipoDeUsuario == "admin") {
+    if (result[0].tipoDeUsuario == "ADMINISTRADOR") {
       next();
     } else {
       throw new Error("Usted no está autorizado");
