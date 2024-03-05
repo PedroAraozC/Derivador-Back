@@ -161,9 +161,9 @@ const editarUsuario = async (req, res) => {//falta
 const editarUsuarioCompleto = async (req, res) => {
   let connection;
   try {
-    const { documento_persona, nombre_persona, apellido_persona, email_persona, telefono_persona, domicilio_persona, localidad_persona,clave } = req.body;
+    const { documento_persona, nombre_persona, apellido_persona, email_persona, telefono_persona, domicilio_persona, localidad_persona } = req.body;
 
-    const hashedPassword = await bcrypt.hash(clave, 10);
+    //const hashedPassword = await bcrypt.hash(clave, 10);
 
       // Establecer la conexión a la base de datos MySQL
       connection = await conectarBDEstadisticasMySql();
@@ -179,8 +179,8 @@ const editarUsuarioCompleto = async (req, res) => {
              
                   // Actualizar el usuario
                   await connection.query(
-                    'UPDATE persona SET nombre_persona = ?, apellido_persona = ?, email_persona = ?, telefono_persona = ?, domicilio_persona = ?, localidad_persona = ?, clave = ? WHERE documento_persona = ?',
-                    [nombre_persona.toUpperCase(), apellido_persona.toUpperCase(), email_persona, telefono_persona, domicilio_persona.toUpperCase(),, localidad_persona.toUpperCase(),,hashedPassword, documento_persona]
+                    'UPDATE persona SET nombre_persona = ?, apellido_persona = ?, email_persona = ?, telefono_persona = ?, domicilio_persona = ?, localidad_persona = ? WHERE documento_persona = ?',
+                    [nombre_persona.toUpperCase(), apellido_persona.toUpperCase(), email_persona, telefono_persona, domicilio_persona.toUpperCase(),localidad_persona.toUpperCase(), documento_persona]
                   );
         return res.status(200).json({ message: "Usuario editado con éxito", ok: true });
           
