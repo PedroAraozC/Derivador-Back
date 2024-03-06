@@ -1,18 +1,5 @@
 const { conectar_BD_GAF_MySql } = require("../config/dbEstadisticasMYSQL");
 
-// const listarAnexos =async(req,res)=>{
-//     try {
-    
-//         const connection = await conectar_BD_GAF_MySql();
-
-//         const [anexos] = await connection.execute(
-//             'SELECT * FROM anexo'
-//         );
-//         res.status(200).json({anexos})
-//     } catch (error) {
-//         res.status(500).json({ message: error.message || "Algo salió mal :(" });
-//     }
-// }
 const listarAnexos = async (req, res) => {
   const connection = await conectar_BD_GAF_MySql();
   try {
@@ -33,17 +20,7 @@ const listarAnexos = async (req, res) => {
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
-  // finally {
-  //   if (connection) {
-  //     connection.release();
-  //   }
-  // }
 };
-
-module.exports = {
-  listarAnexos,
-};
-
 
 const agregarAnexo =async(req,res)=>{
     try {
@@ -128,28 +105,141 @@ const borrarAnexo = async (req, res) => {
     }
   };
 
-const listarFinalidades =async(req,res)=>{
+const listarEjercicios = async (req, res) => {
+  const connection = await conectar_BD_GAF_MySql();
+  try {
+      // Verifica si hay un término de búsqueda en los parámetros de la solicitud
+      const searchTerm = req.query.searchTerm || '';
+
+      let sqlQuery = 'SELECT * FROM ejercicio';
+
+      // Agrega la cláusula WHERE para la búsqueda si hay un término de búsqueda
+      if (searchTerm) {
+          // sqlQuery += ' WHERE anexo_codigo LIKE ? OR anexo_det LIKE ?';
+          sqlQuery += ' WHERE LOWER(ejercicio_anio) LIKE LOWER(?) OR LOWER(ejercicio_det) LIKE LOWER(?)';
+      }
+
+      const [ejercicios] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
+
+      res.status(200).json({ ejercicios });
+  } catch (error) {
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+
+const agregarEjercicio =async(req,res)=>{
     try {
-    
+        const {anio, descripcion} = req.body;
         const connection = await conectar_BD_GAF_MySql();
 
-        const [finalidades] = await connection.execute(
-            'SELECT * FROM finalidad'
-        );
-        res.status(200).json({finalidades})
+        const [ejercicio] = await connection.execute(
+            "SELECT * FROM ejercicio WHERE (ejercicio_anio,ejercicio_det) = (?,?)",
+            [anio,descripcion]
+          );
+          
+            if(ejercicio.length > 0){
+                res
+                .status(400)
+                .json({
+                  message: "ejercicio ya existente",
+                  Ejercicio: ejercicio[0].ejercicio_det,
+                });
+            }else {
+                const [result] = await connection.execute(
+                    'INSERT INTO ejercicio (ejercicio_anio,ejercicio_det) VALUES (?,?)',[anio, descripcion]
+                );
+                res.status(200).json({ message: "Ejercicio creado con éxito" })
+            }
     } catch (error) {
         res.status(500).json({ message: error.message || "Algo salió mal :(" });
     }
 }
 
+const editarEjercicio = async (req,res) =>{
+    try {
+        const { anio, descripcion } = req.body;
+        const ejercicioId = req.params.id;
+    
+        const sql =
+          "UPDATE ejercicio SET ejercicio_anio = ?, ejercicio_det = ? WHERE ejercicio_id = ?";
+        const values = [anio, descripcion, ejercicioId];
+    
+        const connection = await conectar_BD_GAF_MySql();
+        const [ejercicio] = await connection.execute(
+          "SELECT * FROM ejercicio WHERE (ejercicio_anio,ejercicio_det) = (?,?)",
+          [anio,descripcion]
+        );
+   
+        if (ejercicio.length == 0 || ejercicio[0].ejercicio_id == ejercicioId) {
+          const [result] = await connection.execute(sql, values);
+          // El resultado puede contener información sobre la cantidad de filas afectadas, etc.
+          console.log("Filas actualizadas:", result.affectedRows);
+          res
+            .status(200)
+            .json({ message: "ejercicio modificado con exito", result });
+        } else {
+          res
+            .status(400)
+            .json({
+              message: "ejercicio ya existente",
+              Ejercicio: ejercicio[0].ejercicio_det,
+            });
+        }
+      } catch (error) {
+        res.status(500).json({ message: error.message || "Algo salió mal :(" });
+      }
+}
+
+const borrarEjercicio = async (req, res) => {
+    const { id } = req.body;
+  
+    const sql = "DELETE FROM ejercicio WHERE ejercicio_id = ?";
+    const values = [id];
+  
+    try {
+      const connection = await conectar_BD_GAF_MySql();
+      const [result] = await connection.execute(sql, values);
+      if (result.affectedRows > 0) {
+        res.status(200).json({ message: "Ejercicio eliminado con éxito"});
+      } else {
+        res.status(400).json({ message: "Ejercicio no encontrado"});
+      }
+    } catch (error) {
+      console.error("Error al eliminar el ejercicio:", error);
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    }
+  };
+
+const listarFinalidades = async (req, res) => {
+  const connection = await conectar_BD_GAF_MySql();
+  try {
+      // Verifica si hay un término de búsqueda en los parámetros de la solicitud
+      const searchTerm = req.query.searchTerm || '';
+
+      let sqlQuery = 'SELECT * FROM finalidad';
+
+      // Agrega la cláusula WHERE para la búsqueda si hay un término de búsqueda
+      if (searchTerm) {
+          // sqlQuery += ' WHERE anexo_codigo LIKE ? OR anexo_det LIKE ?';
+          sqlQuery += ' WHERE LOWER(finalidad_codigo) LIKE LOWER(?) OR LOWER(finalidad_det) LIKE LOWER(?)';
+      }
+
+      const [finalidades] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
+
+      res.status(200).json({ finalidades });
+  } catch (error) {
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+
 const agregarFinalidad =async(req,res)=>{
     try {
-        const { descripcion} = req.body;
+        const { descripcion,codigo} = req.body;
         const connection = await conectar_BD_GAF_MySql();
 
         const [finalidad] = await connection.execute(
-            "SELECT * FROM finalidad WHERE finalidad_det = ?",
-            [descripcion]
+            "SELECT * FROM finalidad WHERE finalidad_codigo = ?",
+            [codigo]
           );
           
             if(finalidad.length > 0){
@@ -161,7 +251,7 @@ const agregarFinalidad =async(req,res)=>{
                 });
             }else {
                 const [result] = await connection.execute(
-                    'INSERT INTO finalidad (finalidad_det) VALUES (?)',[descripcion]
+                    'INSERT INTO finalidad (finalidad_codigo,finalidad_det) VALUES (?,?)',[codigo,descripcion]
                 );
                 res.status(200).json({ message: "finalidad creada con éxito" })
             }
@@ -171,38 +261,38 @@ const agregarFinalidad =async(req,res)=>{
 }
 
 const editarFinalidad = async (req,res) =>{
-    try {
-        const { descripcion } = req.body;
-        const finalidadId = req.params.id;
-    
-        const sql =
-          "UPDATE finalidad SET finalidad_det = ? WHERE finalidad_id = ?";
-        const values = [descripcion, finalidadId];
-    
-        const connection = await conectar_BD_GAF_MySql();
-        const [finalidad] = await connection.execute(
-          "SELECT * FROM finalidad WHERE finalidad_det = ? ",
-          [descripcion]
-        );
-  
-        if (finalidad.length == 0 || finalidad[0].finalidad_id == finalidadId) {
-          const [result] = await connection.execute(sql, values);
-          // El resultado puede contener información sobre la cantidad de filas afectadas, etc.
-          console.log("Filas actualizadas:", result.affectedRows);
-          res
-            .status(200)
-            .json({ message: "finalidad modificada con exito", result });
-        } else {
-          res
-            .status(400)
-            .json({
-              message: "finalidad ya existente",
-              finalidad: finalidad[0].finalidad_det,
-            });
-        }
-      } catch (error) {
-        res.status(500).json({ message: error.message || "Algo salió mal :(" });
-      }
+  try {
+    const { codigo, descripcion } = req.body;
+    const finalidadId = req.params.id;
+
+    const sql =
+      "UPDATE finalidad SET finalidad_codigo = ?, finalidad_det = ? WHERE finalidad_id = ?";
+    const values = [codigo, descripcion, finalidadId];
+
+    const connection = await conectar_BD_GAF_MySql();
+    const [finalidad] = await connection.execute(
+      "SELECT * FROM finalidad WHERE finalidad_codigo = ? ",
+      [codigo]
+    );
+ 
+    if (finalidad.length == 0 || finalidad[0].finalidad_id == finalidadId) {
+      const [result] = await connection.execute(sql, values);
+      // El resultado puede contener información sobre la cantidad de filas afectadas, etc.
+      console.log("Filas actualizadas:", result.affectedRows);
+      res
+        .status(200)
+        .json({ message: "finalidad modificada con éxito", result });
+    } else {
+      res
+        .status(400)
+        .json({
+          message: "finalidad ya existente",
+          Finalidad: finalidad[0].finalidad_det,
+        });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
 }
 
 const borrarFinalidad = async (req, res) => {
@@ -516,4 +606,5 @@ const borrarPartida = async (req, res) => {
   }
 };
 
-module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas, agregarPartida, editarPartida, borrarPartida}
+module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas, agregarPartida, editarPartida, borrarPartida, listarEjercicios,
+agregarEjercicio,editarEjercicio,borrarEjercicio}
