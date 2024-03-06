@@ -1,18 +1,49 @@
 const { conectar_BD_GAF_MySql } = require("../config/dbEstadisticasMYSQL");
 
-const listarAnexos =async(req,res)=>{
-    try {
+// const listarAnexos =async(req,res)=>{
+//     try {
     
-        const connection = await conectar_BD_GAF_MySql();
+//         const connection = await conectar_BD_GAF_MySql();
 
-        const [anexos] = await connection.execute(
-            'SELECT * FROM anexo'
-        );
-        res.status(200).json({anexos})
-    } catch (error) {
-        res.status(500).json({ message: error.message || "Algo salió mal :(" });
-    }
-}
+//         const [anexos] = await connection.execute(
+//             'SELECT * FROM anexo'
+//         );
+//         res.status(200).json({anexos})
+//     } catch (error) {
+//         res.status(500).json({ message: error.message || "Algo salió mal :(" });
+//     }
+// }
+const listarAnexos = async (req, res) => {
+  const connection = await conectar_BD_GAF_MySql();
+  try {
+      // Verifica si hay un término de búsqueda en los parámetros de la solicitud
+      const searchTerm = req.query.searchTerm || '';
+
+      let sqlQuery = 'SELECT * FROM anexo';
+
+      // Agrega la cláusula WHERE para la búsqueda si hay un término de búsqueda
+      if (searchTerm) {
+          // sqlQuery += ' WHERE anexo_codigo LIKE ? OR anexo_det LIKE ?';
+          sqlQuery += ' WHERE LOWER(anexo_codigo) LIKE LOWER(?) OR LOWER(anexo_det) LIKE LOWER(?)';
+      }
+
+      const [anexos] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
+
+      res.status(200).json({ anexos });
+  } catch (error) {
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+  // finally {
+  //   if (connection) {
+  //     connection.release();
+  //   }
+  // }
+};
+
+module.exports = {
+  listarAnexos,
+};
+
 
 const agregarAnexo =async(req,res)=>{
     try {
