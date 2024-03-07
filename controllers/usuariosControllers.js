@@ -39,6 +39,18 @@ const generarCodigo=(numero)=> {
   return ultimosCuatroDigitos;
 }
 
+function generarCodigoAfaNumerico() {
+  const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let codigo = '';
+
+  for (let i = 0; i < 8; i++) {
+    const indice = Math.floor(Math.random() * caracteres.length);
+    codigo += caracteres.charAt(indice);
+  }
+
+  return codigo;
+}
+
 //controladores
 const login = async (req, res) => {
     try {
@@ -392,5 +404,112 @@ enviarEmail(codigoValidacion,email_persona,res);
 
 }
 
+const editarClave = async (req, res) => {
+  let connection;
+  try {
+      const { documento_persona, clave_actual,clave_nueva } = req.body;
 
-module.exports = { login, getAuthStatus, obtenerUsuarios,editarUsuario, borrarUsuario, obtenerCiudadanoPorDNIMYSQL, obtenerCiudadanoPorEmailMYSQL, validarUsuarioMYSQL, agregarUsuarioMYSQL,editarUsuarioCompleto,enviarEmailValidacion}
+      // Establecer la conexión a la base de datos MySQL
+      connection = await conectarBDEstadisticasMySql();
+
+      // Consultar el usuario por su email
+      const [result] = await connection.query('SELECT * FROM persona WHERE documento_persona = ?', [documento_persona]);
+
+      // Verificar si se encontró el usuario
+      if (result.length > 0) {
+          const usuario = result[0];
+      
+          const passOk = await bcrypt.compare(clave_actual, usuario.clave);
+          if (!passOk) return res.status(200).json({ message:  "La clave actual es incorrecta ", ok: false });
+         
+          // Verificar si el usuario ya está validado
+          if (usuario.validado) {
+              
+        
+            const hashedPassword = await bcrypt.hash(clave_nueva, 10);
+              
+                  // Actualizar el estado de validación del usuario
+                  await connection.query('UPDATE persona SET clave = ? WHERE documento_persona = ?', [hashedPassword, documento_persona]);
+
+                  return res.status(200).json({ message: "Clave modificada con éxito",ok: true});
+              
+              
+          
+          } else {
+              // El usuario ya está validado
+              return res.status(200).json({ message: "El usuario no está validado",ok: false});
+          }
+      } else {
+          // No se encontró el usuario
+          return res.status(200).json({ message: "Usuario no encontrado" ,ok: false});
+      }
+  } catch (error) {
+      return res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+      // Cerrar la conexión a la base de datos
+      if (connection) {
+          connection.end();
+      }
+  }
+};
+
+
+const restablecerClave = async (req, res) => {
+  let connection;
+  try {
+      const { email } = req.body;
+
+      const clave_nueva=generarCodigoAfaNumerico();
+
+      // Establecer la conexión a la base de datos MySQL
+      connection = await conectarBDEstadisticasMySql();
+
+      // Consultar el usuario por su email
+      const [result] = await connection.query('SELECT * FROM persona WHERE email_persona = ?', [email]);
+
+      // Verificar si se encontró el usuario
+      if (result.length > 0) {
+          const usuario = result[0];
+      
+   
+         const hashedPassword = await bcrypt.hash(clave_nueva, 10);
+              
+                  
+                  await connection.query('UPDATE persona SET clave = ? WHERE email_persona = ?', [hashedPassword, email]);
+
+                  const mailOptions = {
+                    from: 'develop.ditec@zohomail.com', // Coloca tu dirección de correo electrónico
+                    to: email, // Utiliza el correo electrónico del usuario recién registrado
+                    subject: 'Restablecer Clave',
+                    text: `Tu nueva clave temporal es: ${clave_nueva}. Recuerda cambiarla después de iniciar sesión`
+                };
+                
+                transporter.sendMail(mailOptions, (errorEmail, info) => {
+                    if (errorEmail) {
+                      res.status(500).json({msg:'Error al enviar el correo electrónico:',error: errorEmail});
+                    } else {
+                      res.status(200).json({mge:'Correo electrónico enviado correctamente:',info: info.response});
+                    }
+                });
+
+ 
+                  return res.status(200).json({ message: `Se envió un email a ${email} con una clave temporal`,ok: true});
+              
+              
+          
+          
+      } else {
+          // No se encontró el usuario
+          return res.status(200).json({ message: "Usuario no encontrado" ,ok: false});
+      }
+  } catch (error) {
+      return res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+      // Cerrar la conexión a la base de datos
+      if (connection) {
+          connection.end();
+      }
+  }
+};
+
+module.exports = { login, getAuthStatus, obtenerUsuarios,editarUsuario, borrarUsuario, obtenerCiudadanoPorDNIMYSQL, obtenerCiudadanoPorEmailMYSQL, validarUsuarioMYSQL, agregarUsuarioMYSQL,editarUsuarioCompleto,enviarEmailValidacion,editarClave,restablecerClave}
