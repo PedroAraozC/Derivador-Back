@@ -315,19 +315,27 @@ const borrarFinalidad = async (req, res) => {
     }
   };
 
-const listarFunciones =async(req,res)=>{
+const listarFunciones = async (req, res) => {
+  const connection = await conectar_BD_GAF_MySql();
   try {
-  
-      const connection = await conectar_BD_GAF_MySql();
+      // Verifica si hay un término de búsqueda en los parámetros de la solicitud
+      const searchTerm = req.query.searchTerm || '';
 
-      const [funciones] = await connection.execute(
-          'SELECT * FROM funcion'
-      );
-      res.status(200).json({funciones})
+      let sqlQuery = 'SELECT * FROM funcion';
+
+      // Agrega la cláusula WHERE para la búsqueda si hay un término de búsqueda
+      if (searchTerm) {
+          // sqlQuery += ' WHERE anexo_codigo LIKE ? OR anexo_det LIKE ?';
+          sqlQuery += ' WHERE LOWER(funcion_codigo) LIKE LOWER(?) OR LOWER(funcion_det) LIKE LOWER(?)';
+      }
+
+      const [funciones] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
+
+      res.status(200).json({ funciones });
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
-}
+};
 
 const agregarFuncion =async(req,res)=>{
   try {
