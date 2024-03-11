@@ -321,15 +321,15 @@ const listarFunciones = async (req, res) => {
       // Verifica si hay un término de búsqueda en los parámetros de la solicitud
       const searchTerm = req.query.searchTerm || '';
 
-      let sqlQuery = 'SELECT * FROM funcion';
+      let sqlQuery = 'SELECT funcion.*, finalidad_det FROM funcion LEFT JOIN finalidad ON funcion.finalidad_id = finalidad.finalidad_id';
 
       // Agrega la cláusula WHERE para la búsqueda si hay un término de búsqueda
       if (searchTerm) {
-          // sqlQuery += ' WHERE anexo_codigo LIKE ? OR anexo_det LIKE ?';
+          
           sqlQuery += ' WHERE LOWER(funcion_codigo) LIKE LOWER(?) OR LOWER(funcion_det) LIKE LOWER(?)';
       }
-
       const [funciones] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
+      console.log(funciones);
 
       res.status(200).json({ funciones });
   } catch (error) {
@@ -339,12 +339,13 @@ const listarFunciones = async (req, res) => {
 
 const agregarFuncion =async(req,res)=>{
   try {
-      const { descripcion} = req.body;
+      const { descripcion,codigo,finalidad_id} = req.body;
+console.log(req.body);
       const connection = await conectar_BD_GAF_MySql();
 
       const [funcion] = await connection.execute(
-          "SELECT * FROM funcion WHERE funcion_det = ?",
-          [descripcion]
+          "SELECT * FROM funcion WHERE funcion_codigo = ?",
+          [codigo]
         );
         
           if(funcion.length > 0){
@@ -356,7 +357,7 @@ const agregarFuncion =async(req,res)=>{
               });
           }else {
               const [result] = await connection.execute(
-                  'INSERT INTO funcion (funcion_det) VALUES (?)',[descripcion]
+                  'INSERT INTO funcion (funcion_det,funcion_codigo,finalidad_id) VALUES (?,?,?)',[descripcion,codigo,finalidad_id]
               );
               res.status(200).json({ message: "funcion creada con éxito" })
           }
@@ -367,37 +368,37 @@ const agregarFuncion =async(req,res)=>{
 
 const editarFuncion = async (req,res) =>{
   try {
-      const { descripcion } = req.body;
-      const funcionId = req.params.id;
-  
-      const sql =
-        "UPDATE funcion SET funcion_det = ? WHERE funcion_id = ?";
-      const values = [descripcion, funcionId];
-  
-      const connection = await conectar_BD_GAF_MySql();
-      const [funcion] = await connection.execute(
-        "SELECT * FROM funcion WHERE funcion_det = ? ",
-        [descripcion]
-      );
+    const { codigo, descripcion, finalidad_id } = req.body;
+    const funcionId = req.params.id;
 
-      if (funcion.length == 0 || funcion[0].funcion_id == funcionId) {
-        const [result] = await connection.execute(sql, values);
-        // El resultado puede contener información sobre la cantidad de filas afectadas, etc.
-        console.log("Filas actualizadas:", result.affectedRows);
-        res
-          .status(200)
-          .json({ message: "funcion modificada con exito", result });
-      } else {
-        res
-          .status(400)
-          .json({
-            message: "funcion ya existente",
-            funcion: funcion[0].funcion_det,
-          });
-      }
-    } catch (error) {
-      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    const sql =
+      "UPDATE funcion SET funcion_codigo = ?, funcion_det = ?, finalidad_id = ? WHERE funcion_id = ?";
+    const values = [codigo, descripcion,finalidad_id, funcionId];
+
+    const connection = await conectar_BD_GAF_MySql();
+    const [funcion] = await connection.execute(
+      "SELECT * FROM funcion WHERE funcion_codigo = ? ",
+      [codigo]
+    );
+ 
+    if (funcion.length == 0 || funcion[0].funcion_id == funcionId) {
+      const [result] = await connection.execute(sql, values);
+      // El resultado puede contener información sobre la cantidad de filas afectadas, etc.
+      console.log("Filas actualizadas:", result.affectedRows);
+      res
+        .status(200)
+        .json({ message: "función modificada con éxito", result });
+    } else {
+      res
+        .status(400)
+        .json({
+          message: "función ya existente",
+          Funcion: funcion[0].funcion_det,
+        });
     }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
 }
 
 const borrarFuncion = async (req, res) => {
