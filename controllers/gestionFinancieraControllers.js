@@ -340,7 +340,7 @@ const listarFunciones = async (req, res) => {
 const agregarFuncion =async(req,res)=>{
   try {
       const { descripcion,codigo,finalidad_id} = req.body;
-console.log(req.body);
+
       const connection = await conectar_BD_GAF_MySql();
 
       const [funcion] = await connection.execute(
@@ -421,23 +421,52 @@ const borrarFuncion = async (req, res) => {
   }
 };
 
-const listarItems =async(req,res)=>{
-  try {
-  
-      const connection = await conectar_BD_GAF_MySql();
 
-      const [items] = await connection.execute(
-          'SELECT * FROM item'
-      );
-      res.status(200).json({items})
+const listarItems = async (req, res) => {
+  const connection = await conectar_BD_GAF_MySql();
+  try {
+      // Verifica si hay un término de búsqueda en los parámetros de la solicitud
+      const searchTerm = req.query.searchTerm || '';
+
+      let sqlQuery =  'SELECT item.*, anexo_det, finalidad_det, funcion_det FROM item ' +
+      'LEFT JOIN anexo ON item.anexo_id = anexo.anexo_id ' +
+      'LEFT JOIN finalidad ON item.finalidad_id = finalidad.finalidad_id ' +
+      'LEFT JOIN funcion ON item.funcion_id = funcion.funcion_id'
+
+      // Agrega la cláusula WHERE para la búsqueda si hay un término de búsqueda
+      if (searchTerm) {
+          
+          sqlQuery += ' WHERE LOWER(item_codigo) LIKE LOWER(?) OR LOWER(item_det) LIKE LOWER(?)';
+      }
+      const [items] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
+
+      res.status(200).json({ items });
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
-}
+};
+
+// const listarItems =async(req,res)=>{
+//   try {
+  
+//       const connection = await conectar_BD_GAF_MySql();
+
+//       const [items] = await connection.execute(
+//         'SELECT item.*, anexo_det, finalidad_det, funcion_det FROM item ' +
+//         'LEFT JOIN anexo ON item.anexo_id = anexo.anexo_id ' +
+//         'LEFT JOIN finalidad ON item.finalidad_id = finalidad.finalidad_id ' +
+//         'LEFT JOIN funcion ON item.funcion_id = funcion.funcion_id'
+//       );
+      
+//       res.status(200).json({items})
+//   } catch (error) {
+//       res.status(500).json({ message: error.message || "Algo salió mal :(" });
+//   }
+// }
 
 const agregarItem =async(req,res)=>{
   try {
-      const {codigo, descripcion} = req.body;
+      const {codigo, descripcion,anexo_id,finalidad_id,funcion_id,fechaInicio,fechaFin} = req.body;
       const connection = await conectar_BD_GAF_MySql();
 
       const [item] = await connection.execute(
@@ -454,7 +483,7 @@ const agregarItem =async(req,res)=>{
               });
           }else {
               const [result] = await connection.execute(
-                  'INSERT INTO item (item_codigo,item_det) VALUES (?,?)',[codigo, descripcion]
+                  'INSERT INTO item (item_codigo,item_det,anexo_id,finalidad_id,funcion_id,item_fechainicio,item_fechafin) VALUES (?,?,?,?,?,?,?)',[codigo, descripcion,anexo_id,finalidad_id,funcion_id,fechaInicio,fechaFin]
               );
               res.status(200).json({ message: "Item creado con éxito" })
           }
@@ -465,12 +494,12 @@ const agregarItem =async(req,res)=>{
 
 const editarItem = async (req,res) =>{
   try {
-      const { codigo, descripcion } = req.body;
+      const { codigo, descripcion,anexo_id,finalidad_id,funcion_id,fechaInicio,fechaFin } = req.body;
       const itemId = req.params.id;
   
       const sql =
-        "UPDATE item SET item_codigo = ?, item_det = ? WHERE item_id = ?";
-      const values = [codigo, descripcion, itemId];
+        "UPDATE item SET item_codigo = ?, item_det = ?, anexo_id = ?, finalidad_id = ?, funcion_id = ?, item_fechaInicio = ?, item_fechaFin = ? WHERE item_id = ?";
+      const values = [codigo, descripcion,anexo_id,finalidad_id,funcion_id,fechaInicio,fechaFin, itemId];
   
       const connection = await conectar_BD_GAF_MySql();
       const [item] = await connection.execute(
