@@ -14,15 +14,15 @@ const conectarBDEstadisticasMySql = async () => {
     }
 }
 
-// const pool = mysql.createPool({
-//     host: process.env.HOST_CIU_DIGITAL,
-//     user: process.env.USER_CIU_DIGITAL,
-//     password: process.env.PASSWORD_CIU_DIGITAL,
-//     database: process.env.DB_GAF,
-//     waitForConnections: true,
-//     connectionLimit: 10, // Ajusta según sea necesario
-//     queueLimit: 0,
-// });
+const pool = mysql.createPool({
+    host: process.env.HOST_CIU_DIGITAL,
+    user: process.env.USER_CIU_DIGITAL,
+    password: process.env.PASSWORD_CIU_DIGITAL,
+    database: process.env.DB_EDUCACION,
+    waitForConnections: true,
+    connectionLimit: 10, // Ajusta según sea necesario
+    queueLimit: 0,
+});
 
 // const conectar_BD_GAF_MySql = async () => {
 //     try {
@@ -47,5 +47,14 @@ const conectar_BD_GAF_MySql = async () => {
         console.log(error.message);
     }
 }
+const conectar_BD_EDUCACION_MySql = async () => {
+    try {
+        const connection = await pool.getConnection();
+     
+        return connection
+    } catch (error) {
+        console.log(error.message);
+    }
+}
 
-module.exports = { conectarBDEstadisticasMySql, conectar_BD_GAF_MySql} 
+module.exports = { conectarBDEstadisticasMySql, conectar_BD_GAF_MySql, conectar_BD_EDUCACION_MySql} 
