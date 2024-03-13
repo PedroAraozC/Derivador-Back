@@ -14,4 +14,23 @@ function obtenerPeriodoDelDiaConHora(fechaString) {
     }
   }
 
-  module.exports = obtenerPeriodoDelDiaConHora;
+  function obtenerFechaEnFormatoDate(fecha) {
+  
+    const fechaObjeto = new Date(fecha);
+
+    // Verificar si la fecha es válida antes de continuar
+    if (!isNaN(fechaObjeto.getTime())) {
+      // Obtener año, mes y día
+      const año = fechaObjeto.getFullYear();
+      const mes = ('0' + (fechaObjeto.getMonth() + 1)).slice(-2); // Agregar 1 ya que los meses en JavaScript van de 0 a 11
+      const dia = ('0' + fechaObjeto.getDate()).slice(-2);
+    
+      // Formato AAAA/MM/DD
+      const fechaSQL = `${año}/${mes}/${dia}`;
+      return fechaSQL;
+      // console.log(fechaSQL);
+    } else {
+      return null;
+    }
+  }
+  module.exports = {obtenerPeriodoDelDiaConHora,obtenerFechaEnFormatoDate};

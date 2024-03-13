@@ -1,4 +1,5 @@
 const { conectar_BD_GAF_MySql } = require("../config/dbEstadisticasMYSQL");
+const { obtenerFechaEnFormatoDate } = require("../utils/helpers");
 
 const listarAnexos = async (req, res) => {
   const connection = await conectar_BD_GAF_MySql();
@@ -446,29 +447,11 @@ const listarItems = async (req, res) => {
   }
 };
 
-// const listarItems =async(req,res)=>{
-//   try {
-  
-//       const connection = await conectar_BD_GAF_MySql();
-
-//       const [items] = await connection.execute(
-//         'SELECT item.*, anexo_det, finalidad_det, funcion_det FROM item ' +
-//         'LEFT JOIN anexo ON item.anexo_id = anexo.anexo_id ' +
-//         'LEFT JOIN finalidad ON item.finalidad_id = finalidad.finalidad_id ' +
-//         'LEFT JOIN funcion ON item.funcion_id = funcion.funcion_id'
-//       );
-      
-//       res.status(200).json({items})
-//   } catch (error) {
-//       res.status(500).json({ message: error.message || "Algo salió mal :(" });
-//   }
-// }
-
 const agregarItem =async(req,res)=>{
   try {
       const {codigo, descripcion,anexo_id,finalidad_id,funcion_id,fechaInicio,fechaFin} = req.body;
       const connection = await conectar_BD_GAF_MySql();
-
+console.log(req.body);
       const [item] = await connection.execute(
           "SELECT * FROM item WHERE item_codigo = ?",
           [codigo]
@@ -483,7 +466,7 @@ const agregarItem =async(req,res)=>{
               });
           }else {
               const [result] = await connection.execute(
-                  'INSERT INTO item (item_codigo,item_det,anexo_id,finalidad_id,funcion_id,item_fechainicio,item_fechafin) VALUES (?,?,?,?,?,?,?)',[codigo, descripcion,anexo_id,finalidad_id,funcion_id,fechaInicio,fechaFin]
+                  'INSERT INTO item (item_codigo,item_det,anexo_id,finalidad_id,funcion_id) VALUES (?,?,?,?,?)',[codigo, descripcion,anexo_id,finalidad_id,funcion_id]
               );
               res.status(200).json({ message: "Item creado con éxito" })
           }
@@ -496,10 +479,11 @@ const editarItem = async (req,res) =>{
   try {
       const { codigo, descripcion,anexo_id,finalidad_id,funcion_id,fechaInicio,fechaFin } = req.body;
       const itemId = req.params.id;
-  
+console.log(req.body);
       const sql =
-        "UPDATE item SET item_codigo = ?, item_det = ?, anexo_id = ?, finalidad_id = ?, funcion_id = ?, item_fechaInicio = ?, item_fechaFin = ? WHERE item_id = ?";
-      const values = [codigo, descripcion,anexo_id,finalidad_id,funcion_id,fechaInicio,fechaFin, itemId];
+        "UPDATE item SET item_codigo = ?, item_det = ?, anexo_id = ?, finalidad_id = ?, funcion_id = ? WHERE item_id = ?";
+      // const values = [codigo, descripcion,anexo_id,finalidad_id,funcion_id,fechaInicio.includes("T")? obtenerFechaEnFormatoDate(fechaInicio): fechaInicio,fechaFin.includes("T")? obtenerFechaEnFormatoDate(fechaFin): fechaFin, itemId];
+      const values = [codigo, descripcion,anexo_id,finalidad_id,funcion_id, itemId];
   
       const connection = await conectar_BD_GAF_MySql();
       const [item] = await connection.execute(
