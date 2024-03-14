@@ -628,5 +628,33 @@ const borrarPartida = async (req, res) => {
   }
 };
 
+const listarTiposDeMovimientos =async(req,res)=>{
+  try {
+  
+      const connection = await conectar_BD_GAF_MySql();
+
+      const [tiposDeMovimientos] = await connection.execute(
+          'SELECT * FROM tipomovimiento'
+      );
+      res.status(200).json({tiposDeMovimientos})
+  } catch (error) {
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const listarOrganismos =async(req,res)=>{
+  try {
+  
+      const connection = await conectar_BD_GAF_MySql();
+
+      const [organismos] = await connection.execute(
+          'SELECT * FROM organismo'
+      );
+      res.status(200).json({organismos})
+  } catch (error) {
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas, agregarPartida, editarPartida, borrarPartida, listarEjercicios,
-agregarEjercicio,editarEjercicio,borrarEjercicio}
+agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos}

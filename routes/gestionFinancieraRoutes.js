@@ -1,7 +1,7 @@
 const { Router } = require("express");
 const auth = require("../middlewares/auth");
 const verifyRole = require("../middlewares/verifyRole");
-const { listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas, agregarPartida, editarPartida, borrarPartida, listarEjercicios, agregarEjercicio, editarEjercicio, borrarEjercicio } = require("../controllers/gestionFinancieraControllers");
+const { listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas, agregarPartida, editarPartida, borrarPartida, listarEjercicios, agregarEjercicio, editarEjercicio, borrarEjercicio, listarTiposDeMovimientos, listarOrganismos } = require("../controllers/gestionFinancieraControllers");
 const router = Router();
 
 router.get("/anexo/listar", listarAnexos);
@@ -33,5 +33,9 @@ router.get("/partida/listar", listarPartidas);
 router.post("/partida/alta", agregarPartida)
 router.put("/partida/editar/:id",editarPartida)
 router.delete("/partida/borrar", borrarPartida)
+
+router.get("/tipoDeMovimiento/listar", listarTiposDeMovimientos);
+
+router.get("/organismo/listar", listarOrganismos);
 
 module.exports = router;
