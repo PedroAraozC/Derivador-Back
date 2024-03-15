@@ -551,7 +551,7 @@ const listarPartidasConCodigo =async(req,res)=>{
       const connection = await conectar_BD_GAF_MySql();
 
       const [partidas] = await connection.execute(
-         "SELECT CONCAT(partida_codigo, ' _ ', partida_det) AS partida FROM partidas WHERE partida_gasto = 1 ORDER BY partida_codigo"
+         "SELECT partida_id,CONCAT(partida_codigo, ' _ ', partida_det) AS partida FROM partidas WHERE partida_gasto = 1 ORDER BY partida_codigo"
       );
       console.log(partidas);
       res.status(200).json({partidas})
@@ -693,8 +693,8 @@ const agregarExpediente = async (req,res) =>{
             const [result] = await connection.execute(
                 'INSERT INTO expediente (organismo_id,expediente_numero,expediente_anio,expediente_causante,expediente_asunto, expediente_fecha) VALUES (?,?,?,?,?,?)',[organismo_id,numero,anio,causante,asunto,fecha]
             );
-         
-            res.status(200).json({ message: "expediente creado con éxito",numero })
+      
+            res.status(200).json({ message: "expediente creado con éxito",expediente_id:result.insertId })
         }
 } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -712,12 +712,21 @@ const obtenerDetPresupuestoPorItemYpartida = async (req,res) =>{
         "SELECT detpresupuesto_id FROM detpresupuesto WHERE item_id = ? AND partida_id = ?",
         [item,partida]
       );
+
       res.status(200).json({detPresupuesto})
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
 }
 
+const agregarMovimiento = async (req,res) =>{
+  try {
+    const {fecha,tipomovimiento_id,expediente_id,detMovimiento} = req.body;
+    res.status(200).json(true)
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida, listarEjercicios,
 agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,
-obtenerDetPresupuestoPorItemYpartida}
+obtenerDetPresupuestoPorItemYpartida,agregarMovimiento}

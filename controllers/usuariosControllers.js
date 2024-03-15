@@ -41,13 +41,13 @@ const generarCodigo=(numero)=> {
 
 //controladores
 const login = async (req, res) => {
-  const connection = await conectarBDEstadisticasMySql();
+ 
     try {
         const { dni, password } = req.body;
         if (!dni || !password)
             throw new CustomError("Usuario y contraseña son requeridas", 400);
 
-        // const connection = await conectarBDEstadisticasMySql();
+        const connection = await conectarBDEstadisticasMySql();
 
         const [result] = await connection.execute(
           '    SELECT persona.*, tipo_usuario.nombre_tusuario AS tipoDeUsuario FROM persona JOIN tipo_usuario ON persona.id_tusuario = tipo_usuario.id_tusuario WHERE persona.documento_persona = ?',[dni]
@@ -57,7 +57,7 @@ const login = async (req, res) => {
 
         const permiso_persona = await connection.execute('SELECT permiso_persona.*,proceso.nombre_proceso AS proceso,proceso.habilita AS habilitado FROM permiso_persona JOIN proceso ON permiso_persona.id_proceso=proceso.id_proceso WHERE permiso_persona.id_persona = ?',[result[0].id_persona]) 
     
-        // await connection.end();
+        await connection.end();
 
         const passOk = await bcrypt.compare(password, result[0].clave);
         if (!passOk) throw new CustomError("Contraseña incorrecta", 400);
@@ -74,8 +74,6 @@ const login = async (req, res) => {
         res
             .status(error.code || 500)
             .json({ message: error.message || "algo explotó :|" });
-    } finally{
-      await connection.end();
     }
 };
 
