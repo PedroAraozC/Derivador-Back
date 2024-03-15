@@ -545,6 +545,21 @@ const listarPartidas =async(req,res)=>{
   }
 }
 
+const listarPartidasConCodigo =async(req,res)=>{
+  try {
+  
+      const connection = await conectar_BD_GAF_MySql();
+
+      const [partidas] = await connection.execute(
+         "SELECT CONCAT(partida_codigo, ' _ ', partida_det) AS partida FROM partidas WHERE partida_gasto = 1 ORDER BY partida_codigo"
+      );
+      console.log(partidas);
+      res.status(200).json({partidas})
+  } catch (error) {
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
 const agregarPartida =async(req,res)=>{
   try {
       const {partida_seccion, partida_sector, partida_principal, partida_parcial, partida_subparcial, partida_codigo, partida_det, partidapadre_id, partida_gasto, partida_credito} = req.body;
@@ -656,5 +671,53 @@ const listarOrganismos =async(req,res)=>{
   }
 }
 
-module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas, agregarPartida, editarPartida, borrarPartida, listarEjercicios,
-agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos}
+const agregarExpediente = async (req,res) =>{
+  try {
+    const { anio, numero, causante, asunto, fecha, organismo_id } = req.body;
+
+    const connection = await conectar_BD_GAF_MySql();
+
+    const [expediente] = await connection.execute(
+        "SELECT * FROM expediente WHERE expediente_numero = ?",
+        [numero]
+      );
+      
+        if(expediente.length > 0){
+            res
+            .status(400)
+            .json({
+              message: "expediente ya existente",
+              expediente: expediente[0].expediente_numero,
+            });
+        }else {
+            const [result] = await connection.execute(
+                'INSERT INTO expediente (organismo_id,expediente_numero,expediente_anio,expediente_causante,expediente_asunto, expediente_fecha) VALUES (?,?,?,?,?,?)',[organismo_id,numero,anio,causante,asunto,fecha]
+            );
+         
+            res.status(200).json({ message: "expediente creado con éxito",numero })
+        }
+} catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+}
+}
+
+const obtenerDetPresupuestoPorItemYpartida = async (req,res) =>{
+  try {
+    const item = req.query.item;
+    const partida = req.query.partida;
+
+    const connection = await conectar_BD_GAF_MySql();
+
+    const [detPresupuesto] = await connection.execute(
+        "SELECT detpresupuesto_id FROM detpresupuesto WHERE item_id = ? AND partida_id = ?",
+        [item,partida]
+      );
+      res.status(200).json({detPresupuesto})
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida, listarEjercicios,
+agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,
+obtenerDetPresupuestoPorItemYpartida}
