@@ -321,15 +321,15 @@ const listarFunciones = async (req, res) => {
       // Verifica si hay un término de búsqueda en los parámetros de la solicitud
       const searchTerm = req.query.searchTerm || '';
 
-      let sqlQuery = 'SELECT * FROM funcion';
+      let sqlQuery = 'SELECT funcion.*, finalidad_det FROM funcion LEFT JOIN finalidad ON funcion.finalidad_id = finalidad.finalidad_id';
 
       // Agrega la cláusula WHERE para la búsqueda si hay un término de búsqueda
       if (searchTerm) {
-          // sqlQuery += ' WHERE anexo_codigo LIKE ? OR anexo_det LIKE ?';
+          
           sqlQuery += ' WHERE LOWER(funcion_codigo) LIKE LOWER(?) OR LOWER(funcion_det) LIKE LOWER(?)';
       }
-
       const [funciones] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
+      console.log(funciones);
 
       res.status(200).json({ funciones });
   } catch (error) {
@@ -339,12 +339,13 @@ const listarFunciones = async (req, res) => {
 
 const agregarFuncion =async(req,res)=>{
   try {
-      const { descripcion} = req.body;
+      const { descripcion,codigo,finalidad_id} = req.body;
+
       const connection = await conectar_BD_GAF_MySql();
 
       const [funcion] = await connection.execute(
-          "SELECT * FROM funcion WHERE funcion_det = ?",
-          [descripcion]
+          "SELECT * FROM funcion WHERE funcion_codigo = ?",
+          [codigo]
         );
         
           if(funcion.length > 0){
@@ -356,7 +357,7 @@ const agregarFuncion =async(req,res)=>{
               });
           }else {
               const [result] = await connection.execute(
-                  'INSERT INTO funcion (funcion_det) VALUES (?)',[descripcion]
+                  'INSERT INTO funcion (funcion_det,funcion_codigo,finalidad_id) VALUES (?,?,?)',[descripcion,codigo,finalidad_id]
               );
               res.status(200).json({ message: "funcion creada con éxito" })
           }
@@ -367,37 +368,37 @@ const agregarFuncion =async(req,res)=>{
 
 const editarFuncion = async (req,res) =>{
   try {
-      const { descripcion } = req.body;
-      const funcionId = req.params.id;
-  
-      const sql =
-        "UPDATE funcion SET funcion_det = ? WHERE funcion_id = ?";
-      const values = [descripcion, funcionId];
-  
-      const connection = await conectar_BD_GAF_MySql();
-      const [funcion] = await connection.execute(
-        "SELECT * FROM funcion WHERE funcion_det = ? ",
-        [descripcion]
-      );
+    const { codigo, descripcion, finalidad_id } = req.body;
+    const funcionId = req.params.id;
 
-      if (funcion.length == 0 || funcion[0].funcion_id == funcionId) {
-        const [result] = await connection.execute(sql, values);
-        // El resultado puede contener información sobre la cantidad de filas afectadas, etc.
-        console.log("Filas actualizadas:", result.affectedRows);
-        res
-          .status(200)
-          .json({ message: "funcion modificada con exito", result });
-      } else {
-        res
-          .status(400)
-          .json({
-            message: "funcion ya existente",
-            funcion: funcion[0].funcion_det,
-          });
-      }
-    } catch (error) {
-      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    const sql =
+      "UPDATE funcion SET funcion_codigo = ?, funcion_det = ?, finalidad_id = ? WHERE funcion_id = ?";
+    const values = [codigo, descripcion,finalidad_id, funcionId];
+
+    const connection = await conectar_BD_GAF_MySql();
+    const [funcion] = await connection.execute(
+      "SELECT * FROM funcion WHERE funcion_codigo = ? ",
+      [codigo]
+    );
+ 
+    if (funcion.length == 0 || funcion[0].funcion_id == funcionId) {
+      const [result] = await connection.execute(sql, values);
+      // El resultado puede contener información sobre la cantidad de filas afectadas, etc.
+      console.log("Filas actualizadas:", result.affectedRows);
+      res
+        .status(200)
+        .json({ message: "función modificada con éxito", result });
+    } else {
+      res
+        .status(400)
+        .json({
+          message: "función ya existente",
+          Funcion: funcion[0].funcion_det,
+        });
     }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
 }
 
 const borrarFuncion = async (req, res) => {
@@ -420,23 +421,52 @@ const borrarFuncion = async (req, res) => {
   }
 };
 
-const listarItems =async(req,res)=>{
-  try {
-  
-      const connection = await conectar_BD_GAF_MySql();
 
-      const [items] = await connection.execute(
-          'SELECT * FROM item'
-      );
-      res.status(200).json({items})
+const listarItems = async (req, res) => {
+  const connection = await conectar_BD_GAF_MySql();
+  try {
+      // Verifica si hay un término de búsqueda en los parámetros de la solicitud
+      const searchTerm = req.query.searchTerm || '';
+
+      let sqlQuery =  'SELECT item.*, anexo_det, finalidad_det, funcion_det FROM item ' +
+      'LEFT JOIN anexo ON item.anexo_id = anexo.anexo_id ' +
+      'LEFT JOIN finalidad ON item.finalidad_id = finalidad.finalidad_id ' +
+      'LEFT JOIN funcion ON item.funcion_id = funcion.funcion_id'
+
+      // Agrega la cláusula WHERE para la búsqueda si hay un término de búsqueda
+      if (searchTerm) {
+          
+          sqlQuery += ' WHERE LOWER(item_codigo) LIKE LOWER(?) OR LOWER(item_det) LIKE LOWER(?)';
+      }
+      const [items] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
+
+      res.status(200).json({ items });
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
-}
+};
+
+// const listarItems =async(req,res)=>{
+//   try {
+  
+//       const connection = await conectar_BD_GAF_MySql();
+
+//       const [items] = await connection.execute(
+//         'SELECT item.*, anexo_det, finalidad_det, funcion_det FROM item ' +
+//         'LEFT JOIN anexo ON item.anexo_id = anexo.anexo_id ' +
+//         'LEFT JOIN finalidad ON item.finalidad_id = finalidad.finalidad_id ' +
+//         'LEFT JOIN funcion ON item.funcion_id = funcion.funcion_id'
+//       );
+      
+//       res.status(200).json({items})
+//   } catch (error) {
+//       res.status(500).json({ message: error.message || "Algo salió mal :(" });
+//   }
+// }
 
 const agregarItem =async(req,res)=>{
   try {
-      const {codigo, descripcion} = req.body;
+      const {codigo, descripcion,anexo_id,finalidad_id,funcion_id,fechaInicio,fechaFin} = req.body;
       const connection = await conectar_BD_GAF_MySql();
 
       const [item] = await connection.execute(
@@ -453,7 +483,7 @@ const agregarItem =async(req,res)=>{
               });
           }else {
               const [result] = await connection.execute(
-                  'INSERT INTO item (item_codigo,item_det) VALUES (?,?)',[codigo, descripcion]
+                  'INSERT INTO item (item_codigo,item_det,anexo_id,finalidad_id,funcion_id,item_fechainicio,item_fechafin) VALUES (?,?,?,?,?,?,?)',[codigo, descripcion,anexo_id,finalidad_id,funcion_id,fechaInicio,fechaFin]
               );
               res.status(200).json({ message: "Item creado con éxito" })
           }
@@ -464,12 +494,12 @@ const agregarItem =async(req,res)=>{
 
 const editarItem = async (req,res) =>{
   try {
-      const { codigo, descripcion } = req.body;
+      const { codigo, descripcion,anexo_id,finalidad_id,funcion_id,fechaInicio,fechaFin } = req.body;
       const itemId = req.params.id;
   
       const sql =
-        "UPDATE item SET item_codigo = ?, item_det = ? WHERE item_id = ?";
-      const values = [codigo, descripcion, itemId];
+        "UPDATE item SET item_codigo = ?, item_det = ?, anexo_id = ?, finalidad_id = ?, funcion_id = ?, item_fechaInicio = ?, item_fechaFin = ? WHERE item_id = ?";
+      const values = [codigo, descripcion,anexo_id,finalidad_id,funcion_id,fechaInicio,fechaFin, itemId];
   
       const connection = await conectar_BD_GAF_MySql();
       const [item] = await connection.execute(
@@ -518,14 +548,21 @@ const borrarItem = async (req, res) => {
 };
 
 const listarPartidas =async(req,res)=>{
+  const connection = await conectar_BD_GAF_MySql();
   try {
-  
-      const connection = await conectar_BD_GAF_MySql();
+      // Verifica si hay un término de búsqueda en los parámetros de la solicitud
+      const searchTerm = req.query.searchTerm || '';
 
-      const [partidas] = await connection.execute(
-          'SELECT * FROM partidas'
-      );
-      res.status(200).json({partidas})
+      let sqlQuery =  'SELECT * FROM partidas'
+
+      // Agrega la cláusula WHERE para la búsqueda si hay un término de búsqueda
+      if (searchTerm) {
+          
+          sqlQuery += ' WHERE LOWER(partida_codigo) LIKE LOWER(?) OR LOWER(partida_det) LIKE LOWER(?)';
+      }
+      const [partidas] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
+
+      res.status(200).json({ partidas });
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
@@ -533,27 +570,33 @@ const listarPartidas =async(req,res)=>{
 
 const agregarPartida =async(req,res)=>{
   try {
-      const {partida_seccion, partida_sector, partida_principal, partida_parcial, partida_subparcial, partida_codigo, partida_det, partidapadre_id, partida_gasto, partida_credito} = req.body;
+      const {id,seccion, sector, principal, parcial, subparcial, codigo, descripcion, partidapadre_id, gasto,credito} = req.body;
       const connection = await conectar_BD_GAF_MySql();
+          
+          
+      const [result] = await connection.execute(
+        'SELECT sp_insertpartidas(?,?,?,?,?,?,?,?,?)',
+        [seccion, sector, principal, parcial, subparcial, descripcion, partidapadre_id, gasto, credito]
+      );
+      console.log(result)
 
-      const [partida] = await connection.execute(
-          "SELECT * FROM partidas WHERE partida_codigo = ?",
-          [partida_codigo]
-        );
-         
-          if(partida.length > 0){
-              res
-              .status(400)
-              .json({
-                message: "partida ya existente",
-                Item: partida[0].partida_det,
-              });
-          }else {
-              const [result] = await connection.execute(
-                  'INSERT INTO partidas (partida_seccion, partida_sector, partida_principal, partida_parcial, partida_subparcial, partida_codigo, partida_det, partidapadre_id, partida_gasto, partida_credito) VALUES (?,?,?,?,?,?,?,?,?,?)',[partida_seccion, partida_sector, partida_principal, partida_parcial, partida_subparcial, partida_codigo, partida_det, partidapadre_id, partida_gasto, partida_credito]
-              );
-              res.status(200).json({ message: "Partida creada con éxito" })
-          }
+              if(result[0]['sp_insertpartidas(?,?,?,?,?,?,?,?,?)'] === 0){
+                res
+                .status(400)
+                .json({
+                  message: "partida ya existente",
+                  Item: result[0].partida_det,
+                });
+            }
+            
+
+else{
+
+  res.status(200).json({ message: "Partida creada con éxito" })
+}
+
+             
+          
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
@@ -561,34 +604,31 @@ const agregarPartida =async(req,res)=>{
 
 const editarPartida = async (req,res) =>{
   try {
-      const {partida_seccion, partida_sector, partida_principal, partida_parcial, partida_subparcial, partida_codigo, partida_det, partidapadre_id, partida_gasto, partida_credito} = req.body;
+    const {id,seccion, sector, principal, parcial, subparcial, codigo, descripcion, partidapadre_id, gasto,credito} = req.body;
       const partidaId = req.params.id;
   
-      const sql =
-        "UPDATE partidas SET partida_seccion=?, partida_sector=?, partida_principal=?, partida_parcial=?, partida_subparcial=?, partida_codigo=?, partida_det=?, partidapadre_id=?, partida_gasto=?, partida_credito=? WHERE partida_id = ?";
-      const values = [partida_seccion, partida_sector, partida_principal, partida_parcial, partida_subparcial, partida_codigo, partida_det, partidapadre_id, partida_gasto, partida_credito,partidaId ];
-  
       const connection = await conectar_BD_GAF_MySql();
-      const [partida] = await connection.execute(
-        "SELECT * FROM partidas WHERE partida_codigo = ? ",
-        [partida_codigo]
+          
+          
+      const [result] = await connection.execute(
+        'SELECT sp_updatepartidas(?,?,?,?,?,?,?,?,?,?)',
+        [partidaId,seccion, sector, principal, parcial, subparcial, descripcion, partidapadre_id, gasto, credito]
       );
 
-      if (partida.length == 0 || partida[0].partida_id == partidaId) {
-        const [result] = await connection.execute(sql, values);
-        // El resultado puede contener información sobre la cantidad de filas afectadas, etc.
-        console.log("Filas actualizadas:", result.affectedRows);
+      if(result[0]['sp_updatepartidas(?,?,?,?,?,?,?,?,?,?)'] === 0){
         res
-          .status(200)
-          .json({ message: "partida modificada con exito", result });
-      } else {
-        res
-          .status(400)
-          .json({
-            message: "partida ya existente",
-            Partida: partida[0].partida_det,
-          });
-      }
+        .status(400)
+        .json({
+          message: "Una partida ya existente con ese código",
+          Item: result[0].partida_det,
+        });
+    }
+    
+
+else{
+
+res.status(200).json({ message: "Partida modificada con éxito" })
+}
     } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
     }
@@ -614,5 +654,19 @@ const borrarPartida = async (req, res) => {
   }
 };
 
+const listarPartidasCONCAT = async (req, res) => {
+  const connection = await conectar_BD_GAF_MySql();
+  try {
+    let sqlQuery = `SELECT partida_id, CONCAT(partida_codigo, ' - ', partida_det) AS partida_concatenada FROM partidas ORDER BY partida_codigo`;
+
+    const [partidas] = await connection.execute(sqlQuery);
+
+    res.status(200).json({ partidas });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas, agregarPartida, editarPartida, borrarPartida, listarEjercicios,
-agregarEjercicio,editarEjercicio,borrarEjercicio}
+agregarEjercicio,editarEjercicio,borrarEjercicio,listarPartidasCONCAT}
