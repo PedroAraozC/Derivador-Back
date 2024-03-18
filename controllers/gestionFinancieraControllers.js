@@ -1,4 +1,7 @@
 const { conectar_BD_GAF_MySql } = require("../config/dbEstadisticasMYSQL");
+const sequelize = require("../config/sequelize");
+const DetMovimiento = require("../models/DetMovimiento");
+const Movimiento = require("../models/Movimiento");
 const { obtenerFechaEnFormatoDate } = require("../utils/helpers");
 
 const listarAnexos = async (req, res) => {
@@ -694,7 +697,7 @@ const agregarExpediente = async (req,res) =>{
                 'INSERT INTO expediente (organismo_id,expediente_numero,expediente_anio,expediente_causante,expediente_asunto, expediente_fecha) VALUES (?,?,?,?,?,?)',[organismo_id,numero,anio,causante,asunto,fecha]
             );
       
-            res.status(200).json({ message: "expediente creado con éxito",expediente_id:result.insertId })
+            res.status(200).json({ message: "expediente creado con éxito",id:result.insertId,numero:numero })
         }
 } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -719,14 +722,44 @@ const obtenerDetPresupuestoPorItemYpartida = async (req,res) =>{
   }
 }
 
-const agregarMovimiento = async (req,res) =>{
+const agregarMovimiento = async (req, res) => {
+  let transaction;
   try {
-    const {fecha,tipomovimiento_id,expediente_id,detMovimiento} = req.body;
-    res.status(200).json(true)
+    const { movimiento, detMovimiento } = req.body;
+
+    transaction = await sequelize.transaction();
+
+    const movimientoObj = {
+      movimiento_fecha: movimiento.fecha,
+      expediente_id: movimiento.expediente_id,
+      tipomovimiento_id: movimiento.tipomovimiento_id,
+    };
+
+    const nuevoMovimiento = await Movimiento.create(movimientoObj, {
+      transaction,
+    });
+
+    // const movimientoId = result.insertId;
+    const movimientoId = nuevoMovimiento.movimiento_id;
+
+    for (const detalle of detMovimiento) {
+      await DetMovimiento.create(
+        {
+          movimiento_id: movimientoId,
+          detpresupuesto_id: detalle.detPresupuesto_id,
+          detmovimiento_importe: detalle.importe,
+        },
+        { transaction }
+      );
+    }
+    await transaction.commit();
+
+    res.status(200).json({ message: "Movimiento creado con éxito" });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
-}
+};
+
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida, listarEjercicios,
 agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,
 obtenerDetPresupuestoPorItemYpartida,agregarMovimiento}
