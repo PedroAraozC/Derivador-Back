@@ -635,7 +635,7 @@ res.status(200).json({ message: "Partida modificada con éxito" })
 }
 
 const borrarPartida = async (req, res) => {
-  const { id } = req.body;
+  const{ id }= req.body;
 
   const sql = "DELETE FROM partidas WHERE partida_id = ?";
   const values = [id];
@@ -649,7 +649,7 @@ const borrarPartida = async (req, res) => {
       res.status(400).json({ message: "Partida no encontrada"});
     }
   } catch (error) {
-    console.error("Error al eliminar el item:", error);
+    console.error("Error al eliminar la partida:", error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
 };
