@@ -535,14 +535,21 @@ const borrarItem = async (req, res) => {
 };
 
 const listarPartidas =async(req,res)=>{
+  const connection = await conectar_BD_GAF_MySql();
   try {
-  
-      const connection = await conectar_BD_GAF_MySql();
+      // Verifica si hay un término de búsqueda en los parámetros de la solicitud
+      const searchTerm = req.query.searchTerm || '';
 
-      const [partidas] = await connection.execute(
-          'SELECT * FROM partidas'
-      );
-      res.status(200).json({partidas})
+      let sqlQuery =  'SELECT * FROM partidas'
+
+      // Agrega la cláusula WHERE para la búsqueda si hay un término de búsqueda
+      if (searchTerm) {
+          
+          sqlQuery += ' WHERE LOWER(partida_codigo) LIKE LOWER(?) OR LOWER(partida_det) LIKE LOWER(?)';
+      }
+      const [partidas] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
+
+      res.status(200).json({ partidas });
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
@@ -565,27 +572,33 @@ const listarPartidasConCodigo =async(req,res)=>{
 
 const agregarPartida =async(req,res)=>{
   try {
-      const {partida_seccion, partida_sector, partida_principal, partida_parcial, partida_subparcial, partida_codigo, partida_det, partidapadre_id, partida_gasto, partida_credito} = req.body;
+      const {id,seccion, sector, principal, parcial, subparcial, codigo, descripcion, partidapadre_id, gasto,credito} = req.body;
       const connection = await conectar_BD_GAF_MySql();
+          
+          
+      const [result] = await connection.execute(
+        'SELECT sp_insertpartidas(?,?,?,?,?,?,?,?,?)',
+        [seccion, sector, principal, parcial, subparcial, descripcion, partidapadre_id, gasto, credito]
+      );
+      console.log(result)
 
-      const [partida] = await connection.execute(
-          "SELECT * FROM partidas WHERE partida_codigo = ?",
-          [partida_codigo]
-        );
-         
-          if(partida.length > 0){
-              res
-              .status(400)
-              .json({
-                message: "partida ya existente",
-                Item: partida[0].partida_det,
-              });
-          }else {
-              const [result] = await connection.execute(
-                  'INSERT INTO partidas (partida_seccion, partida_sector, partida_principal, partida_parcial, partida_subparcial, partida_codigo, partida_det, partidapadre_id, partida_gasto, partida_credito) VALUES (?,?,?,?,?,?,?,?,?,?)',[partida_seccion, partida_sector, partida_principal, partida_parcial, partida_subparcial, partida_codigo, partida_det, partidapadre_id, partida_gasto, partida_credito]
-              );
-              res.status(200).json({ message: "Partida creada con éxito" })
-          }
+              if(result[0]['sp_insertpartidas(?,?,?,?,?,?,?,?,?)'] === 0){
+                res
+                .status(400)
+                .json({
+                  message: "partida ya existente",
+                  Item: result[0].partida_det,
+                });
+            }
+            
+
+else{
+
+  res.status(200).json({ message: "Partida creada con éxito" })
+}
+
+             
+          
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
@@ -593,41 +606,38 @@ const agregarPartida =async(req,res)=>{
 
 const editarPartida = async (req,res) =>{
   try {
-      const {partida_seccion, partida_sector, partida_principal, partida_parcial, partida_subparcial, partida_codigo, partida_det, partidapadre_id, partida_gasto, partida_credito} = req.body;
+    const {id,seccion, sector, principal, parcial, subparcial, codigo, descripcion, partidapadre_id, gasto,credito} = req.body;
       const partidaId = req.params.id;
   
-      const sql =
-        "UPDATE partidas SET partida_seccion=?, partida_sector=?, partida_principal=?, partida_parcial=?, partida_subparcial=?, partida_codigo=?, partida_det=?, partidapadre_id=?, partida_gasto=?, partida_credito=? WHERE partida_id = ?";
-      const values = [partida_seccion, partida_sector, partida_principal, partida_parcial, partida_subparcial, partida_codigo, partida_det, partidapadre_id, partida_gasto, partida_credito,partidaId ];
-  
       const connection = await conectar_BD_GAF_MySql();
-      const [partida] = await connection.execute(
-        "SELECT * FROM partidas WHERE partida_codigo = ? ",
-        [partida_codigo]
+          
+          
+      const [result] = await connection.execute(
+        'SELECT sp_updatepartidas(?,?,?,?,?,?,?,?,?,?)',
+        [partidaId,seccion, sector, principal, parcial, subparcial, descripcion, partidapadre_id, gasto, credito]
       );
 
-      if (partida.length == 0 || partida[0].partida_id == partidaId) {
-        const [result] = await connection.execute(sql, values);
-        // El resultado puede contener información sobre la cantidad de filas afectadas, etc.
-        console.log("Filas actualizadas:", result.affectedRows);
+      if(result[0]['sp_updatepartidas(?,?,?,?,?,?,?,?,?,?)'] === 0){
         res
-          .status(200)
-          .json({ message: "partida modificada con exito", result });
-      } else {
-        res
-          .status(400)
-          .json({
-            message: "partida ya existente",
-            Partida: partida[0].partida_det,
-          });
-      }
+        .status(400)
+        .json({
+          message: "Una partida ya existente con ese código",
+          Item: result[0].partida_det,
+        });
+    }
+    
+
+else{
+
+res.status(200).json({ message: "Partida modificada con éxito" })
+}
     } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
     }
 }
 
 const borrarPartida = async (req, res) => {
-  const { id } = req.body;
+  const{ id }= req.body;
 
   const sql = "DELETE FROM partidas WHERE partida_id = ?";
   const values = [id];
@@ -641,7 +651,7 @@ const borrarPartida = async (req, res) => {
       res.status(400).json({ message: "Partida no encontrada"});
     }
   } catch (error) {
-    console.error("Error al eliminar el item:", error);
+    console.error("Error al eliminar la partida:", error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
 };
@@ -674,35 +684,40 @@ const listarOrganismos =async(req,res)=>{
   }
 }
 
-const agregarExpediente = async (req,res) =>{
+const agregarExpediente = async (req, res) => {
   try {
     const { anio, numero, causante, asunto, fecha, organismo_id } = req.body;
 
     const connection = await conectar_BD_GAF_MySql();
 
     const [expediente] = await connection.execute(
-        "SELECT * FROM expediente WHERE expediente_numero = ?",
-        [numero]
+      "SELECT * FROM expediente WHERE expediente_numero = ?",
+      [numero]
+    );
+
+    if (expediente.length > 0) {
+      res.status(400).json({
+        message: "expediente ya existente",
+        expediente: expediente[0].expediente_numero,
+      });
+    } else {
+      const [result] = await connection.execute(
+        "INSERT INTO expediente (organismo_id,expediente_numero,expediente_anio,expediente_causante,expediente_asunto, expediente_fecha) VALUES (?,?,?,?,?,?)",
+        [organismo_id, numero, anio, causante, asunto, fecha]
       );
-      
-        if(expediente.length > 0){
-            res
-            .status(400)
-            .json({
-              message: "expediente ya existente",
-              expediente: expediente[0].expediente_numero,
-            });
-        }else {
-            const [result] = await connection.execute(
-                'INSERT INTO expediente (organismo_id,expediente_numero,expediente_anio,expediente_causante,expediente_asunto, expediente_fecha) VALUES (?,?,?,?,?,?)',[organismo_id,numero,anio,causante,asunto,fecha]
-            );
-      
-            res.status(200).json({ message: "expediente creado con éxito",id:result.insertId,numero:numero })
-        }
-} catch (error) {
+
+      res
+        .status(200)
+        .json({
+          message: "expediente creado con éxito",
+          id: result.insertId,
+          numero: numero,
+        });
+    }
+  } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
-}
-}
+  }
+};
 
 const obtenerDetPresupuestoPorItemYpartida = async (req,res) =>{
   try {
@@ -721,6 +736,21 @@ const obtenerDetPresupuestoPorItemYpartida = async (req,res) =>{
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
 }
+
+const listarPartidasCONCAT = async (req, res) => {
+  const connection = await conectar_BD_GAF_MySql();
+  try {
+    let sqlQuery = `SELECT partida_id, CONCAT(partida_codigo, ' - ', partida_det) AS partida_concatenada FROM partidas ORDER BY partida_codigo`;
+
+    const [partidas] = await connection.execute(sqlQuery);
+
+    res.status(200).json({ partidas });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
 
 const agregarMovimiento = async (req, res) => {
   let transaction;
@@ -762,4 +792,5 @@ const agregarMovimiento = async (req, res) => {
 
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida, listarEjercicios,
 agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,
-obtenerDetPresupuestoPorItemYpartida,agregarMovimiento}
+obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT}
+

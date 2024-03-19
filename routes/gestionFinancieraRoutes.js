@@ -1,7 +1,9 @@
 const { Router } = require("express");
 const auth = require("../middlewares/auth");
 const verifyRole = require("../middlewares/verifyRole");
-const { listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas, agregarPartida, editarPartida, borrarPartida, listarEjercicios, agregarEjercicio, editarEjercicio, borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente, listarPartidasConCodigo, obtenerDetPresupuestoPorItemYpartida, agregarMovimiento } = require("../controllers/gestionFinancieraControllers");
+
+const { listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas, agregarPartida, editarPartida, borrarPartida, listarEjercicios, agregarEjercicio, editarEjercicio, borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente, listarPartidasConCodigo, obtenerDetPresupuestoPorItemYpartida, agregarMovimiento, listarPartidasCONCAT } = require("../controllers/gestionFinancieraControllers");
+
 const router = Router();
 
 router.get("/anexo/listar", listarAnexos);
@@ -31,6 +33,7 @@ router.delete("/item/borrar", borrarItem)
 
 router.get("/partida/listar", listarPartidas);
 router.get("/partida/listarConCodigo", listarPartidasConCodigo);
+router.get("/partida/listar/concat", listarPartidasCONCAT);
 router.post("/partida/alta", agregarPartida)
 router.put("/partida/editar/:id",editarPartida)
 router.delete("/partida/borrar", borrarPartida)

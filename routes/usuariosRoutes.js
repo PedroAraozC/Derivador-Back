@@ -2,7 +2,7 @@ const { Router } = require("express");
 const auth = require("../middlewares/auth");
 const validateFields = require("../middlewares/validateFields");
 const { check } = require("express-validator");
-const { login, getAuthStatus, obtenerUsuarios, editarUsuario, borrarUsuario, agregarUsuarioMYSQL, validarUsuarioMYSQL, obtenerCiudadanoPorEmailMYSQL, obtenerCiudadanoPorDNIMYSQL, editarUsuarioCompleto, enviarEmailValidacion } = require("../controllers/usuariosControllers");
+const { login, getAuthStatus, obtenerUsuarios, editarUsuario, borrarUsuario, agregarUsuarioMYSQL, validarUsuarioMYSQL, obtenerCiudadanoPorEmailMYSQL, obtenerCiudadanoPorDNIMYSQL, editarUsuarioCompleto, enviarEmailValidacion, editarClave, restablecerClave } = require("../controllers/usuariosControllers");
 const verifyRole = require("../middlewares/verifyRole")
 
 const router = Router();
@@ -26,7 +26,9 @@ router.delete("/",[auth,verifyRole, check("id").not().isEmpty(), validateFields,
 router.get('/dni/:dni', obtenerCiudadanoPorDNIMYSQL);
 router.get('/email/:email', obtenerCiudadanoPorEmailMYSQL);  
 router.put("/validar", validarUsuarioMYSQL)
-router.put("/editar", editarUsuarioCompleto)
+router.put("/editarUsuario", editarUsuarioCompleto)
+router.put("/editarClave", editarClave)
+router.put("/restablecerClave", restablecerClave)
 router.post("/registro",
 // [
 //     check("nombre_ciudadano","el nombre es obligatorio").not().isEmpty(),
