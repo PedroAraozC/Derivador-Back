@@ -2,7 +2,7 @@ const { Router } = require("express");
 const auth = require("../middlewares/auth");
 const validateFields = require("../middlewares/validateFields");
 const { check } = require("express-validator");
-const { login, getAuthStatus, obtenerUsuarios, editarUsuario, borrarUsuario, agregarUsuarioMYSQL, validarUsuarioMYSQL, obtenerCiudadanoPorEmailMYSQL, obtenerCiudadanoPorDNIMYSQL, editarUsuarioCompleto, enviarEmailValidacion } = require("../controllers/usuariosControllers");
+const { login, getAuthStatus, obtenerUsuarios, editarUsuario, borrarUsuario, agregarUsuarioMYSQL, validarUsuarioMYSQL, obtenerCiudadanoPorEmailMYSQL, obtenerCiudadanoPorDNIMYSQL, editarUsuarioCompleto, enviarEmailValidacion, obtenerPermisos, obtenerOpcionesHabilitadas } = require("../controllers/usuariosControllers");
 const verifyRole = require("../middlewares/verifyRole")
 
 const router = Router();
@@ -19,7 +19,9 @@ router.post(
 
 // router.post("/alta", auth, verifyRole, agregarUsuario);
 router.get("/authStatus", auth, getAuthStatus);
-router.get("/listar/:id?",auth,verifyRole,obtenerUsuarios)
+router.get("/listar/:id?",auth,verifyRole, obtenerUsuarios)
+router.get("/permisos/:id?",auth, obtenerPermisos)
+router.get("/opciones",auth, obtenerOpcionesHabilitadas)
 // router.put("/:id",auth,verifyRole,editarUsuario)
 router.delete("/",[auth,verifyRole, check("id").not().isEmpty(), validateFields,],borrarUsuario)
 

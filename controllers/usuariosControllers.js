@@ -124,6 +124,48 @@ const obtenerUsuarios = async (req, res) => {
   }
 };
 
+const obtenerPermisos = async (req, res) => {
+  try {
+    const connection = await conectarBDEstadisticasMySql();
+
+    if (req.params.id) {
+      const [user] = await connection.execute(
+        `SELECT pp.*, pro.descripcion, pro.nombre_proceso, o.id_opcion, o.nombre_opcion
+        FROM permiso_persona pp
+        LEFT JOIN proceso pro ON pp.id_proceso = pro.id_proceso 
+        LEFT JOIN opcion o ON pro.id_opcion = o.id_opcion
+        WHERE pp.id_persona = ?`,
+        [req.params.id]
+      );
+
+      if (user.length === 0) throw new CustomError("Usuario no encontrado", 404);
+      res.status(200).json({ usuario: user });
+    } else {
+      const [users] = await connection.execute(
+        `SELECT persona.*, tipo_usuario.nombre_tusuario AS tipoDeUsuario FROM persona JOIN tipo_usuario ON persona.id_tusuario = tipo_usuario.id_tusuario`
+      );
+      res.status(200).json({ usuarios: users });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+
+const obtenerOpcionesHabilitadas = async (req, res) => {
+  try {
+    const connection = await conectarBDEstadisticasMySql();
+    
+    const [opciones] = await connection.execute(
+      'SELECT * FROM opcion WHERE habilita = 1'
+    );
+
+    res.status(200).json({ opciones });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+
+
 const editarUsuario = async (req, res) => {//falta
   try {
     const { nombreUsuario, tipoDeUsuario } = req.body;
@@ -393,4 +435,4 @@ enviarEmail(codigoValidacion,email_persona,res);
 }
 
 
-module.exports = { login, getAuthStatus, obtenerUsuarios,editarUsuario, borrarUsuario, obtenerCiudadanoPorDNIMYSQL, obtenerCiudadanoPorEmailMYSQL, validarUsuarioMYSQL, agregarUsuarioMYSQL,editarUsuarioCompleto,enviarEmailValidacion}
+module.exports = { login, getAuthStatus, obtenerOpcionesHabilitadas, obtenerUsuarios,editarUsuario, borrarUsuario, obtenerCiudadanoPorDNIMYSQL, obtenerCiudadanoPorEmailMYSQL, validarUsuarioMYSQL, agregarUsuarioMYSQL,editarUsuarioCompleto,enviarEmailValidacion, obtenerPermisos}
