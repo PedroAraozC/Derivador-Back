@@ -15,6 +15,7 @@ const usuariosRoutes = require("./routes/usuariosRoutes")
 const tiposDeUsuariosRoutes = require("./routes/tiposDeUsuariosRoutes")
 const ciudadanoDigitalRoutes = require("./routes/ciudadanoDigitalRoutes")
 const gestionFinancieraRoutes = require("./routes/gestionFinancieraRoutes")
+const educacionRoutes = require("./routes/educacionRoutes")
 
 const PORT = process.env.PORT;
 
@@ -28,5 +29,6 @@ app.use('/usuarios', usuariosRoutes)
 app.use('/roles',tiposDeUsuariosRoutes)
 app.use('/ciudadanoDigital',ciudadanoDigitalRoutes)
 app.use('/gestionFinanciera', gestionFinancieraRoutes)
+app.use('/educacion', educacionRoutes)
 
 app.listen(PORT, () => { console.log(`server listening on port ${PORT}`) })
