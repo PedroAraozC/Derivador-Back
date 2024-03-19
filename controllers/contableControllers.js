@@ -49,6 +49,7 @@ const ejecutarProcedimiento = async (req, res) => {
 
         // Devolver el resultado del procedimiento almacenado
         // return result.recordset;
+        pool.close();
         res.json(result.recordset);
     } catch (error) {
         // console.error('Error al ejecutar el procedimiento almacenado:', error);

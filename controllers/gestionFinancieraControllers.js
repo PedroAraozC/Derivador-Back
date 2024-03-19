@@ -20,6 +20,7 @@ const listarAnexos = async (req, res) => {
 
       const [anexos] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
 
+       await connection.end();
       res.status(200).json({ anexos });
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -47,6 +48,7 @@ const agregarAnexo =async(req,res)=>{
                 const [result] = await connection.execute(
                     'INSERT INTO anexo (anexo_codigo,anexo_det) VALUES (?,?)',[codigo, descripcion]
                 );
+                 await connection.end();
                 res.status(200).json({ message: "Anexo creado con éxito" })
             }
     } catch (error) {
@@ -73,6 +75,7 @@ const editarAnexo = async (req,res) =>{
           const [result] = await connection.execute(sql, values);
           // El resultado puede contener información sobre la cantidad de filas afectadas, etc.
           console.log("Filas actualizadas:", result.affectedRows);
+           await connection.end();
           res
             .status(200)
             .json({ message: "anexo modificado con exito", result });
@@ -98,6 +101,7 @@ const borrarAnexo = async (req, res) => {
     try {
       const connection = await conectar_BD_GAF_MySql();
       const [result] = await connection.execute(sql, values);
+       await connection.end();
       if (result.affectedRows > 0) {
         res.status(200).json({ message: "Anexo eliminado con éxito"});
       } else {
@@ -125,6 +129,7 @@ const listarEjercicios = async (req, res) => {
 
       const [ejercicios] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
 
+       await connection.end();
       res.status(200).json({ ejercicios });
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -152,6 +157,7 @@ const agregarEjercicio =async(req,res)=>{
                 const [result] = await connection.execute(
                     'INSERT INTO ejercicio (ejercicio_anio,ejercicio_det) VALUES (?,?)',[anio, descripcion]
                 );
+                 await connection.end();
                 res.status(200).json({ message: "Ejercicio creado con éxito" })
             }
     } catch (error) {
@@ -176,6 +182,7 @@ const editarEjercicio = async (req,res) =>{
    
         if (ejercicio.length == 0 || ejercicio[0].ejercicio_id == ejercicioId) {
           const [result] = await connection.execute(sql, values);
+           await connection.end();
           // El resultado puede contener información sobre la cantidad de filas afectadas, etc.
           console.log("Filas actualizadas:", result.affectedRows);
           res
@@ -203,6 +210,7 @@ const borrarEjercicio = async (req, res) => {
     try {
       const connection = await conectar_BD_GAF_MySql();
       const [result] = await connection.execute(sql, values);
+       await connection.end();
       if (result.affectedRows > 0) {
         res.status(200).json({ message: "Ejercicio eliminado con éxito"});
       } else {
@@ -230,6 +238,7 @@ const listarFinalidades = async (req, res) => {
 
       const [finalidades] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
 
+       await connection.end();
       res.status(200).json({ finalidades });
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -257,6 +266,7 @@ const agregarFinalidad =async(req,res)=>{
                 const [result] = await connection.execute(
                     'INSERT INTO finalidad (finalidad_codigo,finalidad_det) VALUES (?,?)',[codigo,descripcion]
                 );
+                 await connection.end();
                 res.status(200).json({ message: "finalidad creada con éxito" })
             }
     } catch (error) {
@@ -281,6 +291,7 @@ const editarFinalidad = async (req,res) =>{
  
     if (finalidad.length == 0 || finalidad[0].finalidad_id == finalidadId) {
       const [result] = await connection.execute(sql, values);
+       await connection.end();
       // El resultado puede contener información sobre la cantidad de filas afectadas, etc.
       console.log("Filas actualizadas:", result.affectedRows);
       res
@@ -308,6 +319,7 @@ const borrarFinalidad = async (req, res) => {
     try {
       const connection = await conectar_BD_GAF_MySql();
       const [result] = await connection.execute(sql, values);
+       await connection.end();
       if (result.affectedRows > 0) {
         res.status(200).json({ message: "finalidad eliminada con éxito"});
       } else {
@@ -334,7 +346,7 @@ const listarFunciones = async (req, res) => {
       }
       const [funciones] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
       console.log(funciones);
-
+ await connection.end();
       res.status(200).json({ funciones });
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -362,7 +374,7 @@ const agregarFuncion =async(req,res)=>{
           }else {
               const [result] = await connection.execute(
                   'INSERT INTO funcion (funcion_det,funcion_codigo,finalidad_id) VALUES (?,?,?)',[descripcion,codigo,finalidad_id]
-              );
+              ); await connection.end();
               res.status(200).json({ message: "funcion creada con éxito" })
           }
   } catch (error) {
@@ -386,7 +398,7 @@ const editarFuncion = async (req,res) =>{
     );
  
     if (funcion.length == 0 || funcion[0].funcion_id == funcionId) {
-      const [result] = await connection.execute(sql, values);
+      const [result] = await connection.execute(sql, values); await connection.end();
       // El resultado puede contener información sobre la cantidad de filas afectadas, etc.
       console.log("Filas actualizadas:", result.affectedRows);
       res
@@ -413,7 +425,7 @@ const borrarFuncion = async (req, res) => {
 
   try {
     const connection = await conectar_BD_GAF_MySql();
-    const [result] = await connection.execute(sql, values);
+    const [result] = await connection.execute(sql, values); await connection.end();
     if (result.affectedRows > 0) {
       res.status(200).json({ message: "funcion eliminada con éxito"});
     } else {
@@ -441,9 +453,9 @@ const listarItems = async (req, res) => {
       if (searchTerm) {
           
           sqlQuery += ' WHERE LOWER(item_codigo) LIKE LOWER(?) OR LOWER(item_det) LIKE LOWER(?)';
-      }
+      } 
       const [items] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
-
+ await connection.end();
       res.status(200).json({ items });
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -470,7 +482,7 @@ console.log(req.body);
           }else {
               const [result] = await connection.execute(
                   'INSERT INTO item (item_codigo,item_det,anexo_id,finalidad_id,funcion_id) VALUES (?,?,?,?,?)',[codigo, descripcion,anexo_id,finalidad_id,funcion_id]
-              );
+              ); await connection.end();
               res.status(200).json({ message: "Item creado con éxito" })
           }
   } catch (error) {
@@ -495,7 +507,7 @@ console.log(req.body);
       );
 
       if (item.length == 0 || item[0].item_id == itemId) {
-        const [result] = await connection.execute(sql, values);
+        const [result] = await connection.execute(sql, values); await connection.end();
         // El resultado puede contener información sobre la cantidad de filas afectadas, etc.
         console.log("Filas actualizadas:", result.affectedRows);
         res
@@ -522,7 +534,7 @@ const borrarItem = async (req, res) => {
 
   try {
     const connection = await conectar_BD_GAF_MySql();
-    const [result] = await connection.execute(sql, values);
+    const [result] = await connection.execute(sql, values); await connection.end();
     if (result.affectedRows > 0) {
       res.status(200).json({ message: "Item eliminado con éxito"});
     } else {
@@ -548,7 +560,7 @@ const listarPartidas =async(req,res)=>{
           sqlQuery += ' WHERE LOWER(partida_codigo) LIKE LOWER(?) OR LOWER(partida_det) LIKE LOWER(?)';
       }
       const [partidas] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
-
+ await connection.end();
       res.status(200).json({ partidas });
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -563,7 +575,7 @@ const listarPartidasConCodigo =async(req,res)=>{
       const [partidas] = await connection.execute(
          "SELECT partida_id,CONCAT(partida_codigo, ' _ ', partida_det) AS partida FROM partidas WHERE partida_gasto = 1 ORDER BY partida_codigo"
       );
-      console.log(partidas);
+      console.log(partidas); await connection.end();
       res.status(200).json({partidas})
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -581,7 +593,7 @@ const agregarPartida =async(req,res)=>{
         [seccion, sector, principal, parcial, subparcial, descripcion, partidapadre_id, gasto, credito]
       );
       console.log(result)
-
+ await connection.end();
               if(result[0]['sp_insertpartidas(?,?,?,?,?,?,?,?,?)'] === 0){
                 res
                 .status(400)
@@ -616,7 +628,7 @@ const editarPartida = async (req,res) =>{
         'SELECT sp_updatepartidas(?,?,?,?,?,?,?,?,?,?)',
         [partidaId,seccion, sector, principal, parcial, subparcial, descripcion, partidapadre_id, gasto, credito]
       );
-
+ await connection.end();
       if(result[0]['sp_updatepartidas(?,?,?,?,?,?,?,?,?,?)'] === 0){
         res
         .status(400)
@@ -644,7 +656,7 @@ const borrarPartida = async (req, res) => {
 
   try {
     const connection = await conectar_BD_GAF_MySql();
-    const [result] = await connection.execute(sql, values);
+    const [result] = await connection.execute(sql, values); await connection.end();
     if (result.affectedRows > 0) {
       res.status(200).json({ message: "Partida eliminada con éxito"});
     } else {
@@ -663,7 +675,7 @@ const listarTiposDeMovimientos =async(req,res)=>{
 
       const [tiposDeMovimientos] = await connection.execute(
           'SELECT * FROM tipomovimiento'
-      );
+      ); await connection.end();
       res.status(200).json({tiposDeMovimientos})
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -677,7 +689,7 @@ const listarOrganismos =async(req,res)=>{
 
       const [organismos] = await connection.execute(
           'SELECT * FROM organismo'
-      );
+      ); await connection.end();
       res.status(200).json({organismos})
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -705,7 +717,7 @@ const agregarExpediente = async (req, res) => {
         "INSERT INTO expediente (organismo_id,expediente_numero,expediente_anio,expediente_causante,expediente_asunto, expediente_fecha) VALUES (?,?,?,?,?,?)",
         [organismo_id, numero, anio, causante, asunto, fecha]
       );
-
+ await connection.end();
       res
         .status(200)
         .json({
@@ -730,7 +742,7 @@ const obtenerDetPresupuestoPorItemYpartida = async (req,res) =>{
         "SELECT detpresupuesto_id FROM detpresupuesto WHERE item_id = ? AND partida_id = ?",
         [item,partida]
       );
-
+ await connection.end();
       res.status(200).json({detPresupuesto})
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -743,7 +755,7 @@ const listarPartidasCONCAT = async (req, res) => {
     let sqlQuery = `SELECT partida_id, CONCAT(partida_codigo, ' - ', partida_det) AS partida_concatenada FROM partidas ORDER BY partida_codigo`;
 
     const [partidas] = await connection.execute(sqlQuery);
-
+ await connection.end();
     res.status(200).json({ partidas });
 
   } catch (error) {

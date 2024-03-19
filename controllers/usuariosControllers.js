@@ -101,6 +101,7 @@ const getAuthStatus = async (req, res) => {
 
         if (user.length == 0) throw new CustomError("Autenticación fallida", 401);
         const { clave, ...usuarioSinContraseña } = user[0];
+        await connection.end();
         res.status(200).json({ usuarioSinContraseña });
     } catch (error) {
         res.status(error.code || 500).json({
@@ -129,7 +130,8 @@ const obtenerUsuarios = async (req, res) => {
       const usuariosSinClave = users.map(usuario => {
         const { clave, ...usuarioSinClave } = usuario;
         return usuarioSinClave;
-      });
+      }); 
+      await connection.end();
       res.status(200).json({ usuariosSinClave });
     }
   } catch (error) {
@@ -152,7 +154,8 @@ const editarUsuario = async (req, res) => {//falta
       [nombreUsuario]
     );
     if (user.length == 0 || user[0].id == userId) {
-      const [result] = await connection.execute(sql, values);
+      const [result] = await connection.execute(sql, values); 
+      await connection.end();
       // El resultado puede contener información sobre la cantidad de filas afectadas, etc.
       console.log("Filas actualizadas:", result.affectedRows);
       res
@@ -194,7 +197,7 @@ const editarUsuarioCompleto = async (req, res) => {
                   await connection.query(
                     'UPDATE persona SET nombre_persona = ?, apellido_persona = ?, email_persona = ?, telefono_persona = ?, domicilio_persona = ?, localidad_persona = ? WHERE documento_persona = ?',
                     [nombre_persona.toUpperCase(), apellido_persona.toUpperCase(), email_persona, telefono_persona, domicilio_persona.toUpperCase(),localidad_persona.toUpperCase(), documento_persona]
-                  );
+                  ); 
         return res.status(200).json({ message: "Usuario editado con éxito", ok: true });
           
       
@@ -220,7 +223,8 @@ const borrarUsuario = async (req, res) => {
 
   try {
     const connection = await conectarBDEstadisticasMySql();
-    const [result] = await connection.execute(sql, values);
+    const [result] = await connection.execute(sql, values); 
+    await connection.end();
     if (result.affectedRows > 0) {
       res.status(200).json({ message: "persona eliminada con éxito" });
     } else {
@@ -239,7 +243,7 @@ const obtenerCiudadanoPorDNIMYSQL = async (req, res) => {
 
       const userDNI = req.params.dni;
       const queryResult = await connection.query("SELECT * FROM persona WHERE documento_persona = ?", [userDNI]);
-
+ 
       if (queryResult.length > 0) {
           const ciudadano = queryResult[0]; // Suponiendo que solo hay un usuario con ese DNI
           if (ciudadano.length > 0) {
