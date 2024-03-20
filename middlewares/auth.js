@@ -1,5 +1,4 @@
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
 const { conectarBDUsuariosMySql } = require("../config/dbEstadisticasMYSQL");
 
 const auth = async (req, res, next) => {
