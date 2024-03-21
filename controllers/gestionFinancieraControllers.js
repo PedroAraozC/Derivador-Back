@@ -569,6 +569,7 @@ const listarPartidas =async(req,res)=>{
       const [partidas] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
  await connection.end();
       res.status(200).json({ partidas });
+      connection.end();
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
@@ -789,6 +790,24 @@ const listarPartidasCONCAT = async (req, res) => {
   }
 }
 
+const partidaExistente = async (req, res) => {
+  
+  try {
+    const{id}=req.body
+    let sqlQuery = `SELECT COUNT(detpresupuesto_id) FROM detpresupuesto WHERE partida_id=?`;
+    let value=[id]
+    const connection = await conectar_BD_GAF_MySql();
+    const [result] = await connection.execute(sqlQuery,value);
+console.log(result);
+    if (result[0]["COUNT(detpresupuesto_id)"]===1) {
+      res.status(200).json({ message: "No se puede editar ni eliminar esta partida",ok:false});
+    } else {
+      res.status(200).json({ message: "Esta partida se puede editar y eliminar",ok:true});
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
 
 const agregarMovimiento = async (req, res) => {
   let transaction;
@@ -830,5 +849,5 @@ const agregarMovimiento = async (req, res) => {
 
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida, listarEjercicios,
 agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,
-obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT}
+obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente}
 
