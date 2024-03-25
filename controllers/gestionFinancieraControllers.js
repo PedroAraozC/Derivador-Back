@@ -847,7 +847,44 @@ const agregarMovimiento = async (req, res) => {
   }
 };
 
+
+const listarEjercicio= async (req, res) => {
+  const connection = await conectar_BD_GAF_MySql();
+  try {
+    let sqlQuery = `SELECT *  FROM presupuesto`;
+
+    const [ejercicio] = await connection.execute(sqlQuery);
+ await connection.end();
+    res.status(200).json({ ejercicio });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const listarAnteproyecto= async (req, res) => {
+  const connection = await conectar_BD_GAF_MySql();
+  const item=req.query.item;
+  const ejercicio=req.query.ejercicio;
+  try {
+    let sqlQuery = `SELECT a.detpresupuesto_id,a.partida_id,b.partida_credito,b.partida_codigo,b.partida_det,a.presupuesto_credito,a.presupuesto_anteproyecto
+    FROM detpresupuesto a inner JOIN partidas b
+    ON a.partida_id=b.partida_id WHERE a.presupuesto_id=? AND a.item_id=?
+    order by b.partida_codigo`;
+
+    const [anteproyecto] = await connection.execute(sqlQuery, [ejercicio, item]);
+ await connection.end();
+    res.status(200).json({ anteproyecto });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+
+
+
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida, listarEjercicios,
 agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,
-obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente}
+obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto}
 
