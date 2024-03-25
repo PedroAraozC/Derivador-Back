@@ -847,7 +847,23 @@ const agregarMovimiento = async (req, res) => {
   }
 };
 
+const buscarExpediente = async (req, res) => {
+  try {
+    const numero = req.query.numero;
+    const connection = await conectar_BD_GAF_MySql();
+    const query = `SELECT * FROM expediente AS e LEFT JOIN movimiento AS m ON e.expediente_id = m.expediente_id LEFT JOIN detmovimiento AS d ON m.movimiento_id = d.movimiento_id LEFT JOIN detpresupuesto AS dp ON d.detpresupuesto_id = dp.detpresupuesto_id LEFT JOIN item AS i ON dp.item_id = i.item_id LEFT JOIN partidas AS pda ON dp.partida_id=pda.partida_id WHERE e.expediente_numero = ?
+    `;
+    const [result] = await connection.execute(query, [numero]);
+
+    console.log(result);
+    await connection.end();
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida, listarEjercicios,
-agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,
+agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,buscarExpediente,
 obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente}
 
