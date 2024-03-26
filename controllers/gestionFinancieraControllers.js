@@ -881,10 +881,43 @@ const listarAnteproyecto= async (req, res) => {
   }
 }
 
+const actualizarPresupuestoAnteproyecto=async(req, res)=> {
+  try {
+    const datosActualizar = req.body;
 
+    // Crear una conexión a la base de datos
+    const connection = await conectar_BD_GAF_MySql();
+
+    // Iterar sobre cada elemento a actualizar
+    for (const elemento of datosActualizar) {
+      const { detpresupuesto_id, presupuesto_anteproyecto } = elemento;
+
+      // Consulta SQL para actualizar el presupuesto_anteproyecto
+      const sqlQuery = 'UPDATE detpresupuesto SET presupuesto_anteproyecto = ? WHERE detpresupuesto_id = ?';
+
+      // Ejecutar la consulta SQL con los parámetros proporcionados
+      const [result] = await connection.execute(sqlQuery, [presupuesto_anteproyecto, detpresupuesto_id]);
+
+      // Verificar si se realizó la actualización correctamente
+      if (result.affectedRows === 1) {
+        console.log(`Se actualizó correctamente el presupuesto_anteproyecto para el detpresupuesto_id ${detpresupuesto_id}.`);
+      } else {
+        res.status(200).send({mge:`No se encontró ningún registro con el detpresupuesto_id ${detpresupuesto_id}.`,ok:false});
+      }
+    }
+
+    // Cerrar la conexión a la base de datos
+    await connection.end();
+
+    res.status(200).send({mge:'Anteproyecto actualizado',ok:true});
+  } catch (error) {
+    console.error('Error al actualizar el presupuesto_anteproyecto:', error);
+    res.status(500).send('Error en el servidor');
+  }
+}
 
 
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida, listarEjercicios,
 agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,
-obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto}
+obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto}
 
