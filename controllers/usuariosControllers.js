@@ -156,7 +156,11 @@ const obtenerOpcionesHabilitadas = async (req, res) => {
     const connection = await conectarBDEstadisticasMySql();
     
     const [opciones] = await connection.execute(
-      'SELECT * FROM opcion WHERE habilita = 1'
+      `SELECT pp.*, pro.descripcion, pro.nombre_proceso, o.id_opcion, o.nombre_opcion
+      FROM permiso_persona pp
+      LEFT JOIN proceso pro ON pp.id_proceso = pro.id_proceso 
+      LEFT JOIN opcion o ON pro.id_opcion = o.id_opcion
+      WHERE pp.id_persona = 1`
     );
 
     res.status(200).json({ opciones });
@@ -216,9 +220,6 @@ const editarUsuarioCompleto = async (req, res) => {
       // Verificar si se encontró el usuario
       if (result.length > 0) {
           const usuario = result[0];
-         
-
-             
                   // Actualizar el usuario
                   await connection.query(
                     'UPDATE persona SET nombre_persona = ?, apellido_persona = ?, email_persona = ?, telefono_persona = ?, domicilio_persona = ?, localidad_persona = ?, clave = ? WHERE documento_persona = ?',
