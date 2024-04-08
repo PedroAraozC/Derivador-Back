@@ -113,28 +113,28 @@ const borrarAnexo = async (req, res) => {
     }
   };
 
-const listarEjercicios = async (req, res) => {
-  const connection = await conectar_BD_GAF_MySql();
-  try {
-      // Verifica si hay un término de búsqueda en los parámetros de la solicitud
-      const searchTerm = req.query.searchTerm || '';
+// const listarEjercicios = async (req, res) => {
+//   const connection = await conectar_BD_GAF_MySql();
+//   try {
+//       // Verifica si hay un término de búsqueda en los parámetros de la solicitud
+//       const searchTerm = req.query.searchTerm || '';
 
-      let sqlQuery = 'SELECT * FROM ejercicio';
+//       let sqlQuery = 'SELECT * FROM ejercicio';
 
-      // Agrega la cláusula WHERE para la búsqueda si hay un término de búsqueda
-      if (searchTerm) {
-          // sqlQuery += ' WHERE anexo_codigo LIKE ? OR anexo_det LIKE ?';
-          sqlQuery += ' WHERE LOWER(ejercicio_anio) LIKE LOWER(?) OR LOWER(ejercicio_det) LIKE LOWER(?)';
-      }
+//       // Agrega la cláusula WHERE para la búsqueda si hay un término de búsqueda
+//       if (searchTerm) {
+//           // sqlQuery += ' WHERE anexo_codigo LIKE ? OR anexo_det LIKE ?';
+//           sqlQuery += ' WHERE LOWER(ejercicio_anio) LIKE LOWER(?) OR LOWER(ejercicio_det) LIKE LOWER(?)';
+//       }
 
-      const [ejercicios] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
+//       const [ejercicios] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
 
-       await connection.end();
-      res.status(200).json({ ejercicios });
-  } catch (error) {
-      res.status(500).json({ message: error.message || "Algo salió mal :(" });
-  }
-};
+//        await connection.end();
+//       res.status(200).json({ ejercicios });
+//   } catch (error) {
+//       res.status(500).json({ message: error.message || "Algo salió mal :(" });
+//   }
+// };
 
 const agregarEjercicio =async(req,res)=>{
     try {
@@ -863,7 +863,77 @@ const buscarExpediente = async (req, res) => {
   }
 };
 
-module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida, listarEjercicios,
-agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,buscarExpediente,
-obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente}
+const listarEjercicio= async (req, res) => {
+  const connection = await conectar_BD_GAF_MySql();
+  try {
+    let sqlQuery = `SELECT *  FROM presupuesto`;
+
+    const [ejercicio] = await connection.execute(sqlQuery);
+ await connection.end();
+    res.status(200).json({ ejercicio });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const listarAnteproyecto= async (req, res) => {
+  const connection = await conectar_BD_GAF_MySql();
+  const item=req.query.item;
+  const ejercicio=req.query.ejercicio;
+  try {
+    let sqlQuery = `SELECT a.detpresupuesto_id,a.partida_id,b.partida_credito,b.partida_codigo,b.partida_det,a.presupuesto_credito,a.presupuesto_anteproyecto
+    FROM detpresupuesto a inner JOIN partidas b
+    ON a.partida_id=b.partida_id WHERE a.presupuesto_id=? AND a.item_id=?
+    order by b.partida_codigo`;
+
+    const [anteproyecto] = await connection.execute(sqlQuery, [ejercicio, item]);
+ await connection.end();
+    res.status(200).json({ anteproyecto });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const actualizarPresupuestoAnteproyecto=async(req, res)=> {
+  try {
+    const datosActualizar = req.body;
+
+    // Crear una conexión a la base de datos
+    const connection = await conectar_BD_GAF_MySql();
+
+    // Iterar sobre cada elemento a actualizar
+    for (const elemento of datosActualizar) {
+      const { detpresupuesto_id, presupuesto_anteproyecto } = elemento;
+
+      // Consulta SQL para actualizar el presupuesto_anteproyecto
+      const sqlQuery = 'UPDATE detpresupuesto SET presupuesto_anteproyecto = ? WHERE detpresupuesto_id = ?';
+
+      // Ejecutar la consulta SQL con los parámetros proporcionados
+      const [result] = await connection.execute(sqlQuery, [presupuesto_anteproyecto, detpresupuesto_id]);
+
+      // Verificar si se realizó la actualización correctamente
+      if (result.affectedRows === 1) {
+        console.log(`Se actualizó correctamente el presupuesto_anteproyecto para el detpresupuesto_id ${detpresupuesto_id}.`);
+      } else {
+        res.status(200).send({mge:`No se encontró ningún registro con el detpresupuesto_id ${detpresupuesto_id}.`,ok:false});
+      }
+    }
+
+    // Cerrar la conexión a la base de datos
+    await connection.end();
+
+    res.status(200).send({mge:'Anteproyecto actualizado',ok:true});
+  } catch (error) {
+    console.error('Error al actualizar el presupuesto_anteproyecto:', error);
+    res.status(500).send('Error en el servidor');
+  }
+}
+
+module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida,
+  agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,buscarExpediente,
+  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto}
+
+
 

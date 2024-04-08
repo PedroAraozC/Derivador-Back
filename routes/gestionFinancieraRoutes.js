@@ -2,7 +2,8 @@ const { Router } = require("express");
 const auth = require("../middlewares/auth");
 const verifyRole = require("../middlewares/verifyRole");
 
-const { listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas, agregarPartida, editarPartida, borrarPartida, listarEjercicios, agregarEjercicio, editarEjercicio, borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente, listarPartidasConCodigo, obtenerDetPresupuestoPorItemYpartida, agregarMovimiento, listarPartidasCONCAT,partidaExistente, buscarExpediente } = require("../controllers/gestionFinancieraControllers");
+
+const { listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas, agregarPartida, editarPartida, borrarPartida, agregarEjercicio, editarEjercicio, borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente, listarPartidasConCodigo, obtenerDetPresupuestoPorItemYpartida, agregarMovimiento, listarPartidasCONCAT,partidaExistente, buscarExpediente,listarAnteproyecto, actualizarPresupuestoAnteproyecto, listarEjercicio } = require("../controllers/gestionFinancieraControllers");
 
 const router = Router();
 
@@ -21,7 +22,7 @@ router.post("/finalidad/alta", agregarFinalidad)
 router.put("/finalidad/editar/:id",editarFinalidad)
 router.delete("/finalidad/borrar", borrarFinalidad)
 
-router.get("/ejercicio/listar", listarEjercicios);
+router.get("/ejercicio/listar", listarEjercicio);
 router.post("/ejercicio/alta", agregarEjercicio)
 router.put("/ejercicio/editar/:id",editarEjercicio)
 router.delete("/ejercicio/borrar", borrarEjercicio)
@@ -49,5 +50,9 @@ router.get("/expediente/buscar", buscarExpediente)
 router.get("/detPresupuesto/obtenerPorItemYPartida", obtenerDetPresupuestoPorItemYpartida)
 
 router.post("/movimiento/alta",agregarMovimiento)
+
+router.get("/anteproyecto/listar", listarAnteproyecto);
+
+router.put("/anteproyecto/editar", actualizarPresupuestoAnteproyecto);
 
 module.exports = router;
