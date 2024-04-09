@@ -1,7 +1,7 @@
 const { conectar_BD_GAF_MySql } = require("../config/dbEstadisticasMYSQL");
 const sequelize = require("../config/sequelize");
-const DetMovimiento = require("../models/DetMovimiento");
-const Movimiento = require("../models/Movimiento");
+const DetMovimiento = require("../models/Financiera/DetMovimiento");
+const Movimiento = require("../models/Financiera/Movimiento");
 const { obtenerFechaEnFormatoDate } = require("../utils/helpers");
 
 const listarAnexos = async (req, res) => {
