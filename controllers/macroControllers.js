@@ -116,7 +116,9 @@ const ingresarReclamo = async (req,res)=>{
 
       await transaction.commit();
   
-      res.status(200).json({ message: "Reclamo generado con éxito",Numero_Reclamo:reclamoId,Estado: "Iniciado",Repartición_Derivada:oficinaYReparticion[0].nombre_reparti, Oficina_Receptora:oficinaYReparticion[0].nombre_oficina});
+      res.status(200).json(
+        
+      );
 
     } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
