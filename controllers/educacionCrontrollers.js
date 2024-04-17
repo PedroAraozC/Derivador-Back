@@ -209,7 +209,7 @@ const listarCausalTabla =async(req,res)=>{
     const connection = await conectar_BD_EDUCACION_MySql();
   try {
       const [causal] = await connection.execute(
-        'SELECT * FROM causal'
+        'SELECT *, case when habilita = 1 then "SI" else "NO" end as habilita2 FROM causal'
       );
       res.status(200).json({causal})
      
