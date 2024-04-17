@@ -3,7 +3,7 @@ const auth = require("../middlewares/auth");
 const validateFields = require("../middlewares/validateFields");
 const { check } = require("express-validator");
 const verifyRole = require("../middlewares/verifyRole");
-const { listarConvocatorias, listarNiveles, listarEstablecimientos, listarCausal, listarCaracter, editarConvocatoria, agregarConvocatoria } = require("../controllers/educacionCrontrollers");
+const { listarConvocatorias, listarNiveles, listarEstablecimientos, listarCausal, listarCaracter, editarConvocatoria, agregarConvocatoria, agregarCausal, listarCausalTabla } = require("../controllers/educacionCrontrollers");
 
 const router = Router();
 const multer  = require('multer');
@@ -25,9 +25,11 @@ router.get("/listarConvocatorias", listarConvocatorias)
 router.get("/listarNiveles", listarNiveles)
 router.get("/listarEstablecimientos", listarEstablecimientos)
 router.get("/listarCausal", listarCausal)
+router.post("/listarCausalTabla", listarCausalTabla);
 router.get("/listarCaracter", listarCaracter)
 router.put("/editarConvocatoria", upload.single('archivo'), editarConvocatoria)
 router.post("/agregarConvocatoria", upload.single('archivo'), agregarConvocatoria);
+router.post("/agregarCausal", agregarCausal);
 // router.get("/listar/:id?",auth,verifyRole,obtenerUsuarios)
 
 

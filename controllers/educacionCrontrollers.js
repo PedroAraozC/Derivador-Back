@@ -205,6 +205,22 @@ const listarCausal =async(req,res)=>{
       }
     }
 }
+const listarCausalTabla =async(req,res)=>{
+    const connection = await conectar_BD_EDUCACION_MySql();
+  try {
+      const [causal] = await connection.execute(
+        'SELECT * FROM causal'
+      );
+      res.status(200).json({causal})
+     
+  } catch (error) {
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }  finally {
+      if (connection) {
+        connection.release();
+      }
+    }
+}
 const listarCaracter =async(req,res)=>{
     const connection = await conectar_BD_EDUCACION_MySql();
   try {
@@ -222,10 +238,43 @@ const listarCaracter =async(req,res)=>{
     }
 }
 
+const agregarCausal = async (req, res) => {
+  try {
+    const {
+      nombre_causal,
+      habilita
+    } = req.body;
+
+    // Obtener el último id_causal de la tabla
+    const connection = await conectar_BD_EDUCACION_MySql();
+    const [lastIdResult] = await connection.query("SELECT MAX(id_causal) AS max_id FROM causal");
+
+    let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_causal
+
+    // Query para insertar una nueva causal
+    const sql =
+      "INSERT INTO causal (id_causal, nombre_causal, habilita) VALUES (?, ?, ?)";
+    const values = [
+      nextId,
+      nombre_causal,
+      habilita,
+    ];
+
+    // Ejecutar la consulta SQL para insertar la nueva causal
+    await connection.execute(sql, values);
+
+    res.status(201).json({ message: "Causal creada con éxito", id: nextId, nombre_causal: nombre_causal });
+
+    connection.release();
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
 
 
 
 
 
 
-module.exports={ listarConvocatorias, listarNiveles, listarEstablecimientos, listarCausal, listarCaracter, editarConvocatoria, agregarConvocatoria }
+module.exports={ listarConvocatorias, listarNiveles, listarEstablecimientos, listarCausal, listarCaracter, editarConvocatoria, agregarConvocatoria, agregarCausal, listarCausalTabla }
