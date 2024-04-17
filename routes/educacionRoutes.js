@@ -25,7 +25,7 @@ router.get("/listarConvocatorias", listarConvocatorias)
 router.get("/listarNiveles", listarNiveles)
 router.get("/listarEstablecimientos", listarEstablecimientos)
 router.get("/listarCausal", listarCausal)
-router.post("/listarCausalTabla", listarCausalTabla);
+router.get("/listarCausalTabla", listarCausalTabla);
 router.get("/listarCaracter", listarCaracter)
 router.put("/editarConvocatoria", upload.single('archivo'), editarConvocatoria)
 router.post("/agregarConvocatoria", upload.single('archivo'), agregarConvocatoria);
