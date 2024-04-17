@@ -1,4 +1,6 @@
 const { conectarMySql } = require("../config/dbMYSQL");
+const { conectarBaseDeDatos } = require("../config/dbSQL");
+const { conectarDBTurnos } = require("../config/dbTurnosMYSQL");
 const { sequelize_ciu_digital } = require("../config/sequelize");
 const MovimientoReclamo = require("../models/Macro/MovimientoReclamo");
 const Reclamo = require("../models/Macro/Reclamo");
@@ -155,12 +157,10 @@ const listarReclamosCiudadano = async (req, res) => {
       if (reclamos.length > 0) {
         res.status(200).json({ reclamos });
       } else {
-        res
-          .status(200)
-          .json({
-            message:
-              "No se encontraron reclamos asociados al CUIT y al Teléfono proporcionados.",
-          });
+        res.status(200).json({
+          message:
+            "No se encontraron reclamos asociados al CUIT y al Teléfono proporcionados.",
+        });
       }
     } else if (cuit) {
       sqlQuery += "r.cuit = ?";
@@ -170,12 +170,10 @@ const listarReclamosCiudadano = async (req, res) => {
       if (reclamos.length > 0) {
         res.status(200).json({ reclamos });
       } else {
-        res
-          .status(200)
-          .json({
-            message:
-              "No se encontraron reclamos asociados al CUIT proporcionado.",
-          });
+        res.status(200).json({
+          message:
+            "No se encontraron reclamos asociados al CUIT proporcionado.",
+        });
       }
     } else if (telefono) {
       sqlQuery += "r.telefono LIKE CONCAT('%', ?, '%')";
@@ -185,20 +183,16 @@ const listarReclamosCiudadano = async (req, res) => {
       if (reclamos.length > 0) {
         res.status(200).json({ reclamos });
       } else {
-        res
-          .status(200)
-          .json({
-            message:
-              "No se encontraron reclamos asociados al Teléfono proporcionado.",
-          });
+        res.status(200).json({
+          message:
+            "No se encontraron reclamos asociados al Teléfono proporcionado.",
+        });
       }
     } else {
-      res
-        .status(400)
-        .json({
-          message:
-            "Debe proporcionar al menos el CUIT o el Teléfono para buscar reclamos.",
-        });
+      res.status(400).json({
+        message:
+          "Debe proporcionar al menos el CUIT o el Teléfono para buscar reclamos.",
+      });
     }
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -226,10 +220,98 @@ const buscarReclamoPorId = async (req, res) => {
   }
 };
 
+const obtenerTurnosDisponiblesPorDia = async (req, res) => {
+  try {
+    const connection = await conectarDBTurnos();
+
+    console.log("Conectado a MySQL");
+
+    let sqlQuery = `CALL api_obtenerturnospordia(1)`;
+    const [results, fields] = await connection.execute(sqlQuery);
+
+    connection.close();
+    res.status(200).json(results[0]);
+
+    console.log("Conexión cerrada");
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Error de servidor" });
+  }
+};
+
+const obtenerTurnosDisponiblesPorHora = async (req, res) => {
+  try {
+    const fecha_solicitada = req.query.fecha_solicitada;
+    const connection = await conectarDBTurnos();
+
+    console.log("Conectado a MySQL");
+
+    let sqlQuery = `CALL api_obtenerturnosporhora(1, ${fecha_solicitada})`;
+    const [results, fields] = await connection.execute(sqlQuery);
+
+    connection.close();
+    res.status(200).json(results[0]);
+
+    console.log("Conexión cerrada");
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Error de servidor" });
+  }
+};
+
+const existeTurno = async (req, res) => {
+  try {
+    const cuil = req.query.cuil;
+    const connection = await conectarDBTurnos();
+    console.log(cuil);
+    console.log("Conectado a MySQL");
+
+    let sqlQuery = `CALL api_existeturno(1, ${cuil})`;
+    const [results, fields] = await connection.execute(sqlQuery);
+
+    connection.close();
+    res.status(200).json(results[0]);
+
+    console.log("Conexión cerrada");
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Error de servidor" });
+  }
+};
+
+const confirmarTurno = async (req, res) => {
+  try {
+    const cuil = req.query.cuil;
+    const apellido = req.query.apellido;
+    const nombre = req.query.nombre;
+    const fecha_solicitada = req.query.fecha_solicitada;
+    const hora_solicitada = req.query.hora_solicitada;
+
+    const connection = await conectarDBTurnos();
+    console.log(req.query);
+    console.log("Conectado a MySQL");
+
+    let sqlQuery = `SELECT api_confirmarturno(?, ?, ?, ?, ?,?)`;
+    const [results, fields] = await connection.execute(sqlQuery, [1, cuil, apellido, nombre, fecha_solicitada, hora_solicitada]);
+
+    connection.close();
+    res.status(200).json(results[0]);
+
+    console.log("Conexión cerrada");
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Error de servidor" });
+  }
+};
+
 module.exports = {
   obtenerCategorias,
   obtenerTiposDeReclamoPorCategoria,
   ingresarReclamo,
   listarReclamosCiudadano,
   buscarReclamoPorId,
+  obtenerTurnosDisponiblesPorDia,
+  obtenerTurnosDisponiblesPorHora,
+  existeTurno,
+  confirmarTurno,
 };
