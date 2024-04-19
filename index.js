@@ -3,11 +3,14 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const morgan = require("morgan");
 const connectDB = require("./config/dbUsuariosMongoDB");
+const bodyParser = require('body-parser');
 
 const app = express();
 app.use(cors());
 dotenv.config();
 connectDB();
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '20mb' }));
 
 const contableRoutes = require("./routes/contableRoutes");
 const reclamosRoutes = require("./routes/reclamosRoutes");

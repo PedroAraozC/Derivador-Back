@@ -53,91 +53,85 @@ const obtenerTiposDeReclamoPorCategoria = async (req, res) => {
 const ingresarReclamo = async (req, res) => {
   let transaction;
   try {
-    const {
-      id_categoria,
-      id_treclamo,
-      asunto,
-      detalle,
-      direccion,
-      descripcion_lugar,
-      coorde1,
-      coorde2,
-      apellido_nombre,
-      telefono,
-      email,
-      cuit,
-    } = req.body;
-
-    //VERIFICAR QUE CATEGORIA Y tipo de reclamo COINCIDAN
+    const { id_categoria, id_treclamo, asunto, detalle, direccion, descripcion_lugar, coorde1, coorde2, apellido_nombre, telefono, email, cuit, foto } = req.body;
 
     transaction = await sequelize_ciu_digital.transaction();
 
     const connection = await conectarMySql();
-    console.log("Conectado a MySQL");
+    console.log('Conectado a MySQL');
 
-    const [tipoDeReclamo, fieldsTipoDeReclamo] = await connection.execute(
-      "SELECT tipo_reclamo.id_prioridad FROM tipo_reclamo WHERE tipo_reclamo.id_treclamo = ? AND tipo_reclamo.habilita = ?",
-      [id_treclamo, 1]
+    const [tipoDeReclamoPerteneceACategoria] = await connection.execute(
+      "SELECT CASE WHEN COUNT(*) > 0 THEN 'true' ELSE 'false' END AS existe_tipo_reclamo FROM tipo_reclamo WHERE id_treclamo = ? AND id_categoria = ? AND habilita = ?",
+      [id_treclamo, id_categoria, 1]
     );
 
-    const [derivacionReclamo, fieldsDerivacionReclamo] =
-      await connection.execute(
+    if (tipoDeReclamoPerteneceACategoria[0].existe_tipo_reclamo == "true") {
+
+      const [tipoDeReclamo, fieldsTipoDeReclamo] = await connection.execute(
+        "SELECT tipo_reclamo.id_prioridad FROM tipo_reclamo WHERE tipo_reclamo.id_treclamo = ? AND tipo_reclamo.habilita = ?",
+        [id_treclamo, 1]
+      );
+
+      const [derivacionReclamo, fieldsDerivacionReclamo] = await connection.execute(
         "SELECT derivacion_reclamo.* FROM derivacion_reclamo WHERE derivacion_reclamo.id_treclamo = ? AND derivacion_reclamo.habilita = ?",
         [id_treclamo, 1]
       );
 
-    const reclamoObj = {
-      id_categoria,
-      id_oreclamo: 15,
-      id_estado: 1,
-      id_treclamo,
-      asunto,
-      detalle,
-      direccion,
-      descripcion_lugar,
-      coorde1,
-      coorde2,
-      apellido_nombre,
-      telefono,
-      email,
-      cuit,
-      id_prioridad: tipoDeReclamo[0].id_prioridad,
-    };
-
-    const nuevoReclamo = await Reclamo.create(reclamoObj, {
-      transaction,
-    });
-
-    const reclamoId = nuevoReclamo.id_reclamo;
-
-    await MovimientoReclamo.create(
-      {
-        id_reclamo: reclamoId,
-        id_derivacion: derivacionReclamo[0].id_derivacion,
-        id_oficina: derivacionReclamo[0].id_oficina_deriva,
+      const reclamoObj = {
+        id_categoria,
+        id_oreclamo: 15,
         id_estado: 1,
-        id_motivo: 1,
-        detalle_movi: "Inicio del trámite",
-        fecha_ingreso: "0000-00-00 00:00:00",
-        fecha_egreso: "0000-00-00 00:00:00",
-        oficina_graba: 5000,
-      },
-      { transaction }
-    );
+        id_treclamo,
+        asunto,
+        detalle,
+        direccion,
+        descripcion_lugar,
+        coorde1,
+        coorde2,
+        apellido_nombre,
+        telefono,
+        email,
+        cuit,
+        id_prioridad: tipoDeReclamo[0].id_prioridad,
+        foto: foto.length > 0? 1 : 0
+      };
 
-    const [oficinaYReparticion, fieldsOficinaYReparticion] =
-      await connection.execute(
+      const nuevoReclamo = await Reclamo.create(reclamoObj, {
+        transaction,
+      });
+
+      const reclamoId = nuevoReclamo.id_reclamo;
+
+      await MovimientoReclamo.create(
+        {
+          id_reclamo: reclamoId,
+          id_derivacion: derivacionReclamo[0].id_derivacion,
+          id_oficina: derivacionReclamo[0].id_oficina_deriva,
+          id_estado: 1,
+          id_motivo: 1,
+          detalle_movi: "Inicio del trámite",
+          fecha_ingreso: "0000-00-00 00:00:00",
+          fecha_egreso: "0000-00-00 00:00:00",
+          oficina_graba: 5000
+        },
+        { transaction }
+      );
+
+      const [oficinaYReparticion, fieldsOficinaYReparticion] = await connection.execute(
         "SELECT oficina_reparti.nombre_oficina,reparti.nombre_reparti FROM oficina_reparti JOIN reparti ON oficina_reparti.id_reparti = reparti.id_reparti WHERE oficina_reparti.id_oficina = ?",
         [derivacionReclamo[0].id_oficina_deriva]
       );
 
-    await transaction.commit();
+      await transaction.commit();
 
-    res.status(200).json();
+      res.status(200).json({ message: "Reclamo generado con éxito", Numero_Reclamo: reclamoId, Estado: "Iniciado", Repartición_Derivada: oficinaYReparticion[0].nombre_reparti, Oficina_Receptora: oficinaYReparticion[0].nombre_oficina });
+    } else {
+      res.status(400).json({ message: "El tipo de reclamo y la categoría no se corresponden" })
+    }
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
-};
+}
 
 const listarReclamosCiudadano = async (req, res) => {
   const cuit = req.query.cuit;

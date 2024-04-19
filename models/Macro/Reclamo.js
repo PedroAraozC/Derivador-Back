@@ -11,10 +11,10 @@ const Reclamo = sequelize.define('Reclamo', {
     primaryKey: true,
     autoIncrement: true
   },
-//   fecha_hora_inicio: {
-//     type: DataTypes.DATE,
-//     allowNull: false
-//   },
+  foto: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
   id_categoria: {
     type: DataTypes.INTEGER,
     allowNull: false
