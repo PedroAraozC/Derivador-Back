@@ -3,7 +3,7 @@ const auth = require("../middlewares/auth");
 const validateFields = require("../middlewares/validateFields");
 const { check } = require("express-validator");
 const verifyRole = require("../middlewares/verifyRole");
-const { listarConvocatorias, listarNiveles, listarEstablecimientos, listarCausal, listarCaracter, editarConvocatoria, agregarConvocatoria, agregarCausal, listarCausalTabla } = require("../controllers/educacionCrontrollers");
+const { listarConvocatorias, listarNiveles, listarEstablecimientos, listarCausal, listarCaracter, editarConvocatoria, agregarConvocatoria, agregarCausal, listarCausalTabla, editarCausal, borrarCausal, listarConvocatoriasTabla, listarNivelesTabla, agregarNivel, editarNivel, listarEstablecimientosTabla, agregarEstablecimiento, editarEstablecimiento, listarCaracterTabla, agregarCaracter, editarCaracter } = require("../controllers/educacionCrontrollers");
 
 const router = Router();
 const multer  = require('multer');
@@ -22,14 +22,30 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 router.get("/listarConvocatorias", listarConvocatorias)
-router.get("/listarNiveles", listarNiveles)
-router.get("/listarEstablecimientos", listarEstablecimientos)
-router.get("/listarCausal", listarCausal)
-router.get("/listarCausalTabla", listarCausalTabla);
-router.get("/listarCaracter", listarCaracter)
-router.put("/editarConvocatoria", upload.single('archivo'), editarConvocatoria)
+router.get("/listarConvocatoriasTabla", listarConvocatoriasTabla)
 router.post("/agregarConvocatoria", upload.single('archivo'), agregarConvocatoria);
+router.put("/editarConvocatoria", upload.single('archivo'), editarConvocatoria)
+
+router.get("/listarNiveles", listarNiveles)
+router.get("/listarNivelesTabla", listarNivelesTabla)
+router.post("/agregarNivel", agregarNivel)
+router.post("/editarNivel", editarNivel)
+
+router.get("/listarEstablecimientos", listarEstablecimientos)
+router.get("/listarEstablecimientosTabla", listarEstablecimientosTabla)
+router.post("/agregarEstablecimiento", agregarEstablecimiento);
+router.post("/editarEstablecimiento", editarEstablecimiento);
+
+router.get("/listarCausalTabla", listarCausalTabla);
+router.get("/listarCausal", listarCausal)
 router.post("/agregarCausal", agregarCausal);
+router.post("/editarCausal", editarCausal);
+
+router.get("/listarCaracter", listarCaracter)
+router.get("/listarCaracterTabla", listarCaracterTabla)
+router.post("/agregarCaracter", agregarCaracter)
+router.post("/editarCaracter", editarCaracter)
+
 // router.get("/listar/:id?",auth,verifyRole,obtenerUsuarios)
 
 
