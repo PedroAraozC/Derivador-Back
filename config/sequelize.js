@@ -8,4 +8,10 @@ const sequelize = new Sequelize(process.env.DB_GAF , process.env.USER_CIU_DIGITA
   // Otros opciones de configuración...
 });
 
-module.exports = sequelize;
+const sequelize_ciu_digital = new Sequelize(process.env.DATABASE_CIU , process.env.USER, process.env.PASSWORD, {
+  host: process.env.HOST,
+  dialect: 'mysql',
+  // Otros opciones de configuración...
+});
+
+module.exports = {sequelize,sequelize_ciu_digital};

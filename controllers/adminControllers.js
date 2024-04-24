@@ -59,8 +59,26 @@ const agregarOpcion = async (req, res) => {
 //   }
 // };
 
+const borrarOpcion = async (req, res) => {
+  const { id } = req.body;
+  const sql = "DELETE FROM opcion WHERE id_opcion = ?";
+  const values = [id];
+
+  try {
+    const connection = await conectarBDEstadisticasMySql();
+    const [result] = await connection.execute(sql, values); 
+    await connection.end();
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "opción deshabilitada con éxito" });
+    } else {
+      res.status(400).json({ message: "opción no encontrada" });
+    }
+  } catch (error) {
+    console.error("Error al eliminar la opción:", error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
 
 
 
-
-module.exports={ agregarOpcion }
+module.exports={ agregarOpcion, borrarOpcion}
