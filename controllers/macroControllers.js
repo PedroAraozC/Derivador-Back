@@ -93,7 +93,7 @@ const ingresarReclamo = async (req, res) => {
         email,
         cuit,
         id_prioridad: tipoDeReclamo[0].id_prioridad,
-        foto: foto.length > 0? 1 : 0
+        foto: (Array.isArray(JSON.parse(foto)) && JSON.parse(foto).length > 0) ? 1 : 0
       };
 
       const nuevoReclamo = await Reclamo.create(reclamoObj, {
