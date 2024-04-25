@@ -175,7 +175,8 @@ const obtenerOpcionesHabilitadas = async (req, res) => {
       FROM permiso_persona pp
       LEFT JOIN proceso pro ON pp.id_proceso = pro.id_proceso 
       LEFT JOIN opcion o ON pro.id_opcion = o.id_opcion
-      WHERE pp.id_persona = 1`
+      WHERE pp.id_persona = 1
+      ORDER BY o.id_opcion ASC`
     );
     await connection.end();
     res.status(200).json({ opciones });
