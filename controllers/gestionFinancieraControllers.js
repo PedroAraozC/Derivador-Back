@@ -1,5 +1,5 @@
 const { conectar_BD_GAF_MySql } = require("../config/dbEstadisticasMYSQL");
-const sequelize = require("../config/sequelize");
+const { sequelize } = require("../config/sequelize");
 const DetMovimiento = require("../models/Financiera/DetMovimiento");
 const Movimiento = require("../models/Financiera/Movimiento");
 const { obtenerFechaEnFormatoDate } = require("../utils/helpers");
@@ -850,10 +850,12 @@ const agregarMovimiento = async (req, res) => {
 const buscarExpediente = async (req, res) => {
   try {
     const numero = req.query.numero;
+    const tipomovimiento_id = req.query.tipomovimiento_id;
+    console.log(tipomovimiento_id - 1);
     const connection = await conectar_BD_GAF_MySql();
-    const query = `SELECT * FROM expediente AS e LEFT JOIN movimiento AS m ON e.expediente_id = m.expediente_id LEFT JOIN detmovimiento AS d ON m.movimiento_id = d.movimiento_id LEFT JOIN detpresupuesto AS dp ON d.detpresupuesto_id = dp.detpresupuesto_id LEFT JOIN item AS i ON dp.item_id = i.item_id LEFT JOIN partidas AS pda ON dp.partida_id=pda.partida_id WHERE e.expediente_numero = ?
+    const query = `SELECT * FROM expediente AS e LEFT JOIN movimiento AS m ON e.expediente_id = m.expediente_id LEFT JOIN detmovimiento AS d ON m.movimiento_id = d.movimiento_id LEFT JOIN detpresupuesto AS dp ON d.detpresupuesto_id = dp.detpresupuesto_id LEFT JOIN item AS i ON dp.item_id = i.item_id LEFT JOIN partidas AS pda ON dp.partida_id=pda.partida_id WHERE e.expediente_numero = ? AND m.tipomovimiento_id = ?
     `;
-    const [result] = await connection.execute(query, [numero]);
+    const [result] = await connection.execute(query, [numero,tipomovimiento_id - 1]);
 
     console.log(result);
     await connection.end();

@@ -93,7 +93,7 @@ const ingresarReclamo = async (req, res) => {
         email,
         cuit,
         id_prioridad: tipoDeReclamo[0].id_prioridad,
-        foto: foto.length > 0? 1 : 0
+        foto: (Array.isArray(JSON.parse(foto)) && JSON.parse(foto).length > 0) ? 1 : 0
       };
 
       const nuevoReclamo = await Reclamo.create(reclamoObj, {
@@ -128,6 +128,8 @@ const ingresarReclamo = async (req, res) => {
     } else {
       res.status(400).json({ message: "El tipo de reclamo y la categoría no se corresponden" })
     }
+    await connection.end();
+    console.log("Conexión cerrada");
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }

@@ -14,19 +14,20 @@ const conectarDBTurnos = async () => {
   }
 };
 
-// const pool = new sql.ConnectionPool(config);
-
-// async function conectarDBTurnos() {
-//   try {
-//     await pool.connect();
-//     console.log("Conectado a SQL");
-//     return pool;
-//   } catch (error) {
-//     console.error("Error de conexión:", error);
-//     throw error;
-//   }
-// }
+const conectarDBTurnosPrueba = async () => {
+  try {
+    const connection = await mysql.createConnection({
+      host: process.env.HOST_CEMA,
+      user: process.env.USER_CEMA,
+      password: process.env.PASSWORD_CEMA,
+      database: process.env.DATABASE_CEMA,
+    });
+    return connection;
+  } catch (error) {
+    console.log(error.message);
+  }
+};
 
 module.exports = {
-  conectarDBTurnos,
+  conectarDBTurnos,conectarDBTurnosPrueba
 };
