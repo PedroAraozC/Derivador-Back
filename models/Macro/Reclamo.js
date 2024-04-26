@@ -13,7 +13,7 @@ const Reclamo = sequelize.define('Reclamo', {
   },
   foto: {
     type: DataTypes.INTEGER,
-    allowNull: false
+    allowNull: true
   },
   id_categoria: {
     type: DataTypes.INTEGER,
