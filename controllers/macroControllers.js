@@ -54,7 +54,8 @@ const ingresarReclamo = async (req, res) => {
   let transaction;
   try {
     const { id_categoria, id_treclamo, asunto, detalle, direccion, descripcion_lugar, coorde1, coorde2, apellido_nombre, telefono, email, cuit, foto } = req.body;
-
+    console.log(foto);
+    console.log(typeof foto);
     transaction = await sequelize_ciu_digital.transaction();
 
     const connection = await conectarMySql();
@@ -131,6 +132,7 @@ const ingresarReclamo = async (req, res) => {
     await connection.end();
     console.log("Conexión cerrada");
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
 }
