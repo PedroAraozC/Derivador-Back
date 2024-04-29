@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const { conectarBDEstadisticasMySql } = require("../config/dbEstadisticasMYSQL");
 const nodemailer = require('nodemailer');
 const moment = require('moment-timezone');
+const https = require('https');
 
 // Configurar el transporte de Nodemailer
 const transporter = nodemailer.createTransport({
@@ -49,6 +50,45 @@ function generarCodigoAfaNumerico() {
 
   return codigo;
 }
+
+      //VALIDACION DE EMPLEADO PARA ASIGNAR TIPO DE USUARIO
+      const validarEmpleado = async (cuil) => {
+        try {
+            console.log(cuil);
+    
+            const JSONdata = JSON.stringify({
+                tarea: "legajo_municipal",
+                cuil: cuil,
+            });
+    
+            console.log(JSONdata);
+    
+            const options = {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSONdata,
+            };
+    
+            const response = await fetch("https://181.105.6.205:83/api_civitas/ciudadano.php", {
+    ...options,
+    agent: new https.Agent({ rejectUnauthorized: false })
+});
+    
+            if (!response.ok) {
+                throw new Error('La solicitud falló con estado ' + response.status);
+            }
+    
+            const result = await response.json();
+            console.log(result);
+            return result;
+        } catch (error) {
+            console.error('Error al realizar la solicitud:', error);
+            return { error: error.message };
+        }
+    };
+    
+
+      // -----------------------------------------------------------------------------------------------------
 
 //controladores
 const login = async (req, res) => {
@@ -395,7 +435,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
           id_pais,
           fecha_nacimiento_persona,
           id_genero,
-          id_tdocumento,
+        
           validado,
           habilita
       } = req.body;
@@ -415,22 +455,37 @@ const agregarUsuarioMYSQL = async (req, res) => {
       if (resultEmail.length > 0) {
           return res.status(400).json({ message: "Email ya registrado", userEmail: email_persona });
       }
-
+      
       const [resultDocumento] = await connection.query('SELECT * FROM persona WHERE documento_persona = ?', [documento_persona]);
       if (resultDocumento.length > 0) {
-          return res.status(400).json({ message: "DNI ya registrado", userDNI: documento_persona });
+        return res.status(400).json({ message: "DNI ya registrado", userDNI: documento_persona });
       }
+      
+      const empleadoValidado = await validarEmpleado(documento_persona);
 
-      // Insertar el nuevo usuario
-      const [resultInsert] = await connection.query(
-          'INSERT INTO persona (documento_persona, nombre_persona, apellido_persona, email_persona, clave, telefono_persona, domicilio_persona, id_provincia, id_pais, localidad_persona, validado, habilita, fecha_nacimiento_persona, id_genero, id_tdocumento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [documento_persona, nombre_persona.toUpperCase(), apellido_persona.toUpperCase(), email_persona, hashedPassword, telefono_persona, domicilio_persona.toUpperCase(), id_provincia, id_pais, localidad_persona.toUpperCase(), validado, habilita, fechaFormateada, id_genero, id_tdocumento]
+      if (empleadoValidado.legajo !== null) {
+        // Se encontró un legajo
+        // Realizar acciones adicionales según sea necesario
+        console.log("Legajo encontrado:", empleadoValidado.legajo);
+        let usuarioEmpleado = 4;
+        // Insertar el nuevo usuario con legajo
+        const [resultInsert] = await connection.query(
+          'INSERT INTO persona (documento_persona, nombre_persona, apellido_persona, email_persona, clave, telefono_persona, domicilio_persona, id_provincia, id_pais, localidad_persona, validado, habilita, fecha_nacimiento_persona, id_genero,id_tusuario) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, ?)',
+          [documento_persona, nombre_persona.toUpperCase(), apellido_persona.toUpperCase(), email_persona, hashedPassword, telefono_persona, domicilio_persona.toUpperCase(), id_provincia, id_pais, localidad_persona.toUpperCase(), validado, habilita, fechaFormateada, id_genero, usuarioEmpleado]
       );
-
+      } else {
+        // No se encontró un legajo
+        // Realizar acciones adicionales según sea necesario
+        console.log("No se encontró un legajo");
+        // Insertar el nuevo usuario
+        const [resultInsert] = await connection.query(
+            'INSERT INTO persona (documento_persona, nombre_persona, apellido_persona, email_persona, clave, telefono_persona, domicilio_persona, id_provincia, id_pais, localidad_persona, validado, habilita, fecha_nacimiento_persona, id_genero) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?)',
+            [documento_persona, nombre_persona.toUpperCase(), apellido_persona.toUpperCase(), email_persona, hashedPassword, telefono_persona, domicilio_persona.toUpperCase(), id_provincia, id_pais, localidad_persona.toUpperCase(), validado, habilita, fechaFormateada, id_genero]
+        );
+      }
+      
       // Enviar correo electrónico al usuario recién registrado
         enviarEmail(codigoValidacion,email_persona,res);                 
-
-
 
       return res.status(200).json({ message: "Ciudadano creado con éxito" });
   } catch (error) {
