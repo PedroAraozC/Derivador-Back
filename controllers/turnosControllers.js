@@ -120,4 +120,55 @@ const existeTurno = async (req, res) => {
     }
   };
 
-  module.exports = {obtenerTramites, obtenerProcedimientos,obtenerFunciones, existeTurno, obtenerTurnosDisponiblesPorDia, obtenerTurnosDisponiblesPorHora}
+  const confirmarTurno = async (req, res) => {
+    try {
+      // const cuil = req.query.cuil;
+      // const id_tramite = req.query.id_tramite;
+      // const apellido = req.query.apellido;
+      // const nombre = req.query.nombre;
+      // const fecha_solicitada = req.query.fecha_solicitada;
+      // const hora_solicitada = req.query.hora_solicitada;
+
+      const { cuil, id_tramite, apellido, nombre, fecha_solicitada, hora_solicitada} = req.body;
+      console.log(req.body);
+      const connection = await conectarDBTurnosPrueba();
+      // console.log(req.query);
+      console.log("Conectado a MySQL");
+  
+      let sqlQuery = `SELECT api_confirmarturno(?, ?, ?, ?, ?, ?)`;
+      const [results, fields] = await connection.execute(sqlQuery, [id_tramite, cuil, apellido, nombre, fecha_solicitada, hora_solicitada]);
+  
+      connection.close();
+      res.status(200).json(results[0]);
+  
+      console.log("Conexión cerrada");
+    } catch (error) {
+      console.error("Error:", error);
+      res.status(500).json({ error: "Error de servidor" });
+    }
+  };
+
+  const anularTurno = async (req, res) => {
+    try {
+      const cuil = req.query.cuil;
+      const id_tramite = req.query.id_tramite;
+  
+      const connection = await conectarDBTurnosPrueba();
+      // console.log(req.query);
+      console.log("Conectado a MySQL");
+  
+      let sqlQuery = `SELECT api_anularturno(?, ?)`;
+      const [results, fields] = await connection.execute(sqlQuery, [id_tramite, cuil]);
+      console.log(results);
+      connection.close();
+      res.status(200).json(results[0]);
+  
+      console.log("Conexión cerrada");
+    } catch (error) {
+      console.error("Error:", error);
+      res.status(500).json({ error: "Error de servidor" });
+    }
+  };
+  
+
+  module.exports = {obtenerTramites, obtenerProcedimientos,obtenerFunciones, existeTurno, obtenerTurnosDisponiblesPorDia, obtenerTurnosDisponiblesPorHora, confirmarTurno, anularTurno}
