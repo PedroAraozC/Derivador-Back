@@ -4,6 +4,9 @@ const jwt = require("jsonwebtoken");
 const { conectarBDEstadisticasMySql } = require("../config/dbEstadisticasMYSQL");
 const nodemailer = require('nodemailer');
 const moment = require('moment-timezone');
+const Persona = require("../models/Derivador/Persona");
+const Empleado = require("../models/Derivador/Empleado");
+const { sequelize_ciu_digital_derivador } = require("../config/sequelize");
 
 // Configurar el transporte de Nodemailer
 const transporter = nodemailer.createTransport({
@@ -16,7 +19,7 @@ const transporter = nodemailer.createTransport({
   });
 
 //funciones
-const enviarEmail=(codigo,email,res)=>{
+const enviarEmail=(codigo,email)=>{
   const mailOptions = {
     from: 'develop.ditec@zohomail.com', // Coloca tu dirección de correo electrónico
     to: email, // Utiliza el correo electrónico del usuario recién registrado
@@ -52,12 +55,11 @@ function generarCodigoAfaNumerico() {
 
       //VALIDACION DE EMPLEADO PARA ASIGNAR TIPO DE USUARIO
       const validarEmpleado = async (cuil) =>{
-        console.log(cuil)
         const JSONdata = JSON.stringify({ 
           tarea: "legajo_municipal",
           cuil: cuil ,
         }); 
-        const endpoint = "https://181.105.6.205:83/api_civitas/ciudadano.php";
+        const endpoint = "http://181.105.6.205:86/api_civitas/ciudadano.php";
       
         const options = {
           method: "POST",
@@ -67,7 +69,7 @@ function generarCodigoAfaNumerico() {
         const response = await fetch(endpoint, options);
       
         const result = await response.json();
-        console.log(result)
+        console.log(result.legajo[0])
         return result;
       }
 
@@ -403,7 +405,9 @@ const validarUsuarioMYSQL = async (req, res) => {
 };
 
 const agregarUsuarioMYSQL = async (req, res) => {
+  // 
   let connection;
+  let transaction;
   try {
       const {     
           documento_persona,
@@ -429,9 +433,9 @@ const agregarUsuarioMYSQL = async (req, res) => {
       const fechaFormateada = moment(fechaStr).format('YYYY-MM-DD');
 
       const codigoValidacion=generarCodigo(documento_persona);
-
-      // Establecer la conexión a la base de datos MySQL
-      connection = await conectarBDEstadisticasMySql();
+      // Iniciar una transacción
+      transaction = await sequelize_ciu_digital_derivador.transaction();
+      const connection = await conectarBDEstadisticasMySql();
 
       // Consultar si ya existe un usuario con el mismo email o documento
       const [resultEmail] = await connection.query('SELECT * FROM persona WHERE email_persona = ?', [email_persona]);
@@ -446,19 +450,54 @@ const agregarUsuarioMYSQL = async (req, res) => {
       
       const empleadoValidado = await validarEmpleado(req.body.documento_persona);
 
-      if (empleadoValidado.legajo !== null) {
+      
+      if (empleadoValidado.legajo[0] !== null) {
         // Se encontró un legajo
-        // Realizar acciones adicionales según sea necesario
-        console.log("Legajo encontrado:", empleadoValidado.legajo);
+        const [resultReparticion] = await connection.query(
+          'SELECT * FROM reparticion WHERE reparticion.habilita = 1 AND reparticion.item = ?',
+          [empleadoValidado.legajo[0].codi_17]
+      );
+        let id_rep = resultReparticion[0].id_reparticion
         let usuarioEmpleado = 4;
         // Insertar el nuevo usuario con legajo
-        const [resultInsert] = await connection.query(
-          'INSERT INTO persona (documento_persona, nombre_persona, apellido_persona, email_persona, clave, telefono_persona, domicilio_persona, id_provincia, id_pais, localidad_persona, validado, habilita, fecha_nacimiento_persona, id_genero, id_tdocumento, id_tusuario) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [documento_persona, nombre_persona.toUpperCase(), apellido_persona.toUpperCase(), email_persona, hashedPassword, telefono_persona, domicilio_persona.toUpperCase(), id_provincia, id_pais, localidad_persona.toUpperCase(), validado, habilita, fechaFormateada, id_genero, id_tdocumento, usuarioEmpleado]
+      const nuevaPersona = await Persona.create(
+        {
+          documento_persona,
+          nombre_persona: nombre_persona.toUpperCase(),
+          apellido_persona: apellido_persona.toUpperCase(),
+          email_persona,
+          clave: hashedPassword,
+          telefono_persona,
+          domicilio_persona: domicilio_persona.toUpperCase(),
+          id_provincia,
+          id_pais,
+          localidad_persona: localidad_persona.toUpperCase(),
+          fecha_nacimiento_persona: fechaFormateada,
+          id_genero,
+          id_tdocumento,
+          id_tusuario: usuarioEmpleado,
+        },
+        { transaction }
       );
+      const [resultPersona] = await connection.query(
+        'SELECT * FROM persona p WHERE p.documento_persona = ?',
+        [documento_persona]
+    );
+    let id_per = resultPersona[0].id_persona
+    let afil = empleadoValidado.legajo[0].lega_12
+      const nuevoEmpleado = await Empleado.create(
+        {
+          id_persona: id_per,
+          afiliado: afil,
+          id_reparticion: id_rep,
+        },
+        { transaction }
+      );
+
+      await transaction.commit();
+
       } else {
         // No se encontró un legajo
-        // Realizar acciones adicionales según sea necesario
         console.log("No se encontró un legajo");
         // Insertar el nuevo usuario
         const [resultInsert] = await connection.query(
@@ -466,12 +505,12 @@ const agregarUsuarioMYSQL = async (req, res) => {
             [documento_persona, nombre_persona.toUpperCase(), apellido_persona.toUpperCase(), email_persona, hashedPassword, telefono_persona, domicilio_persona.toUpperCase(), id_provincia, id_pais, localidad_persona.toUpperCase(), validado, habilita, fechaFormateada, id_genero, id_tdocumento]
         );
       }
-      
       // Enviar correo electrónico al usuario recién registrado
-        enviarEmail(codigoValidacion,email_persona,res);                 
+        enviarEmail(codigoValidacion,email_persona);                 
 
       return res.status(200).json({ message: "Ciudadano creado con éxito" });
   } catch (error) {
+      await transaction.rollback();
       return res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
       // Cerrar la conexión a la base de datos
@@ -481,13 +520,13 @@ const agregarUsuarioMYSQL = async (req, res) => {
   }
 };
 
-const enviarEmailValidacion=(req,res)=>{
+const enviarEmailValidacion=(req)=>{
 
 const {email_persona,documento_persona}=req.body;
 
 const codigoValidacion=generarCodigo(documento_persona);
 
-enviarEmail(codigoValidacion,email_persona,res);
+enviarEmail(codigoValidacion,email_persona);
 
 }
 
@@ -579,11 +618,7 @@ const restablecerClave = async (req, res) => {
                     }
                 });
 
- 
                   return res.status(200).json({ message: `Se envió un email a ${email} con una clave temporal`,ok: true});
-              
-              
-          
           
       } else {
           // No se encontró el usuario
