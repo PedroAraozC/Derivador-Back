@@ -4,32 +4,36 @@ const jwt = require("jsonwebtoken");
 const { conectarBDEstadisticasMySql } = require("../config/dbEstadisticasMYSQL");
 const nodemailer = require('nodemailer');
 const moment = require('moment-timezone');
-const https = require('https');
+const Persona = require("../models/Derivador/Persona");
+const Empleado = require("../models/Derivador/Empleado");
+const { sequelize_ciu_digital_derivador } = require("../config/sequelize");
 
 // Configurar el transporte de Nodemailer
 const transporter = nodemailer.createTransport({
-    service: 'Zoho',
-    auth: {
-      user: 'develop.ditec@zohomail.com', 
-       pass: process.env.PASSWORD_MAIL
-       
-    }
-  });
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
+  auth: {
+      user: 'no-reply@smt.gob.ar',
+      pass: process.env.PASSWORD_MAIL
+  }
+});
 
 //funciones
 const enviarEmail=(codigo,email,res)=>{
+  console.log(codigo,email)
   const mailOptions = {
-    from: 'develop.ditec@zohomail.com', // Coloca tu dirección de correo electrónico
-    to: email, // Utiliza el correo electrónico del usuario recién registrado
+    from: 'no-reply@smt.gob.ar',
+    to: email,
     subject: 'Código de validación',
     text: `Tu código de validación es: ${codigo}`
 };
 
 transporter.sendMail(mailOptions, (errorEmail, info) => {
     if (errorEmail) {
-      res.status(500).json({msg:'Error al enviar el correo electrónico:',error: errorEmail});
+     return res.status(500).json({msg:'Error al enviar el correo electrónico:',error: errorEmail});
     } else {
-      res.status(200).json({mge:'Correo electrónico enviado correctamente:',info: info.response});
+      return res.status(200).json({mge:'Correo electrónico enviado correctamente:',info: info.response});
     }
 });
 }
@@ -52,41 +56,24 @@ function generarCodigoAfaNumerico() {
 }
 
       //VALIDACION DE EMPLEADO PARA ASIGNAR TIPO DE USUARIO
-      const validarEmpleado = async (cuil) => {
-        try {
-            console.log(cuil);
-    
-            const JSONdata = JSON.stringify({
-                tarea: "legajo_municipal",
-                cuil: cuil,
-            });
-    
-            console.log(JSONdata);
-    
-            const options = {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSONdata,
-            };
-    
-            const response = await fetch("https://181.105.6.205:83/api_civitas/ciudadano.php", {
-    ...options,
-    agent: new https.Agent({ rejectUnauthorized: false })
-});
-    
-            if (!response.ok) {
-                throw new Error('La solicitud falló con estado ' + response.status);
-            }
-    
-            const result = await response.json();
-            console.log(result);
-            return result;
-        } catch (error) {
-            console.error('Error al realizar la solicitud:', error);
-            return { error: error.message };
-        }
-    };
-    
+      const validarEmpleado = async (cuil) =>{
+        const JSONdata = JSON.stringify({ 
+          tarea: "legajo_municipal",
+          cuil: cuil ,
+        }); 
+        const endpoint = "http://181.105.6.205:86/api_civitas/ciudadano.php";
+      
+        const options = {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }, 
+          body: JSONdata,
+        };
+        const response = await fetch(endpoint, options);
+      
+        const result = await response.json();
+        console.log(result.legajo[0])
+        return result;
+      }
 
       // -----------------------------------------------------------------------------------------------------
 
@@ -103,8 +90,11 @@ const login = async (req, res) => {
         const [result] = await connection.execute(
           '    SELECT persona.*, tipo_usuario.nombre_tusuario AS tipoDeUsuario FROM persona JOIN tipo_usuario ON persona.id_tusuario = tipo_usuario.id_tusuario WHERE persona.documento_persona = ?',[dni]
         );
+        
 
         if (result.length == 0) throw new CustomError("Usuario no encontrado", 404);
+
+         if (result[0].validado==0) throw new CustomError("Usuario no validado. Revise su correo o reenvie el email de validación", 404);
 
         const permiso_persona = await connection.execute('SELECT permiso_persona.*,proceso.nombre_proceso AS proceso,proceso.habilita AS habilitado FROM permiso_persona JOIN proceso ON permiso_persona.id_proceso=proceso.id_proceso WHERE permiso_persona.id_persona = ?',[result[0].id_persona]) 
     
@@ -420,7 +410,9 @@ const validarUsuarioMYSQL = async (req, res) => {
 };
 
 const agregarUsuarioMYSQL = async (req, res) => {
+  // 
   let connection;
+  let transaction;
   try {
       const {     
           documento_persona,
@@ -446,9 +438,9 @@ const agregarUsuarioMYSQL = async (req, res) => {
       const fechaFormateada = moment(fechaStr).format('YYYY-MM-DD');
 
       const codigoValidacion=generarCodigo(documento_persona);
-
-      // Establecer la conexión a la base de datos MySQL
-      connection = await conectarBDEstadisticasMySql();
+      // Iniciar una transacción
+      transaction = await sequelize_ciu_digital_derivador.transaction();
+      const connection = await conectarBDEstadisticasMySql();
 
       // Consultar si ya existe un usuario con el mismo email o documento
       const [resultEmail] = await connection.query('SELECT * FROM persona WHERE email_persona = ?', [email_persona]);
@@ -463,19 +455,54 @@ const agregarUsuarioMYSQL = async (req, res) => {
       
       const empleadoValidado = await validarEmpleado(documento_persona);
 
-      if (empleadoValidado.legajo !== null) {
+      
+      if (empleadoValidado.legajo[0] !== null) {
         // Se encontró un legajo
-        // Realizar acciones adicionales según sea necesario
-        console.log("Legajo encontrado:", empleadoValidado.legajo);
+        const [resultReparticion] = await connection.query(
+          'SELECT * FROM reparticion WHERE reparticion.habilita = 1 AND reparticion.item = ?',
+          [empleadoValidado.legajo[0].codi_17]
+      );
+        let id_rep = resultReparticion[0].id_reparticion
         let usuarioEmpleado = 4;
         // Insertar el nuevo usuario con legajo
-        const [resultInsert] = await connection.query(
-          'INSERT INTO persona (documento_persona, nombre_persona, apellido_persona, email_persona, clave, telefono_persona, domicilio_persona, id_provincia, id_pais, localidad_persona, validado, habilita, fecha_nacimiento_persona, id_genero,id_tusuario) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, ?)',
-          [documento_persona, nombre_persona.toUpperCase(), apellido_persona.toUpperCase(), email_persona, hashedPassword, telefono_persona, domicilio_persona.toUpperCase(), id_provincia, id_pais, localidad_persona.toUpperCase(), validado, habilita, fechaFormateada, id_genero, usuarioEmpleado]
+      const nuevaPersona = await Persona.create(
+        {
+          documento_persona,
+          nombre_persona: nombre_persona.toUpperCase(),
+          apellido_persona: apellido_persona.toUpperCase(),
+          email_persona,
+          clave: hashedPassword,
+          telefono_persona,
+          domicilio_persona: domicilio_persona.toUpperCase(),
+          id_provincia,
+          id_pais,
+          localidad_persona: localidad_persona.toUpperCase(),
+          fecha_nacimiento_persona: fechaFormateada,
+          id_genero,
+          id_tdocumento,
+          id_tusuario: usuarioEmpleado,
+        },
+        { transaction }
       );
+      const [resultPersona] = await connection.query(
+        'SELECT * FROM persona p WHERE p.documento_persona = ?',
+        [documento_persona]
+    );
+    let id_per = resultPersona[0].id_persona
+    let afil = empleadoValidado.legajo[0].lega_12
+      const nuevoEmpleado = await Empleado.create(
+        {
+          id_persona: id_per,
+          afiliado: afil,
+          id_reparticion: id_rep,
+        },
+        { transaction }
+      );
+
+      await transaction.commit();
+
       } else {
         // No se encontró un legajo
-        // Realizar acciones adicionales según sea necesario
         console.log("No se encontró un legajo");
         // Insertar el nuevo usuario
         const [resultInsert] = await connection.query(
@@ -483,12 +510,12 @@ const agregarUsuarioMYSQL = async (req, res) => {
             [documento_persona, nombre_persona.toUpperCase(), apellido_persona.toUpperCase(), email_persona, hashedPassword, telefono_persona, domicilio_persona.toUpperCase(), id_provincia, id_pais, localidad_persona.toUpperCase(), validado, habilita, fechaFormateada, id_genero]
         );
       }
-      
       // Enviar correo electrónico al usuario recién registrado
-        enviarEmail(codigoValidacion,email_persona,res);                 
+        enviarEmail(codigoValidacion,email_persona);                 
 
       return res.status(200).json({ message: "Ciudadano creado con éxito" });
   } catch (error) {
+      await transaction.rollback();
       return res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
       // Cerrar la conexión a la base de datos
@@ -498,13 +525,20 @@ const agregarUsuarioMYSQL = async (req, res) => {
   }
 };
 
-const enviarEmailValidacion=(req,res)=>{
+const enviarEmailValidacion=async(req,res)=>{
 
-const {email_persona,documento_persona}=req.body;
+const {email_persona}=req.body;
+connection = await conectarBDEstadisticasMySql();
+
+const queryResult = await connection.query("SELECT * FROM persona WHERE email_persona = ?", [email_persona]);
+
+const documento_persona=queryResult[0][0].documento_persona;
+
 
 const codigoValidacion=generarCodigo(documento_persona);
 
 enviarEmail(codigoValidacion,email_persona,res);
+
 
 }
 
@@ -596,11 +630,7 @@ const restablecerClave = async (req, res) => {
                     }
                 });
 
- 
                   return res.status(200).json({ message: `Se envió un email a ${email} con una clave temporal`,ok: true});
-              
-              
-          
           
       } else {
           // No se encontró el usuario
