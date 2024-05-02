@@ -54,8 +54,8 @@ const ingresarReclamo = async (req, res) => {
   let transaction;
   try {
     const { id_categoria, id_treclamo, asunto, detalle, direccion, descripcion_lugar, coorde1, coorde2, apellido_nombre, telefono, email, cuit, foto } = req.body;
-    console.log(foto);
-    console.log(typeof foto);
+    console.log(foto.length);
+
     transaction = await sequelize_ciu_digital.transaction();
 
     const connection = await conectarMySql();
@@ -94,7 +94,7 @@ const ingresarReclamo = async (req, res) => {
         email,
         cuit,
         id_prioridad: tipoDeReclamo[0].id_prioridad,
-        foto: (Array.isArray(JSON.parse(foto)) && JSON.parse(foto).length > 0) ? 1 : 0
+        foto: foto.length > 0 ? 1 : 0
       };
 
       const nuevoReclamo = await Reclamo.create(reclamoObj, {
