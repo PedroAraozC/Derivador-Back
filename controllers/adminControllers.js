@@ -1,4 +1,5 @@
 const { conectarBDEstadisticasMySql } = require("../config/dbEstadisticasMYSQL");
+const { conectarSMTContratacion } = require("../config/dbEstadisticasMYSQL");
 const { sequelize_ciu_digital_derivador } = require("../config/sequelize");
 const Proceso = require("../models/Derivador/Proceso");
 const PermisoTUsuario = require("../models/Derivador/PermisoTUsuario");
@@ -154,7 +155,91 @@ const borrarOpcion = async (req, res) => {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
 };
+//-----------CONTRATACIONES--------------
+const listarTipoContratacion = async (req, res) => {
+  const connection = await conectarSMTContratacion();
+  try {
+    const [contrataciones] = await connection.execute(
+      'SELECT * FROM tipo_contratacion WHERE habilita = 1'
+    );
+    connection.end();
+    res.status(200).json({ contrataciones })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const listarTipoInstrumento = async (req, res) => {
+  const connection = await conectarSMTContratacion();
+  try {
+    const [instrumentos] = await connection.execute(
+      'SELECT * FROM tipo_instrumento WHERE habilita = 1'
+    );
+    connection.end();
+    res.status(200).json({ instrumentos })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const agregarContratacion = async (req, res) => {
+  try {
+    const {
+      fecha_apertura,
+      hora_apertura,
+      fecha_presentacion,
+      hora_presentacion,
+      nombre_contratacion,
+      id_tcontratacion,
+      num_instrumento,
+      id_tinstrumento,
+      expte,
+      valor_pliego,
+      habilita
+    } = req.body;
+
+    // const archivo = req.file;
+
+    // if (!archivo) {
+    //   return res.status(400).json({ message: "Por favor, adjunta un archivo" });
+    // }
+
+    // // Obtener el nombre del archivo cargado
+    // const nombre_archivo = archivo.originalname;
+    
+    // Obtener el último id_contratacion de la tabla
+    const connection = await conectarSMTContratacion();
+    const [lastIdResult] = await connection.query("SELECT MAX(id_contratacion) AS max_id FROM contratacion");
+    let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_contratacion
+    // Query para insertar una nueva convocatoria
+    const sql =
+      "INSERT INTO contratacion (id_contratacion, fecha_apertura, hora_apertura, fecha_presentacion, hora_presentacion, nombre_contratacion, id_tcontratacion, num_instrumento, id_tinstrumento, expte, valor_pliego, habilita) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    const values = [
+      nextId,
+      fecha_apertura,
+      hora_apertura,
+      fecha_presentacion,
+      hora_presentacion,
+      nombre_contratacion,
+      id_tcontratacion,
+      num_instrumento,
+      id_tinstrumento,
+      expte,
+      valor_pliego,
+      habilita,
+    ];
+console.log(values)
+    // Ejecutar la consulta SQL para insertar la nueva convocatoria
+    await connection.execute(sql, values);
+
+    res.status(201).json({ message: "Convocatoria creada con éxito", id: nextId, num_contratacion: nextId });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+//-----------CONTRATACIONES--------------
 
 
-
-module.exports={ agregarOpcion, borrarOpcion, agregarProceso}
+module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion}
