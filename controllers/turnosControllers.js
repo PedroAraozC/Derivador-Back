@@ -1,4 +1,5 @@
 const { conectarDBTurnosPrueba } = require("../config/dbTurnosMYSQL");
+const nodemailer = require('nodemailer');
 
 const obtenerTramites = async (req, res) => {
     try {
@@ -123,17 +124,45 @@ const existeTurno = async (req, res) => {
     }
   };
 
+  const transporter = nodemailer.createTransport({
+    // host: 'smtp.gmail.com',
+    service:"gmail",
+    // port: 465,
+    // secure: true,
+    auth: {
+        user: 'no-reply-cdigital@smt.gob.ar',
+        pass: process.env.PASSWORD_MAIL
+    }
+  });
+
+const enviarEmail = (nombre_tramite,fecha,hora, email, res) => {
+
+  const mailOptions = {
+    from: 'SMT-Turnos no-reply-cdigital@smt.gob.ar',
+    to: email,
+    subject: `Turno Confirmado - ${nombre_tramite}`,
+    text: `Su turno para el trámite: ${nombre_tramite} fue confirmado para el dia: ${fecha} a horas: ${hora}`
+  };
+
+
+  transporter.sendMail(mailOptions, (errorEmail, info) => {
+    if (errorEmail) {
+      // return res.status(500).json({ mge: 'Error al enviar el correo electrónico:', ok: false, error: errorEmail });
+      console.log(errorEmail);
+    } else {
+      // return res.status(200).json({ mge: 'Correo electrónico enviado correctamente:', ok: true });
+      console.log('Correo electrónico enviado correctamente');
+    }
+  });
+}
+
+
   const confirmarTurno = async (req, res) => {
     try {
-      // const cuil = req.query.cuil;
-      // const id_tramite = req.query.id_tramite;
-      // const apellido = req.query.apellido;
-      // const nombre = req.query.nombre;
-      // const fecha_solicitada = req.query.fecha_solicitada;
-      // const hora_solicitada = req.query.hora_solicitada;
 
-      const { cuil, id_tramite, apellido, nombre, fecha_solicitada, hora_solicitada} = req.body;
+      const { cuil, id_tramite, apellido, nombre, fecha_solicitada, hora_solicitada, email, nombre_tramite} = req.body;
       console.log(req.body);
+
       const connection = await conectarDBTurnosPrueba();
       // console.log(req.query);
       console.log("Conectado a MySQL");
@@ -142,8 +171,8 @@ const existeTurno = async (req, res) => {
       const [results, fields] = await connection.execute(sqlQuery, [id_tramite, cuil, apellido, nombre, fecha_solicitada, hora_solicitada]);
   
       connection.close();
+      enviarEmail(nombre_tramite,fecha_solicitada,hora_solicitada,email,res)
       res.status(200).json(results[0]);
-  
       console.log("Conexión cerrada");
     } catch (error) {
       console.error("Error:", error);
