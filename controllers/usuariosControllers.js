@@ -10,30 +10,52 @@ const { sequelize_ciu_digital_derivador } = require("../config/sequelize");
 
 // Configurar el transporte de Nodemailer
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
+  // host: 'smtp.gmail.com',
+  service:"gmail",
+  // port: 465,
+  // secure: true,
   auth: {
-      user: 'no-reply@smt.gob.ar',
+      user: 'no-reply-cdigital@smt.gob.ar',
       pass: process.env.PASSWORD_MAIL
   }
 });
 
+
+// const transporter = nodemailer.createTransport({
+//   service: 'Zoho',
+//   auth: {
+//     user: 'develop.ditec@zohomail.com', 
+//      pass: process.env.PASSWORD_MAIL
+
+//   }
+// });
+
 //funciones
 const enviarEmail=(codigo,email,res)=>{
-  console.log(codigo,email)
+
+
+
   const mailOptions = {
-    from: 'no-reply@smt.gob.ar',
+    from: 'no-reply-cdigital@smt.gob.ar',
     to: email,
     subject: 'Código de validación',
     text: `Tu código de validación es: ${codigo}`
 };
 
+
+// const mailOptions = {
+//   from: 'develop.ditec@zohomail.com',
+//   to: email,
+//   subject: 'Código de validación',
+//   text: `Tu código de validación es: ${codigo}`
+// };
+
+
 transporter.sendMail(mailOptions, (errorEmail, info) => {
     if (errorEmail) {
-     return res.status(500).json({msg:'Error al enviar el correo electrónico:',error: errorEmail});
+     return res.status(500).json({mge:'Error al enviar el correo electrónico:',ok: false,error:errorEmail});
     } else {
-      return res.status(200).json({mge:'Correo electrónico enviado correctamente:',info: info.response});
+      return res.status(200).json({mge:'Correo electrónico enviado correctamente:',ok: true});
     }
 });
 }
@@ -393,7 +415,7 @@ const validarUsuarioMYSQL = async (req, res) => {
               }
           } else {
               // El usuario ya está validado
-              return res.status(400).json({ message: "El usuario ya está validado" });
+              return res.status(200).json({ message: "El usuario ya está validado" ,ok:false});
           }
       } else {
           // No se encontró el usuario
@@ -532,13 +554,20 @@ connection = await conectarBDEstadisticasMySql();
 
 const queryResult = await connection.query("SELECT * FROM persona WHERE email_persona = ?", [email_persona]);
 
+const validado=queryResult[0][0].validado;
 const documento_persona=queryResult[0][0].documento_persona;
 
+if(validado==0)
+{
+  const codigoValidacion=generarCodigo(documento_persona);
 
-const codigoValidacion=generarCodigo(documento_persona);
+  enviarEmail(codigoValidacion,email_persona,res);
+}
 
-enviarEmail(codigoValidacion,email_persona,res);
+else {
+  return res.status(200).json({ mge: "el usuario ya está validado" ,ok:false});
 
+}
 
 }
 
