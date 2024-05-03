@@ -7,13 +7,14 @@ const obtenerTramites = async (req, res) => {
       console.log("Conectado a MySQL");
   
       const [tramites, fields] = await connection.execute(
-        " SELECT tramite.idtramite, tramite.nombre_tramite, tramite.reparticion_id FROM tramite WHERE reparticion_id = ? ",[reparticion_id]
+        " SELECT tramite.idtramite, tramite.nombre_tramite, tramite.reparticion_id, tramite.observaciones FROM tramite WHERE reparticion_id = ? ",[reparticion_id]
       );
-  
-      res.status(200).json({ tramites });
-
+      
       await connection.end();
       console.log("Conexión cerrada");
+
+      res.status(200).json({ tramites });
+
     } catch (error) {
       console.error("Error:", error);
       res.status(500).json({ error: "Error de servidor" });
@@ -27,10 +28,11 @@ const obtenerTramites = async (req, res) => {
 
         const [tramites, fields] = await connection.execute(process.env.QUERY_GET_PROCEDIMIENTOS_CEMA);
 
-        res.status(200).json({ tramites });
-
         await connection.end();
         console.log('Conexión cerrada');
+
+        res.status(200).json({ tramites });
+
 
     } catch (error) {
         console.error('Error:', error);
@@ -45,10 +47,11 @@ const obtenerFunciones = async (req, res) => {
 
         const [funciones, fields] = await connection.execute(process.env.QUERY_GET_FUNCIONES_CEMA);
 
-        res.status(200).json({ funciones });
-
         await connection.end();
         console.log('Conexión cerrada');
+
+        res.status(200).json({ funciones });
+
 
     } catch (error) {
         console.error('Error:', error);
@@ -67,7 +70,7 @@ const existeTurno = async (req, res) => {
   
       let sqlQuery = `CALL api_existeturno(?,?)`;
       const [results, fields] = await connection.execute(sqlQuery, [id_tramite, cuil]);
-  console.log(results[0]);
+      console.log(results[0]);
       connection.close();
       res.status(200).json(results[0]);
   
