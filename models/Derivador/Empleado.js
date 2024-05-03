@@ -22,7 +22,7 @@ const Empleado = sequelize_ciu_digital_derivador.define('Empleado', {
     habilita: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        defaultValue: 1
+        defaultValue: 0
     },
 }, {
     tableName: 'empleado',

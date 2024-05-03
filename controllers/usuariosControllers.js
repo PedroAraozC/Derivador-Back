@@ -13,8 +13,7 @@ const transporter = nodemailer.createTransport({
     service: 'Zoho',
     auth: {
       user: 'develop.ditec@zohomail.com', 
-       pass: process.env.PASSWORD_MAIL
-       
+      pass: process.env.PASSWORD_MAIL
     }
   });
 
@@ -585,7 +584,7 @@ const restablecerClave = async (req, res) => {
   try {
       const { email } = req.body;
 
-      const clave_nueva=generarCodigoAfaNumerico();
+      const clave_nueva = generarCodigoAfaNumerico();
 
       // Establecer la conexión a la base de datos MySQL
       connection = await conectarBDEstadisticasMySql();
@@ -597,32 +596,28 @@ const restablecerClave = async (req, res) => {
       if (result.length > 0) {
           const usuario = result[0];
       
-   
-         const hashedPassword = await bcrypt.hash(clave_nueva, 10);
+          const hashedPassword = await bcrypt.hash(clave_nueva, 10);
               
-                  
-                  await connection.query('UPDATE persona SET clave = ? WHERE email_persona = ?', [hashedPassword, email]);
+          await connection.query('UPDATE persona SET clave = ? WHERE email_persona = ?', [hashedPassword, email]);
 
-                  const mailOptions = {
-                    from: 'develop.ditec@zohomail.com', // Coloca tu dirección de correo electrónico
-                    to: email, // Utiliza el correo electrónico del usuario recién registrado
-                    subject: 'Restablecer Clave',
-                    text: `Tu nueva clave temporal es: ${clave_nueva}. Recuerda cambiarla después de iniciar sesión`
-                };
-                
-                transporter.sendMail(mailOptions, (errorEmail, info) => {
-                    if (errorEmail) {
-                      res.status(500).json({msg:'Error al enviar el correo electrónico:',error: errorEmail});
-                    } else {
-                      res.status(200).json({mge:'Correo electrónico enviado correctamente:',info: info.response});
-                    }
-                });
-
-                  return res.status(200).json({ message: `Se envió un email a ${email} con una clave temporal`,ok: true});
+          const mailOptions = {
+            from: 'develop.ditec@zohomail.com', // Coloca tu dirección de correo electrónico
+            to: email, // Utiliza el correo electrónico del usuario recién registrado
+            subject: 'Restablecer Clave',
+            text: `Tu nueva clave temporal es: ${clave_nueva}. Recuerda cambiarla después de iniciar sesión`
+          };
+          
+          transporter.sendMail(mailOptions, (errorEmail, info) => {
+              if (errorEmail) {
+                  return res.status(500).json({ msg: 'Error al enviar el correo electrónico:', error: errorEmail });
+              } else {
+                  return res.status(200).json({ message: `Se envió un email a ${email} con una clave temporal`, ok: true });
+              }
+          });
           
       } else {
           // No se encontró el usuario
-          return res.status(200).json({ message: "Usuario no encontrado" ,ok: false});
+          return res.status(200).json({ message: "Usuario no encontrado", ok: false });
       }
   } catch (error) {
       return res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -633,6 +628,7 @@ const restablecerClave = async (req, res) => {
       }
   }
 };
+
 
 module.exports = { login, getAuthStatus, obtenerOpcionesHabilitadas, obtenerUsuarios,editarUsuario, borrarUsuario, obtenerCiudadanoPorDNIMYSQL, obtenerCiudadanoPorEmailMYSQL, validarUsuarioMYSQL, agregarUsuarioMYSQL,editarUsuarioCompleto,enviarEmailValidacion, obtenerPermisos,editarClave,restablecerClave}
 
