@@ -9,8 +9,8 @@ router.get("/listarCategorias", obtenerCategorias);
 router.get('/listarTiposDeReclamosPorCategoria', obtenerTiposDeReclamoPorCategoria);
 router.post('/ingresarReclamo',ingresarReclamo)//HACER VALIDACIONES CON CHECK
 
-router.get("/listarReclamosCiudadano",listarReclamosCiudadano)
-router.get("/buscarReclamoPorId",buscarReclamoPorId)
+router.get("/listarReclamosCiudadano",listarReclamosCiudadano) //REVISAR
+router.get("/buscarReclamoPorId",buscarReclamoPorId) //REVISAR
 router.get("/buscarTurnosDisponiblesPorDia",obtenerTurnosDisponiblesPorDia)
 router.get("/buscarTurnosDisponiblesPorHora",obtenerTurnosDisponiblesPorHora)
 router.get("/existeTurno", existeTurno)

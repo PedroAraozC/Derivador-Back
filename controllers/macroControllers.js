@@ -54,6 +54,7 @@ const ingresarReclamo = async (req, res) => {
   let transaction;
   try {
     const { id_categoria, id_treclamo, asunto, detalle, direccion, descripcion_lugar, coorde1, coorde2, apellido_nombre, telefono, email, cuit, foto } = req.body;
+    console.log(foto?.length);
 
     transaction = await sequelize_ciu_digital.transaction();
 
@@ -93,7 +94,7 @@ const ingresarReclamo = async (req, res) => {
         email,
         cuit,
         id_prioridad: tipoDeReclamo[0].id_prioridad,
-        foto: (Array.isArray(JSON.parse(foto)) && JSON.parse(foto).length > 0) ? 1 : 0
+        foto: foto?.length > 0 ? 1 : 0
       };
 
       const nuevoReclamo = await Reclamo.create(reclamoObj, {
@@ -131,6 +132,7 @@ const ingresarReclamo = async (req, res) => {
     await connection.end();
     console.log("Conexión cerrada");
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
 }
