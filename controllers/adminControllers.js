@@ -1,5 +1,9 @@
 const { conectarBDEstadisticasMySql } = require("../config/dbEstadisticasMYSQL");
-
+const { conectarSMTContratacion } = require("../config/dbEstadisticasMYSQL");
+const { sequelize_ciu_digital_derivador } = require("../config/sequelize");
+const Proceso = require("../models/Derivador/Proceso");
+const PermisoTUsuario = require("../models/Derivador/PermisoTUsuario");
+const PermisoPersona = require("../models/Derivador/PermisoPersona");
 
 const agregarOpcion = async (req, res) => {
     try {
@@ -25,6 +29,79 @@ const agregarOpcion = async (req, res) => {
     }
   };
 
+const agregarProceso = async (req, res) => {
+    let transaction;
+    console.log(req.body)
+    try {
+      const { nombre_proceso, habilita, descripcion, id_opcion } = req.body;
+      // Verificar que los valores requeridos estén definidos
+      if (nombre_proceso === undefined || habilita === undefined || descripcion === undefined || id_opcion === undefined) {
+        throw new Error("Los parámetros de la solicitud son inválidos");
+      }
+      // Iniciar una transacción
+      transaction = await sequelize_ciu_digital_derivador.transaction();
+      const connection = await conectarBDEstadisticasMySql();
+  
+      // Obtener la lista de tipos de usuario
+      const [tiposUsuario, fieldsTiposUsuario] = await connection.execute(
+        "SELECT id_tusuario FROM tipo_usuario"
+      );
+      // Obtener la lista de tipos de usuario
+      const [cantidadPersonas, fieldsCantidadPersonas] = await connection.execute(
+        "SELECT id_persona FROM persona"
+      );
+      // Crear el nuevo proceso en la base de datos dentro de la transacción
+      const nuevoProceso = await Proceso.create(
+        {
+          nombre_proceso,
+          descripcion,
+          id_opcion,
+          habilita
+        },
+        { transaction }
+      );
+
+      const id_procesoNuevo = nuevoProceso.id_proceso;
+
+      // Iterar sobre cada tipo de usuario y realizar el insert
+      for (const tipoUsuario of tiposUsuario) {
+        const id_tusuario = tipoUsuario.id_tusuario;
+        
+        const nuevoPermisoTUsuario = await PermisoTUsuario.create(
+          {
+            id_proceso: id_procesoNuevo,
+            id_tusuario,
+          },
+          { transaction }
+        );
+      }
+      
+      // Iterar sobre cada tipo de usuario y realizar el insert
+      for (const persona of cantidadPersonas) {
+        const id_persona = persona.id_persona;
+      
+        const nuevoPermisoPersona = await PermisoPersona.create(
+          {
+            id_proceso: id_procesoNuevo,
+            id_persona,
+          },
+          { transaction }
+        );
+      }
+      
+      // Commit de la transacción si todas las operaciones fueron exitosas
+      await transaction.commit();
+  
+      // Responder con el ID del nuevo proceso creado
+      res.status(201).json({ id: nuevoProceso.id, message: "Proceso creado con éxito" });
+    } catch (error) {
+      // Rollback de la transacción en caso de error
+      if (transaction) await transaction.rollback();
+  
+      // Responder con un mensaje de error
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    }
+  };
 
 
 // const editarConvocatoria = async (req, res) => {
@@ -61,7 +138,7 @@ const agregarOpcion = async (req, res) => {
 
 const borrarOpcion = async (req, res) => {
   const { id } = req.body;
-  const sql = "DELETE FROM opcion WHERE id_opcion = ?";
+  const sql = "UPDATE opcion set habilita = 0 WHERE id_opcion = ?";
   const values = [id];
 
   try {
@@ -78,7 +155,91 @@ const borrarOpcion = async (req, res) => {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
 };
+//-----------CONTRATACIONES--------------
+const listarTipoContratacion = async (req, res) => {
+  const connection = await conectarSMTContratacion();
+  try {
+    const [contrataciones] = await connection.execute(
+      'SELECT * FROM tipo_contratacion WHERE habilita = 1'
+    );
+    connection.end();
+    res.status(200).json({ contrataciones })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const listarTipoInstrumento = async (req, res) => {
+  const connection = await conectarSMTContratacion();
+  try {
+    const [instrumentos] = await connection.execute(
+      'SELECT * FROM tipo_instrumento WHERE habilita = 1'
+    );
+    connection.end();
+    res.status(200).json({ instrumentos })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const agregarContratacion = async (req, res) => {
+  try {
+    const {
+      fecha_apertura,
+      hora_apertura,
+      fecha_presentacion,
+      hora_presentacion,
+      nombre_contratacion,
+      id_tcontratacion,
+      num_instrumento,
+      id_tinstrumento,
+      expte,
+      valor_pliego,
+      habilita
+    } = req.body;
+
+    // const archivo = req.file;
+
+    // if (!archivo) {
+    //   return res.status(400).json({ message: "Por favor, adjunta un archivo" });
+    // }
+
+    // // Obtener el nombre del archivo cargado
+    // const nombre_archivo = archivo.originalname;
+    
+    // Obtener el último id_contratacion de la tabla
+    const connection = await conectarSMTContratacion();
+    const [lastIdResult] = await connection.query("SELECT MAX(id_contratacion) AS max_id FROM contratacion");
+    let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_contratacion
+    // Query para insertar una nueva convocatoria
+    const sql =
+      "INSERT INTO contratacion (id_contratacion, fecha_apertura, hora_apertura, fecha_presentacion, hora_presentacion, nombre_contratacion, id_tcontratacion, num_instrumento, id_tinstrumento, expte, valor_pliego, habilita) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    const values = [
+      nextId,
+      fecha_apertura,
+      hora_apertura,
+      fecha_presentacion,
+      hora_presentacion,
+      nombre_contratacion,
+      id_tcontratacion,
+      num_instrumento,
+      id_tinstrumento,
+      expte,
+      valor_pliego,
+      habilita,
+    ];
+console.log(values)
+    // Ejecutar la consulta SQL para insertar la nueva convocatoria
+    await connection.execute(sql, values);
+
+    res.status(201).json({ message: "Convocatoria creada con éxito", id: nextId, num_contratacion: nextId });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+//-----------CONTRATACIONES--------------
 
 
-
-module.exports={ agregarOpcion, borrarOpcion}
+module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion}

@@ -12,7 +12,7 @@ const router = Router();
 router.post(
     "/login",
     [
-        check("dni", "El DNI de usuario no cumple con los requisitos").not().isEmpty().isInt().isLength({ min: 7, max: 8 }),
+        check("dni", "El CUIL de usuario no cumple con los requisitos").not().isEmpty().isInt().isLength({ min: 11, max: 11 }),
         check("password", "La contraseña no cumple con los requisitos").isLength({ min: 4, max: 30 }),
         validateFields,
     ],
