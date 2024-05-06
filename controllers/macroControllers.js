@@ -53,13 +53,27 @@ const obtenerTiposDeReclamoPorCategoria = async (req, res) => {
 const ingresarReclamo = async (req, res) => {
   let transaction;
   try {
-    const { id_categoria, id_treclamo, asunto, detalle, direccion, descripcion_lugar, coorde1, coorde2, apellido_nombre, telefono, email, cuit, foto } = req.body;
+    const {
+      id_categoria,
+      id_treclamo,
+      asunto,
+      detalle,
+      direccion,
+      descripcion_lugar,
+      coorde1,
+      coorde2,
+      apellido_nombre,
+      telefono,
+      email,
+      cuit,
+      foto,
+    } = req.body;
     console.log(foto?.length);
 
     transaction = await sequelize_ciu_digital.transaction();
 
     const connection = await conectarMySql();
-    console.log('Conectado a MySQL');
+    console.log("Conectado a MySQL");
 
     const [tipoDeReclamoPerteneceACategoria] = await connection.execute(
       "SELECT CASE WHEN COUNT(*) > 0 THEN 'true' ELSE 'false' END AS existe_tipo_reclamo FROM tipo_reclamo WHERE id_treclamo = ? AND id_categoria = ? AND habilita = ?",
@@ -67,16 +81,16 @@ const ingresarReclamo = async (req, res) => {
     );
 
     if (tipoDeReclamoPerteneceACategoria[0].existe_tipo_reclamo == "true") {
-
       const [tipoDeReclamo, fieldsTipoDeReclamo] = await connection.execute(
         "SELECT tipo_reclamo.id_prioridad FROM tipo_reclamo WHERE tipo_reclamo.id_treclamo = ? AND tipo_reclamo.habilita = ?",
         [id_treclamo, 1]
       );
 
-      const [derivacionReclamo, fieldsDerivacionReclamo] = await connection.execute(
-        "SELECT derivacion_reclamo.* FROM derivacion_reclamo WHERE derivacion_reclamo.id_treclamo = ? AND derivacion_reclamo.habilita = ?",
-        [id_treclamo, 1]
-      );
+      const [derivacionReclamo, fieldsDerivacionReclamo] =
+        await connection.execute(
+          "SELECT derivacion_reclamo.* FROM derivacion_reclamo WHERE derivacion_reclamo.id_treclamo = ? AND derivacion_reclamo.habilita = ?",
+          [id_treclamo, 1]
+        );
 
       const reclamoObj = {
         id_categoria,
@@ -94,7 +108,7 @@ const ingresarReclamo = async (req, res) => {
         email,
         cuit,
         id_prioridad: tipoDeReclamo[0].id_prioridad,
-        foto: foto?.length > 0 ? 1 : 0
+        foto: foto?.length > 0 ? 1 : 0,
       };
 
       const nuevoReclamo = await Reclamo.create(reclamoObj, {
@@ -113,21 +127,30 @@ const ingresarReclamo = async (req, res) => {
           detalle_movi: "Inicio del trámite",
           fecha_ingreso: "0000-00-00 00:00:00",
           fecha_egreso: "0000-00-00 00:00:00",
-          oficina_graba: 5000
+          oficina_graba: 5000,
         },
         { transaction }
       );
 
-      const [oficinaYReparticion, fieldsOficinaYReparticion] = await connection.execute(
-        "SELECT oficina_reparti.nombre_oficina,reparti.nombre_reparti FROM oficina_reparti JOIN reparti ON oficina_reparti.id_reparti = reparti.id_reparti WHERE oficina_reparti.id_oficina = ?",
-        [derivacionReclamo[0].id_oficina_deriva]
-      );
+      const [oficinaYReparticion, fieldsOficinaYReparticion] =
+        await connection.execute(
+          "SELECT oficina_reparti.nombre_oficina,reparti.nombre_reparti FROM oficina_reparti JOIN reparti ON oficina_reparti.id_reparti = reparti.id_reparti WHERE oficina_reparti.id_oficina = ?",
+          [derivacionReclamo[0].id_oficina_deriva]
+        );
 
       await transaction.commit();
 
-      res.status(200).json({ message: "Reclamo generado con éxito", Numero_Reclamo: reclamoId, Estado: "Iniciado", Repartición_Derivada: oficinaYReparticion[0].nombre_reparti, Oficina_Receptora: oficinaYReparticion[0].nombre_oficina });
+      res.status(200).json({
+        message: "Reclamo generado con éxito",
+        Numero_Reclamo: reclamoId,
+        Estado: "Iniciado",
+        Repartición_Derivada: oficinaYReparticion[0].nombre_reparti,
+        Oficina_Receptora: oficinaYReparticion[0].nombre_oficina,
+      });
     } else {
-      res.status(400).json({ message: "El tipo de reclamo y la categoría no se corresponden" })
+      res.status(400).json({
+        message: "El tipo de reclamo y la categoría no se corresponden",
+      });
     }
     await connection.end();
     console.log("Conexión cerrada");
@@ -135,7 +158,7 @@ const ingresarReclamo = async (req, res) => {
     console.log(error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
-}
+};
 
 const listarReclamosCiudadano = async (req, res) => {
   const cuit = req.query.cuit;
@@ -150,9 +173,26 @@ const listarReclamosCiudadano = async (req, res) => {
     if (cuit && telefono) {
       sqlQuery += "r.cuit = ? AND r.telefono LIKE CONCAT('%', ?, '%')";
       const [reclamos] = await connection.execute(sqlQuery, [cuit, telefono]);
-      await connection.end();
 
       if (reclamos.length > 0) {
+        for (const reclamo of reclamos) {
+          // Consulta para obtener el estado (detalle_movi) de cada reclamo
+          const detalleSqlQuery =
+            "SELECT detalle_movi as estado_reclamo FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = ?) AND id_reclamo = ?";
+          const [detalleMovimiento] = await connection.execute(
+            detalleSqlQuery,
+            [reclamo.id_reclamo, reclamo.id_reclamo]
+          );
+
+          // Verificar si detalleMovimiento tiene contenido antes de asignar su valor
+          if (detalleMovimiento.length > 0) {
+            reclamo.estado_reclamo = detalleMovimiento[0].estado_reclamo;
+          } else {
+            reclamo.estado_reclamo = "Estado no encontrado";
+          }
+        }
+        await connection.end();
+
         res.status(200).json({ reclamos });
       } else {
         res.status(200).json({
@@ -163,9 +203,26 @@ const listarReclamosCiudadano = async (req, res) => {
     } else if (cuit) {
       sqlQuery += "r.cuit = ?";
       const [reclamos] = await connection.execute(sqlQuery, [cuit]);
-      await connection.end();
 
       if (reclamos.length > 0) {
+        for (const reclamo of reclamos) {
+          // Consulta para obtener el estado (detalle_movi) de cada reclamo
+          const detalleSqlQuery =
+            "SELECT detalle_movi as estado_reclamo FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = ?) AND id_reclamo = ?";
+          const [detalleMovimiento] = await connection.execute(
+            detalleSqlQuery,
+            [reclamo.id_reclamo, reclamo.id_reclamo]
+          );
+
+          // Verificar si detalleMovimiento tiene contenido antes de asignar su valor
+          if (detalleMovimiento.length > 0) {
+            reclamo.estado_reclamo = detalleMovimiento[0].estado_reclamo;
+          } else {
+            reclamo.estado_reclamo = "Estado no encontrado";
+          }
+        }
+        await connection.end();
+
         res.status(200).json({ reclamos });
       } else {
         res.status(200).json({
@@ -176,9 +233,26 @@ const listarReclamosCiudadano = async (req, res) => {
     } else if (telefono) {
       sqlQuery += "r.telefono LIKE CONCAT('%', ?, '%')";
       const [reclamos] = await connection.execute(sqlQuery, [telefono]);
-      await connection.end();
 
       if (reclamos.length > 0) {
+        for (const reclamo of reclamos) {
+          // Consulta para obtener el estado (detalle_movi) de cada reclamo
+          const detalleSqlQuery =
+            "SELECT detalle_movi as estado_reclamo FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = ?) AND id_reclamo = ?";
+          const [detalleMovimiento] = await connection.execute(
+            detalleSqlQuery,
+            [reclamo.id_reclamo, reclamo.id_reclamo]
+          );
+
+          // Verificar si detalleMovimiento tiene contenido antes de asignar su valor
+          if (detalleMovimiento.length > 0) {
+            reclamo.estado_reclamo = detalleMovimiento[0].estado_reclamo;
+          } else {
+            reclamo.estado_reclamo = "Estado no encontrado";
+          }
+        }
+        await connection.end();
+
         res.status(200).json({ reclamos });
       } else {
         res.status(200).json({
@@ -192,6 +266,7 @@ const listarReclamosCiudadano = async (req, res) => {
           "Debe proporcionar al menos el CUIT o el Teléfono para buscar reclamos.",
       });
     }
+    await connection.end();
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
@@ -204,14 +279,26 @@ const buscarReclamoPorId = async (req, res) => {
 
   try {
     let sqlQuery =
-      "SELECT r.id_reclamo,  tr.nombre_treclamo, r.asunto, r.direccion, r.apellido_nombre, r.fecha_hora_inicio, cr.nombre_categoria FROM reclamo_prueba r  JOIN categoria_reclamo cr ON r.id_categoria = cr.id_categoria JOIN tipo_reclamo tr ON r.id_treclamo = tr.id_treclamo WHERE r.id_reclamo = ? ";
+      "SELECT r.id_reclamo, tr.nombre_treclamo, r.asunto, r.direccion, r.apellido_nombre, r.fecha_hora_inicio, cr.nombre_categoria FROM reclamo_prueba r  JOIN categoria_reclamo cr ON r.id_categoria = cr.id_categoria JOIN tipo_reclamo tr ON r.id_treclamo = tr.id_treclamo WHERE r.id_reclamo = ? ";
 
     const [reclamo] = await connection.execute(sqlQuery, [id_reclamo]);
 
-    await connection.end();
+    if (reclamo.length > 0) {
+      const detalleSqlQuery =
+        "SELECT detalle_movi as estado_reclamo FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = ?) AND id_reclamo = ?";
+      const [detalleMovimiento] = await connection.execute(detalleSqlQuery, [
+        id_reclamo,
+        id_reclamo,
+      ]);
 
-    if (reclamo.length > 0) res.status(200).json({ reclamo });
-    else
+      if (detalleMovimiento.length > 0) {
+        reclamo[0].estado_reclamo = detalleMovimiento[0].estado_reclamo;
+      } else {
+        reclamo[0].estado_reclamo = "Estado no encontrado";
+      }
+      await connection.end();
+      res.status(200).json({ reclamo });
+    } else
       res.status(200).json({ message: "no se encontro un reclamo con ese id" });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -225,7 +312,7 @@ const obtenerTurnosDisponiblesPorDia = async (req, res) => {
     console.log("Conectado a MySQL");
 
     let sqlQuery = `CALL api_obtenerturnospordia(?)`;
-    const [results, fields] = await connection.execute(sqlQuery,[1]);
+    const [results, fields] = await connection.execute(sqlQuery, [1]);
 
     connection.close();
     res.status(200).json(results[0]);
@@ -246,7 +333,10 @@ const obtenerTurnosDisponiblesPorHora = async (req, res) => {
 
     let sqlQuery = `CALL api_obtenerturnosporhora(?, ?)`;
 
-    const [results, fields] = await connection.execute(sqlQuery, [1, fecha_solicitada]);
+    const [results, fields] = await connection.execute(sqlQuery, [
+      1,
+      fecha_solicitada,
+    ]);
     connection.close();
     res.status(200).json(results[0]);
 
@@ -289,8 +379,16 @@ const confirmarTurno = async (req, res) => {
     // console.log(req.query);
     console.log("Conectado a MySQL");
 
-    let sqlQuery = `SELECT api_confirmarturno(?, ?, ?, ?, ?, ?)`;
-    const [results, fields] = await connection.execute(sqlQuery, [1, cuil, apellido, nombre, fecha_solicitada, hora_solicitada]);
+    let sqlQuery = `SELECT api_confirmarturno(?, ?, ?, ?, ?, ?, ?  )`;
+    const [results, fields] = await connection.execute(sqlQuery, [
+      1,
+      cuil,
+      apellido,
+      nombre,
+      fecha_solicitada,
+      hora_solicitada,
+      ""
+    ]);
 
     connection.close();
     res.status(200).json(results[0]);
@@ -322,7 +420,6 @@ const anularTurno = async (req, res) => {
     res.status(500).json({ error: "Error de servidor" });
   }
 };
-
 
 module.exports = {
   obtenerCategorias,

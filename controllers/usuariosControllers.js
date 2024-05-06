@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const { conectarBDEstadisticasMySql } = require("../config/dbEstadisticasMYSQL");
 const nodemailer = require('nodemailer');
 const moment = require('moment-timezone');
+const https = require('https');
 const Persona = require("../models/Derivador/Persona");
 const Empleado = require("../models/Derivador/Empleado");
 const { sequelize_ciu_digital_derivador } = require("../config/sequelize");
