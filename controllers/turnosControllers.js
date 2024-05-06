@@ -8,7 +8,7 @@ const obtenerTramites = async (req, res) => {
       console.log("Conectado a MySQL");
   
       const [tramites, fields] = await connection.execute(
-        " SELECT tramite.idtramite, tramite.nombre_tramite, tramite.reparticion_id, tramite.observaciones FROM tramite WHERE reparticion_id = ? ",[reparticion_id]
+        " SELECT tramite.idtramite, tramite.nombre_tramite, tramite.reparticion_id, tramite.observaciones, tramite.adicionalrequerido FROM tramite WHERE reparticion_id = ? ",[reparticion_id]
       );
       
       await connection.end();
@@ -160,15 +160,15 @@ const enviarEmail = (nombre_tramite,fecha,hora, email, res) => {
   const confirmarTurno = async (req, res) => {
     try {
 
-      const { cuil, id_tramite, apellido, nombre, fecha_solicitada, hora_solicitada, email, nombre_tramite} = req.body;
+      const { cuil, id_tramite, apellido, nombre, fecha_solicitada, hora_solicitada, email, nombre_tramite,adicional} = req.body;
       console.log(req.body);
 
       const connection = await conectarDBTurnosPrueba();
       // console.log(req.query);
       console.log("Conectado a MySQL");
   
-      let sqlQuery = `SELECT api_confirmarturno(?, ?, ?, ?, ?, ?)`;
-      const [results, fields] = await connection.execute(sqlQuery, [id_tramite, cuil, apellido, nombre, fecha_solicitada, hora_solicitada]);
+      let sqlQuery = `SELECT api_confirmarturno(?, ?, ?, ?, ?, ?,?)`;
+      const [results, fields] = await connection.execute(sqlQuery, [id_tramite, cuil, apellido, nombre, fecha_solicitada, hora_solicitada,adicional]);
   
       connection.close();
       enviarEmail(nombre_tramite,fecha_solicitada,hora_solicitada,email,res)
