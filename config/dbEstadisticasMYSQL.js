@@ -13,6 +13,19 @@ const conectarBDEstadisticasMySql = async () => {
         console.log(error.message);
     }
 }
+const conectarSMTContratacion = async () => {
+    try {
+        const connection = await mysql.createConnection({
+            host: process.env.HOST_CIU_DIGITAL,
+            user: process.env.USER_CIU_DIGITAL,
+            password: process.env.PASSWORD_CIU_DIGITAL,
+            database: process.env.DB_CIU_CONTRATACION,
+        });
+        return connection
+    } catch (error) {
+        console.log(error.message);
+    }
+}
 
 const pool = mysql.createPool({
     host: process.env.HOST_CIU_DIGITAL,
@@ -57,4 +70,4 @@ const conectar_BD_EDUCACION_MySql = async () => {
     }
 }
 
-module.exports = { conectarBDEstadisticasMySql, conectar_BD_GAF_MySql, conectar_BD_EDUCACION_MySql} 
+module.exports = { conectarBDEstadisticasMySql, conectar_BD_GAF_MySql, conectar_BD_EDUCACION_MySql, conectarSMTContratacion} 
