@@ -379,7 +379,7 @@ const confirmarTurno = async (req, res) => {
     // console.log(req.query);
     console.log("Conectado a MySQL");
 
-    let sqlQuery = `SELECT api_confirmarturno(?, ?, ?, ?, ?, ?)`;
+    let sqlQuery = `SELECT api_confirmarturno(?, ?, ?, ?, ?, ?, ?  )`;
     const [results, fields] = await connection.execute(sqlQuery, [
       1,
       cuil,
@@ -387,6 +387,7 @@ const confirmarTurno = async (req, res) => {
       nombre,
       fecha_solicitada,
       hora_solicitada,
+      ""
     ]);
 
     connection.close();
