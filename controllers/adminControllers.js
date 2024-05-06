@@ -155,6 +155,8 @@ const borrarOpcion = async (req, res) => {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
 };
+
+
 //-----------CONTRATACIONES--------------
 const listarTipoContratacion = async (req, res) => {
   const connection = await conectarSMTContratacion();
@@ -178,6 +180,22 @@ const listarTipoInstrumento = async (req, res) => {
     );
     connection.end();
     res.status(200).json({ instrumentos })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const listarContratacionBack = async (req, res) => {
+  const connection = await conectarSMTContratacion();
+  try {
+    const [contrataciones] = await connection.execute(
+      'SELECT * FROM contratacion'
+    );
+
+    contrataciones.reverse();
+    connection.end();
+    res.status(200).json({ contrataciones })
 
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -239,7 +257,28 @@ console.log(values)
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
 };
+
+const borrarContratacion = async (req, res) => {
+  const { id } = req.body;
+  const sql = "UPDATE contratacion set habilita = 0 WHERE id_contratacion = ?";
+  const values = [id];
+
+  try {
+    const connection = await conectarSMTContratacion();
+    const [result] = await connection.execute(sql, values); 
+    await connection.end();
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Contratación deshabilitada con éxito" });
+    } else {
+      res.status(400).json({ message: "Contratación no encontrada" });
+    }
+  } catch (error) {
+    console.error("Error al eliminar la contratación:", error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+
 //-----------CONTRATACIONES--------------
 
 
-module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion}
+module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, listarContratacionBack, borrarContratacion}
