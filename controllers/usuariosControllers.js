@@ -37,7 +37,7 @@ const enviarEmail=(codigo,email,res)=>{
 
 
   const mailOptions = {
-    from: 'no-reply-cdigital@smt.gob.ar',
+    from: 'SMT-Ciudadano Digital <no-reply-cdigital@smt.gob.ar>',
     to: email,
     subject: 'Código de validación',
     text: `Tu código de validación es: ${codigo}`
@@ -496,10 +496,10 @@ const agregarUsuarioMYSQL = async (req, res) => {
           email_persona,
           clave: hashedPassword,
           telefono_persona,
-          domicilio_persona: domicilio_persona.toUpperCase(),
+          domicilio_persona: domicilio_persona?.toUpperCase(),
           id_provincia,
           id_pais,
-          localidad_persona: localidad_persona.toUpperCase(),
+          localidad_persona: localidad_persona?.toUpperCase(),
           fecha_nacimiento_persona: fechaFormateada,
           id_genero,
           id_tdocumento,
@@ -530,7 +530,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
         // Insertar el nuevo usuario
         const [resultInsert] = await connection.query(
             'INSERT INTO persona (documento_persona, nombre_persona, apellido_persona, email_persona, clave, telefono_persona, domicilio_persona, id_provincia, id_pais, localidad_persona, validado, habilita, fecha_nacimiento_persona, id_genero) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?)',
-            [documento_persona, nombre_persona.toUpperCase(), apellido_persona.toUpperCase(), email_persona, hashedPassword, telefono_persona, domicilio_persona.toUpperCase(), id_provincia, id_pais, localidad_persona.toUpperCase(), validado, habilita, fechaFormateada, id_genero]
+            [documento_persona, nombre_persona.toUpperCase(), apellido_persona.toUpperCase(), email_persona, hashedPassword, telefono_persona, domicilio_persona?.toUpperCase(), id_provincia, id_pais, localidad_persona?.toUpperCase(), validado, habilita, fechaFormateada, id_genero]
         );
       }
       // Enviar correo electrónico al usuario recién registrado
@@ -644,7 +644,7 @@ const restablecerClave = async (req, res) => {
           await connection.query('UPDATE persona SET clave = ? WHERE email_persona = ?', [hashedPassword, email]);
 
           const mailOptions = {
-            from: 'develop.ditec@zohomail.com', // Coloca tu dirección de correo electrónico
+            from: 'SMT-Ciudadano Digital <no-reply-cdigital@smt.gob.ar>', // Coloca tu dirección de correo electrónico
             to: email, // Utiliza el correo electrónico del usuario recién registrado
             subject: 'Restablecer Clave',
             text: `Tu nueva clave temporal es: ${clave_nueva}. Recuerda cambiarla después de iniciar sesión`
