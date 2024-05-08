@@ -390,7 +390,7 @@ const confirmarTurno = async (req, res) => {
       nombre,
       fecha_solicitada,
       hora_solicitada,
-      "",
+      " ",
     ]);
 
     connection.close();
