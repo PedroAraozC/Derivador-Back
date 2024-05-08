@@ -199,7 +199,25 @@ const listarTipoContratacion = async (req, res) => {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
 }
+const listarContratacionPorId = async (req, res) => {
+  const { id } = req.params; 
+  console.log(id)
+  const sql = "SELECT * FROM contratacion WHERE id_contratacion = ?";
+  const values = [id];
+  try {
+    const connection = await conectarSMTContratacion();
+    const [contratacion] = await connection.execute(sql, values); 
+    await connection.end();
+    if (contratacion.length > 0) { 
+      res.status(200).json({ contratacion });
+    } else {
+      res.status(400).json({ message: "No se encontró la contratación" });
+    }
 
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
 const listarTipoInstrumento = async (req, res) => {
   const connection = await conectarSMTContratacion();
   try {
@@ -259,6 +277,7 @@ const agregarContratacion = async (req, res) => {
       id_tinstrumento,
       expte,
       valor_pliego,
+      detalle,
       habilita
     } = req.body;
 
@@ -277,7 +296,7 @@ const agregarContratacion = async (req, res) => {
     let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_contratacion
     // Query para insertar una nueva convocatoria
     const sql =
-      "INSERT INTO contratacion (id_contratacion, fecha_apertura, hora_apertura, fecha_presentacion, hora_presentacion, nombre_contratacion, id_tcontratacion, num_instrumento, id_tinstrumento, expte, valor_pliego, habilita, nombre_archivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO contratacion (id_contratacion, fecha_apertura, hora_apertura, fecha_presentacion, hora_presentacion, nombre_contratacion, id_tcontratacion, num_instrumento, id_tinstrumento, expte, valor_pliego, habilita, nombre_archivo, detalle) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     const values = [
       nextId,
       fecha_apertura,
@@ -291,9 +310,10 @@ const agregarContratacion = async (req, res) => {
       expte,
       valor_pliego,
       habilita,
-      nombre_archivo
+      nombre_archivo,
+      detalle
     ];
-console.log(values)
+    console.log(values)
     // Ejecutar la consulta SQL para insertar la nueva convocatoria
     await connection.execute(sql, values);
 
@@ -325,7 +345,7 @@ const borrarContratacion = async (req, res) => {
 
 const editarContratacion = async (req, res) => {
   try {
-    const { id, nombre_contratacion, id_tcontratacion, fecha_presentacion, hora_presentacion, num_instrumento, valor_pliego, expte, id_tinstrumento, fecha_apertura, hora_apertura, habilita, oldName } = req.body;
+    const { id, nombre_contratacion, id_tcontratacion, fecha_presentacion, hora_presentacion, num_instrumento, valor_pliego, expte, id_tinstrumento, fecha_apertura, hora_apertura, habilita, oldName, detalle } = req.body;
     // Verificar si hay un archivo adjunto
     const archivo = req.file;
     let nombre_archivo = null;
@@ -338,8 +358,8 @@ const editarContratacion = async (req, res) => {
       sobrescribirArchivo(rutaArchivoAntiguo, rutaArchivoNuevo); // Define esta función para sobrescribir el archivo físico
     }
     // Query para actualizar la contratacion
-    const sql = "UPDATE contratacion SET nombre_contratacion = ?, id_tcontratacion = ?, fecha_presentacion = ?, hora_presentacion = ?, num_instrumento = ?, valor_pliego = ?, expte = ?, id_tinstrumento = ?, fecha_apertura = ?, hora_apertura = ?, habilita = ?, nombre_archivo = ? WHERE id_contratacion = ?";
-    const values = [nombre_contratacion, id_tcontratacion, fecha_presentacion, hora_presentacion, num_instrumento, valor_pliego, expte, id_tinstrumento, fecha_apertura, hora_apertura, habilita, nombre_archivo, id];
+    const sql = "UPDATE contratacion SET nombre_contratacion = ?, id_tcontratacion = ?, fecha_presentacion = ?, hora_presentacion = ?, num_instrumento = ?, valor_pliego = ?, expte = ?, id_tinstrumento = ?, fecha_apertura = ?, hora_apertura = ?, habilita = ?, nombre_archivo = ?, detalle = ? WHERE id_contratacion = ?";
+    const values = [nombre_contratacion, id_tcontratacion, fecha_presentacion, hora_presentacion, num_instrumento, valor_pliego, expte, id_tinstrumento, fecha_apertura, hora_apertura, habilita, nombre_archivo, detalle, id];
     console.log(values)
     // Verificar si la contratacion ya existe con otra ID
     const connection = await conectarSMTContratacion();
@@ -367,4 +387,4 @@ const editarContratacion = async (req, res) => {
 //-----------CONTRATACIONES--------------
 
 
-module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion}
+module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, listarContratacionPorId}
