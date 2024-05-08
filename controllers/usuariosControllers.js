@@ -557,7 +557,7 @@ const queryResult = await connection.query("SELECT * FROM persona WHERE email_pe
 
 if(queryResult[0].length==0)
 {
-  return res.status(200).json({ mge: "el email ingresado no corresponde a un usuario registrado" ,ok:false});
+  return res.status(200).json({ mge: "El email ingresado no corresponde a un usuario registrado" ,ok:false});
 }
 
 const validado=queryResult[0][0].validado;
@@ -665,7 +665,7 @@ const restablecerClave = async (req, res) => {
           
       } else {
           // No se encontró el usuario
-          return res.status(200).json({ message: "Usuario no encontrado", ok: false });
+          return res.status(200).json({ message: "El email ingresado no corresponde a un usuario registrado", ok: false });
       }
   } catch (error) {
       return res.status(500).json({ message: error.message || "Algo salió mal :(" });
