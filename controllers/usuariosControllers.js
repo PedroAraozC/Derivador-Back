@@ -502,7 +502,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
           localidad_persona: localidad_persona?.toUpperCase(),
           fecha_nacimiento_persona: fechaFormateada,
           id_genero,
-          id_tdocumento,
+          id_tdocumento:null,
           id_tusuario: usuarioEmpleado,
         },
         { transaction }
@@ -554,6 +554,11 @@ const {email_persona}=req.body;
 connection = await conectarBDEstadisticasMySql();
 
 const queryResult = await connection.query("SELECT * FROM persona WHERE email_persona = ?", [email_persona]);
+
+if(queryResult[0].length==0)
+{
+  return res.status(200).json({ mge: "el email ingresado no corresponde a un usuario registrado" ,ok:false});
+}
 
 const validado=queryResult[0][0].validado;
 const documento_persona=queryResult[0][0].documento_persona;
