@@ -536,7 +536,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
       // Enviar correo electrónico al usuario recién registrado
         enviarEmail(codigoValidacion,email_persona);                 
 
-      return res.status(200).json({ message: "Ciudadano creado con éxito" });
+      return res.status(200).json({ message: "Ciudadano creado con éxito" ,ok:true});
   } catch (error) {
       await transaction.rollback();
       return res.status(500).json({ message: error.message || "Algo salió mal :(" });

@@ -33,13 +33,7 @@ router.put("/validar", validarUsuarioMYSQL)
 router.put("/editarUsuario", editarUsuarioCompleto)
 router.put("/editarClave", editarClave)
 router.put("/restablecerClave", restablecerClave)
-router.post("/registro",
-// [
-//     check("nombre_ciudadano","el nombre es obligatorio").not().isEmpty(),
-//     check("clave_ciudadano","el password es obligatorio").not().isEmpty(),
-   
-// ],
-agregarUsuarioMYSQL)
+router.post("/registro",agregarUsuarioMYSQL)
 router.post("/email", enviarEmailValidacion)
 
 module.exports = router;
