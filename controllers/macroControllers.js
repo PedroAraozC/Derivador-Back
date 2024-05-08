@@ -1,3 +1,6 @@
+const {
+  conectarBDEstadisticasMySql,
+} = require("../config/dbEstadisticasMYSQL");
 const { conectarMySql } = require("../config/dbMYSQL");
 const { conectarBaseDeDatos } = require("../config/dbSQL");
 const { conectarDBTurnos } = require("../config/dbTurnosMYSQL");
@@ -379,7 +382,7 @@ const confirmarTurno = async (req, res) => {
     // console.log(req.query);
     console.log("Conectado a MySQL");
 
-    let sqlQuery = `SELECT api_confirmarturno(?, ?, ?, ?, ?, ?)`;
+    let sqlQuery = `SELECT api_confirmarturno(?, ?, ?, ?, ?, ?, ?  )`;
     const [results, fields] = await connection.execute(sqlQuery, [
       1,
       cuil,
@@ -387,6 +390,7 @@ const confirmarTurno = async (req, res) => {
       nombre,
       fecha_solicitada,
       hora_solicitada,
+      " ",
     ]);
 
     connection.close();
@@ -420,6 +424,64 @@ const anularTurno = async (req, res) => {
   }
 };
 
+const usuarioExistente = async (req, res) => {
+  // VERIFICA SI EXISTE USUARIO POR CORREO O CUIT EN BD_MUNI
+  try {
+    const { cuit_persona, email_persona } = req.query;
+
+    const connection = await conectarBDEstadisticasMySql();
+
+    const [resultEmailyCuit] = await connection.query(
+      "SELECT * FROM persona WHERE email_persona = ? OR documento_persona = ?",
+      [email_persona, cuit_persona]
+    );
+    if (resultEmailyCuit.length > 0) {
+      connection.close();
+      return res.status(400).json({
+        message: "Datos ya registrados",
+        userEmail: resultEmailyCuit[0].email_persona,
+        userCuit: resultEmailyCuit[0].documento_persona,
+      });
+    } else {
+      connection.close();
+      return res.status(400).json({
+        message: "Datos no encontrados",
+        userEmail: email_persona,
+        userCuit: cuit_persona,
+      });
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Error de servidor" });
+  }
+};
+const tipoUsuario = async (req, res) => {
+  try {
+    const { cuit_persona } = req.query;
+    const connection = await conectarBDEstadisticasMySql();
+
+    const [resultCuit] = await connection.query(
+      "SELECT id_tusuario FROM persona WHERE documento_persona = ?",
+      [cuit_persona]
+    );
+    const tipo = resultCuit[0].id_tusuario;
+    
+    const [resultTipo] = await connection.query(
+      "SELECT nombre_tusuario FROM tipo_usuario WHERE id_tusuario = ?",
+      [tipo]
+    );
+    // console.log(tipo, "aaa", resultTipo, "bbb");
+    connection.close();
+
+    return res.status(400).json({
+      message: "Tipo de usuario",
+      userTipoUsuario: resultTipo[0].nombre_tusuario,
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Error de servidor" });
+  }
+};
 module.exports = {
   obtenerCategorias,
   obtenerTiposDeReclamoPorCategoria,
@@ -431,4 +493,6 @@ module.exports = {
   existeTurno,
   confirmarTurno,
   anularTurno,
+  usuarioExistente,
+  tipoUsuario,
 };
