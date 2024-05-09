@@ -34,6 +34,6 @@ router.put("/editarUsuario", editarUsuarioCompleto)
 router.put("/editarClave", editarClave)
 router.put("/restablecerClave", restablecerClave)
 router.post("/registro",agregarUsuarioMYSQL)
-router.post("/email", enviarEmailValidacion)
+router.put("/email", enviarEmailValidacion)
 
 module.exports = router;
