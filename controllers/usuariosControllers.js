@@ -536,7 +536,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
       // Enviar correo electrónico al usuario recién registrado
         enviarEmail(codigoValidacion,email_persona);                 
 
-      return res.status(200).json({ message: "Ciudadano creado con éxito" });
+      return res.status(200).json({ message: "Ciudadano creado con éxito" ,ok:true});
   } catch (error) {
       await transaction.rollback();
       return res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -550,22 +550,24 @@ const agregarUsuarioMYSQL = async (req, res) => {
 
 const enviarEmailValidacion=async(req,res)=>{
 
-const {email_persona}=req.body;
+const {email_persona,documento_persona}=req.body;
 connection = await conectarBDEstadisticasMySql();
 
-const queryResult = await connection.query("SELECT * FROM persona WHERE email_persona = ?", [email_persona]);
+const queryResult = await connection.query("SELECT * FROM persona WHERE documento_persona = ?", [documento_persona]);
 
 if(queryResult[0].length==0)
 {
-  return res.status(200).json({ mge: "El email ingresado no corresponde a un usuario registrado" ,ok:false});
+  return res.status(200).json({ mge: "Usuario no registrado" ,ok:false});
 }
 
 const validado=queryResult[0][0].validado;
-const documento_persona=queryResult[0][0].documento_persona;
+// const documento_persona=queryResult[0][0].documento_persona;
 
 if(validado==0)
 {
   const codigoValidacion=generarCodigo(documento_persona);
+
+   await connection.query("UPDATE persona SET email_persona=? WHERE documento_persona = ?", [email_persona, documento_persona]);
 
   enviarEmail(codigoValidacion,email_persona,res);
 }
@@ -642,8 +644,8 @@ const restablecerClave = async (req, res) => {
 
       // Verificar si se encontró el usuario
       if (result.length > 0) {
-          const usuario = result[0];
-      
+          
+      if(result[0].validado==0) return res.status(200).json({ message: "¡Usuario no validado! El usuario debe estar validado para poder restablecer su clave", ok: false });
           const hashedPassword = await bcrypt.hash(clave_nueva, 10);
               
           await connection.query('UPDATE persona SET clave = ? WHERE email_persona = ?', [hashedPassword, email]);
