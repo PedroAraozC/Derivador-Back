@@ -170,10 +170,12 @@ const enviarEmail = (nombre_tramite,fecha,hora, email, res) => {
       let sqlQuery = `SELECT api_confirmarturno(?, ?, ?, ?, ?, ?,?)`;
       const [results, fields] = await connection.execute(sqlQuery, [id_tramite, cuil, apellido, nombre, fecha_solicitada, hora_solicitada,adicional]);
   
+      if(Object.values(results[0])[0] == 1){
+        enviarEmail(nombre_tramite,fecha_solicitada,hora_solicitada,email,res);
+      }
       connection.close();
-      enviarEmail(nombre_tramite,fecha_solicitada,hora_solicitada,email,res)
-      res.status(200).json(results[0]);
       console.log("Conexión cerrada");
+      res.status(200).json(results[0]);
     } catch (error) {
       console.error("Error:", error);
       res.status(500).json({ error: "Error de servidor" });
