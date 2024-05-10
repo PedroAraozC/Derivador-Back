@@ -80,22 +80,27 @@ function generarCodigoAfaNumerico() {
 
       //VALIDACION DE EMPLEADO PARA ASIGNAR TIPO DE USUARIO
       const validarEmpleado = async (cuil) =>{
-        const JSONdata = JSON.stringify({ 
-          tarea: "legajo_municipal",
-          cuil: cuil ,
-        }); 
-        const endpoint = "http://181.105.6.205:86/api_civitas/ciudadano.php";
-      
-        const options = {
-          method: "POST",
-          headers: { "Content-Type": "application/json" }, 
-          body: JSONdata,
-        };
-        const response = await fetch(endpoint, options);
-      
-        const result = await response.json();
-        console.log(result.legajo[0])
-        return result;
+        try {
+          const JSONdata = JSON.stringify({ 
+            tarea: "legajo_municipal",
+            cuil: cuil ,
+          }); 
+          const endpoint = "http://181.105.6.205:86/api_civitas/ciudadano.php";
+        
+          const options = {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }, 
+            body: JSONdata,
+          };
+          const response = await fetch(endpoint, options);
+        
+          const result = await response.json();
+          console.log(result.legajo[0])
+          return result;
+        } catch (error) {
+          console.log(error);
+        }
+    
       }
 
       // -----------------------------------------------------------------------------------------------------
@@ -454,7 +459,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
       const codigoValidacion=generarCodigo(documento_persona);
       // Iniciar una transacción
       transaction = await sequelize_ciu_digital_derivador.transaction();
-      const connection = await conectarBDEstadisticasMySql();
+      connection = await conectarBDEstadisticasMySql();
 
       // Consultar si ya existe un usuario con el mismo email o documento
       const [resultEmail] = await connection.query('SELECT * FROM persona WHERE email_persona = ?', [email_persona]);
@@ -527,12 +532,20 @@ const agregarUsuarioMYSQL = async (req, res) => {
       }
       // Enviar correo electrónico al usuario recién registrado
         enviarEmail(codigoValidacion,email_persona);                 
-        await connection.end();
-      return res.status(200).json({ message: "Ciudadano creado con éxito" ,ok:true});
+
+      res.status(200).json({ message: "Ciudadano creado con éxito" ,ok:true});
+      connection.end();
   } catch (error) {
-      await transaction.rollback();
-      return res.status(500).json({ message: error.message || "Algo salió mal :(" });
+      console.log(error);
+      // await transaction.rollback();
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } 
+  // finally {
+  //     // Cerrar la conexión a la base de datos
+  //     if (connection) {
+  //         connection.end();
+  //     }
+  // }
 };
 
 const enviarEmailValidacion=async(req,res)=>{
