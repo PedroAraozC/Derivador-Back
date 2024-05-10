@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const { conectarBDUsuariosMySql } = require("../config/dbEstadisticasMYSQL");
+const { conectarBDEstadisticasMySql } = require("../config/dbEstadisticasMYSQL");
 
 const auth = async (req, res, next) => {
   try {
@@ -7,7 +7,7 @@ const auth = async (req, res, next) => {
     const { id } = jwt.verify(token, process.env.JWT_SECRET_KEY);
     req.id = id;
 
-    // const connection = await conectarBDUsuariosMySql();
+    // const connection = await conectarBDEstadisticasMySql();
     // const [result] = await connection.execute(
     //   'SELECT * FROM usuario WHERE id = ?',
     //   [id]

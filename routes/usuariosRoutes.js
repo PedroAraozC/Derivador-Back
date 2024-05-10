@@ -30,8 +30,8 @@ router.delete("/",[auth,verifyRole, check("id").not().isEmpty(), validateFields,
 router.get('/dni/:dni', obtenerCiudadanoPorDNIMYSQL);
 router.get('/email/:email', obtenerCiudadanoPorEmailMYSQL);  
 router.put("/validar", validarUsuarioMYSQL)
-router.put("/editarUsuario", editarUsuarioCompleto)
-router.put("/editarClave", editarClave)
+router.put("/editarUsuario",auth, editarUsuarioCompleto)
+router.put("/editarClave",auth, editarClave)
 router.put("/restablecerClave", restablecerClave)
 router.post("/registro",agregarUsuarioMYSQL)
 router.put("/email", enviarEmailValidacion)
