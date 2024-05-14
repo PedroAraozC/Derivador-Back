@@ -55,9 +55,11 @@ const enviarEmail=(codigo,email,res)=>{
 transporter.sendMail(mailOptions, (errorEmail, info) => {
     if (errorEmail) {
      return res.status(500).json({mge:'Error al enviar el correo electrónico:',ok: false,error:errorEmail});
-    } else {
-      return res.status(200).json({mge:'Correo electrónico enviado correctamente:',ok: true});
-    }
+    } 
+    
+    // else {
+    //   return res.status(200).json({mge:'Correo electrónico enviado correctamente:',ok: true});
+    // }
 });
 }
 const generarCodigo=(numero)=> {
