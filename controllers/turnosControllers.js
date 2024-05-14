@@ -1,5 +1,6 @@
 const { conectarDBTurnosPrueba } = require("../config/dbTurnosMYSQL");
 const nodemailer = require('nodemailer');
+const { formatFechaEmail } = require("../utils/helpers");
 
 const obtenerTramites = async (req, res) => {
     try {
@@ -141,7 +142,7 @@ const enviarEmail = (nombre_tramite,fecha,hora, email, res) => {
     from: 'SMT-Turnos no-reply-cdigital@smt.gob.ar',
     to: email,
     subject: `Turno Confirmado - ${nombre_tramite}`,
-    text: `Su turno para el trámite: ${nombre_tramite} fue confirmado para el dia: ${fecha} a horas: ${hora}`
+    text: `Su turno para el trámite: ${nombre_tramite} fue confirmado para el dia: ${formatFechaEmail(fecha)} a horas: ${hora}`
   };
 
 
