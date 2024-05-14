@@ -1,3 +1,5 @@
+const fs = require("fs");
+const path = require("path");
 const {
   conectarBDEstadisticasMySql,
 } = require("../config/dbEstadisticasMYSQL");
@@ -7,6 +9,7 @@ const { conectarDBTurnos } = require("../config/dbTurnosMYSQL");
 const { sequelize_ciu_digital } = require("../config/sequelize");
 const MovimientoReclamo = require("../models/Macro/MovimientoReclamo");
 const Reclamo = require("../models/Macro/Reclamo");
+const { conectarFTPCiudadano } = require("../config/winscpCiudadano");
 
 const obtenerCategorias = async (req, res) => {
   try {
@@ -143,6 +146,20 @@ const ingresarReclamo = async (req, res) => {
 
       await transaction.commit();
 
+      if (req.body.foto.length > 0) {
+        try {
+          const mondongo = await guardarImagen(req.body, reclamoId);
+          // connection.execute(
+          //   `UPDATE reclamo SET foto = 1 WHERE id_reclamo = ?`,
+          //   [reclamoId]
+          // );
+          console.log(mondongo, "mondongo");
+        } catch (error) {
+          console.error("Error:", error);
+          res.status(500).json({ error: "Error de servidor imagenes" });
+        }
+      }
+
       res.status(200).json({
         message: "Reclamo generado con éxito",
         Numero_Reclamo: reclamoId,
@@ -155,6 +172,7 @@ const ingresarReclamo = async (req, res) => {
         message: "El tipo de reclamo y la categoría no se corresponden",
       });
     }
+
     await connection.end();
     console.log("Conexión cerrada");
   } catch (error) {
@@ -455,6 +473,7 @@ const usuarioExistente = async (req, res) => {
     res.status(500).json({ error: "Error de servidor" });
   }
 };
+
 const tipoUsuario = async (req, res) => {
   try {
     const { cuit_persona } = req.query;
@@ -465,7 +484,7 @@ const tipoUsuario = async (req, res) => {
       [cuit_persona]
     );
     const tipo = resultCuit[0].id_tusuario;
-    
+
     const [resultTipo] = await connection.query(
       "SELECT nombre_tusuario FROM tipo_usuario WHERE id_tusuario = ?",
       [tipo]
@@ -482,6 +501,63 @@ const tipoUsuario = async (req, res) => {
     res.status(500).json({ error: "Error de servidor" });
   }
 };
+
+const guardarImagen = async (body, idReclamo) => {
+  try {
+    const { foto } = body;
+    const arrayFoto = Array.isArray(foto) ? foto : [foto];
+    const imagesArray = [];
+
+    const ftpClient = await conectarFTPCiudadano();
+
+    for (let index = 0; index < arrayFoto?.length; index++) {
+      const foto = arrayFoto[index];
+      const extension = foto.startsWith("data:image/jpeg")
+        ? "jpg"
+        : foto.startsWith("data:image/png")
+        ? "png"
+        : foto.startsWith("data:image/gif")
+        ? "gif"
+        : foto.startsWith("data:image/svg")
+        ? "svg"
+        : "png";
+
+      const nombreArchivo = `${idReclamo}_${index + 1}.${extension}`;
+      const base64Data = foto.replace(/^data:image\/\w+;base64,/, "");
+      const imageData = Buffer.from(base64Data, "base64");
+
+      imagesArray.push({ name: nombreArchivo, data: imageData });
+    }
+
+    for (const image of imagesArray) {
+      const remoteFilePath = `/Fotos/${image.name}`;
+
+      // Guardar la imagen localmente
+      const localFilePath = path.join("./tempUploads", image.name);
+      fs.writeFileSync(localFilePath, image.data);
+
+      // Subir la imagen al servidor FTP
+      await ftpClient.uploadFrom(localFilePath, remoteFilePath);
+      console.log(
+        `Imagen ${image.name} subida correctamente a ${remoteFilePath}`
+      );
+
+      // Eliminar la imagen local después de subirla
+      fs.unlinkSync(localFilePath);
+    }
+
+    await ftpClient.close();
+    console.log("Conexión FTP cerrada correctamente");
+
+    return {
+      message: "Imágenes enviadas y subidas al servidor FTP correctamente",
+    };
+  } catch (error) {
+    console.error("Error al guardar y subir las imágenes:", error);
+    return { error: "Error al guardar y subir las imágenes" };
+  }
+};
+
 module.exports = {
   obtenerCategorias,
   obtenerTiposDeReclamoPorCategoria,
@@ -495,4 +571,5 @@ module.exports = {
   anularTurno,
   usuarioExistente,
   tipoUsuario,
+  guardarImagen,
 };
