@@ -32,36 +32,33 @@ const transporter = nodemailer.createTransport({
 // });
 
 //funciones
-const enviarEmail=(codigo,email,res)=>{
+const enviarEmail = (codigo, email) => {
 
+  try {
+    const mailOptions = {
+      from: 'SMT-Ciudadano Digital <no-reply-cdigital@smt.gob.ar>',
+      to: email,
+      subject: 'Código de validación',
+      text: `Tu código de validación es: ${codigo}`
+    };
 
+    transporter.sendMail(mailOptions, (errorEmail, info) => {
+      if (errorEmail) {
+        console.log("error al enviar correo");
+        // return res.status(500).json({ mge: 'Error al enviar el correo electrónico:', ok: false, error: errorEmail });
+      }
 
-  const mailOptions = {
-    from: 'SMT-Ciudadano Digital <no-reply-cdigital@smt.gob.ar>',
-    to: email,
-    subject: 'Código de validación',
-    text: `Tu código de validación es: ${codigo}`
-};
+      else {
+        // return res.status(200).json({mge:'Correo electrónico enviado correctamente:',ok: true});
+        console.log("email enviado");
+      }
+    });
+  } catch (error) {
+    console.log("error al enviar email");
+  }
 
-
-// const mailOptions = {
-//   from: 'develop.ditec@zohomail.com',
-//   to: email,
-//   subject: 'Código de validación',
-//   text: `Tu código de validación es: ${codigo}`
-// };
-
-
-transporter.sendMail(mailOptions, (errorEmail, info) => {
-    if (errorEmail) {
-     return res.status(500).json({mge:'Error al enviar el correo electrónico:',ok: false,error:errorEmail});
-    } 
-    
-    // else {
-    //   return res.status(200).json({mge:'Correo electrónico enviado correctamente:',ok: true});
-    // }
-});
 }
+
 const generarCodigo=(numero)=> {
   const numeroInvertido = parseInt(numero.toString().split('').reverse().join(''));
   const ultimosCuatroDigitos = numeroInvertido % 10000;
@@ -533,21 +530,20 @@ const agregarUsuarioMYSQL = async (req, res) => {
         );
       }
       // Enviar correo electrónico al usuario recién registrado
-        enviarEmail(codigoValidacion,email_persona);                 
+       enviarEmail(codigoValidacion,email_persona);                 
 
-      res.status(200).json({ message: "Ciudadano creado con éxito" ,ok:true});
       connection.end();
+      res.status(200).json({ message: "Ciudadano creado con éxito" ,ok:true});
   } catch (error) {
       console.log(error);
       // await transaction.rollback();
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
-  } 
-  // finally {
-  //     // Cerrar la conexión a la base de datos
-  //     if (connection) {
-  //         connection.end();
-  //     }
-  // }
+  }finally {
+      // Cerrar la conexión a la base de datos
+      if (connection) {
+          connection.end();
+      }
+  }
 };
 
 const enviarEmailValidacion=async(req,res)=>{
@@ -572,7 +568,7 @@ if(validado==0)
 
    await connection.query("UPDATE persona SET email_persona=? WHERE documento_persona = ?", [email_persona, documento_persona]);
 
-  enviarEmail(codigoValidacion,email_persona,res);
+  enviarEmail(codigoValidacion,email_persona);
   await connection.end();
 }
 
