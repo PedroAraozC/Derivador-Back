@@ -567,9 +567,9 @@ const listarPartidas =async(req,res)=>{
           sqlQuery += ' WHERE LOWER(partida_codigo) LIKE LOWER(?) OR LOWER(partida_det) LIKE LOWER(?)';
       }
       const [partidas] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
- await connection.end();
+      await connection.end();
       res.status(200).json({ partidas });
-      connection.end();
+  
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
@@ -798,12 +798,13 @@ const partidaExistente = async (req, res) => {
     let value=[id]
     const connection = await conectar_BD_GAF_MySql();
     const [result] = await connection.execute(sqlQuery,value);
-console.log(result);
+    console.log(result);
     if (result[0]["COUNT(detpresupuesto_id)"]===1) {
       res.status(200).json({ message: "No se puede editar ni eliminar esta partida",ok:false});
     } else {
       res.status(200).json({ message: "Esta partida se puede editar y eliminar",ok:true});
     }
+    await connection.end();
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
