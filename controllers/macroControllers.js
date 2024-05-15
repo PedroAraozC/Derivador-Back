@@ -188,30 +188,29 @@ const listarReclamosCiudadano = async (req, res) => {
   console.log("Conectado a MySQL");
 
   try {
-    let sqlQuery =
-      "SELECT r.id_reclamo, tr.nombre_treclamo, r.asunto, r.direccion, r.apellido_nombre, r.fecha_hora_inicio, cr.nombre_categoria FROM reclamo_prueba r JOIN categoria_reclamo cr ON r.id_categoria = cr.id_categoria JOIN tipo_reclamo tr ON r.id_treclamo = tr.id_treclamo WHERE ";
+    let sqlQuery = ` SELECT r.id_reclamo, tr.nombre_treclamo, r.asunto, r.direccion, r.apellido_nombre, r.fecha_hora_inicio, cr.nombre_categoria,(SELECT detalle_movi FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = r.id_reclamo)) as estado_reclamo FROM reclamo_prueba r JOIN categoria_reclamo cr ON r.id_categoria = cr.id_categoria JOIN tipo_reclamo tr ON r.id_treclamo = tr.id_treclamo WHERE `
 
     if (cuit && telefono) {
       sqlQuery += "r.cuit = ? AND r.telefono LIKE CONCAT('%', ?, '%')";
       const [reclamos] = await connection.execute(sqlQuery, [cuit, telefono]);
 
-      if (reclamos.length > 0) {
-        for (const reclamo of reclamos) {
-          // Consulta para obtener el estado (detalle_movi) de cada reclamo
-          const detalleSqlQuery =
-            "SELECT detalle_movi as estado_reclamo FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = ?) AND id_reclamo = ?";
-          const [detalleMovimiento] = await connection.execute(
-            detalleSqlQuery,
-            [reclamo.id_reclamo, reclamo.id_reclamo]
-          );
+       if (reclamos.length > 0) {
+      //   for (const reclamo of reclamos) {
+      //     // Consulta para obtener el estado (detalle_movi) de cada reclamo
+      //     const detalleSqlQuery =
+      //       "SELECT detalle_movi as estado_reclamo FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = ?) AND id_reclamo = ?";
+      //     const [detalleMovimiento] = await connection.execute(
+      //       detalleSqlQuery,
+      //       [reclamo.id_reclamo, reclamo.id_reclamo]
+      //     );
 
-          // Verificar si detalleMovimiento tiene contenido antes de asignar su valor
-          if (detalleMovimiento.length > 0) {
-            reclamo.estado_reclamo = detalleMovimiento[0].estado_reclamo;
-          } else {
-            reclamo.estado_reclamo = "Estado no encontrado";
-          }
-        }
+      //     Verificar si detalleMovimiento tiene contenido antes de asignar su valor
+      //     if (detalleMovimiento.length > 0) {
+      //       reclamo.estado_reclamo = detalleMovimiento[0].estado_reclamo;
+      //     } else {
+      //       reclamo.estado_reclamo = "Estado no encontrado";
+      //     }
+      //   }
         await connection.end();
 
         res.status(200).json({ reclamos });
@@ -226,22 +225,22 @@ const listarReclamosCiudadano = async (req, res) => {
       const [reclamos] = await connection.execute(sqlQuery, [cuit]);
 
       if (reclamos.length > 0) {
-        for (const reclamo of reclamos) {
-          // Consulta para obtener el estado (detalle_movi) de cada reclamo
-          const detalleSqlQuery =
-            "SELECT detalle_movi as estado_reclamo FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = ?) AND id_reclamo = ?";
-          const [detalleMovimiento] = await connection.execute(
-            detalleSqlQuery,
-            [reclamo.id_reclamo, reclamo.id_reclamo]
-          );
+        // for (const reclamo of reclamos) {
+        //   // Consulta para obtener el estado (detalle_movi) de cada reclamo
+        //   const detalleSqlQuery =
+        //     "SELECT detalle_movi as estado_reclamo FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = ?) AND id_reclamo = ?";
+        //   const [detalleMovimiento] = await connection.execute(
+        //     detalleSqlQuery,
+        //     [reclamo.id_reclamo, reclamo.id_reclamo]
+        //   );
 
-          // Verificar si detalleMovimiento tiene contenido antes de asignar su valor
-          if (detalleMovimiento.length > 0) {
-            reclamo.estado_reclamo = detalleMovimiento[0].estado_reclamo;
-          } else {
-            reclamo.estado_reclamo = "Estado no encontrado";
-          }
-        }
+        //   // Verificar si detalleMovimiento tiene contenido antes de asignar su valor
+        //   if (detalleMovimiento.length > 0) {
+        //     reclamo.estado_reclamo = detalleMovimiento[0].estado_reclamo;
+        //   } else {
+        //     reclamo.estado_reclamo = "Estado no encontrado";
+        //   }
+        // }
         await connection.end();
 
         res.status(200).json({ reclamos });
@@ -256,22 +255,22 @@ const listarReclamosCiudadano = async (req, res) => {
       const [reclamos] = await connection.execute(sqlQuery, [telefono]);
 
       if (reclamos.length > 0) {
-        for (const reclamo of reclamos) {
-          // Consulta para obtener el estado (detalle_movi) de cada reclamo
-          const detalleSqlQuery =
-            "SELECT detalle_movi as estado_reclamo FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = ?) AND id_reclamo = ?";
-          const [detalleMovimiento] = await connection.execute(
-            detalleSqlQuery,
-            [reclamo.id_reclamo, reclamo.id_reclamo]
-          );
+        // for (const reclamo of reclamos) {
+        //   // Consulta para obtener el estado (detalle_movi) de cada reclamo
+        //   const detalleSqlQuery =
+        //     "SELECT detalle_movi as estado_reclamo FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = ?) AND id_reclamo = ?";
+        //   const [detalleMovimiento] = await connection.execute(
+        //     detalleSqlQuery,
+        //     [reclamo.id_reclamo, reclamo.id_reclamo]
+        //   );
 
-          // Verificar si detalleMovimiento tiene contenido antes de asignar su valor
-          if (detalleMovimiento.length > 0) {
-            reclamo.estado_reclamo = detalleMovimiento[0].estado_reclamo;
-          } else {
-            reclamo.estado_reclamo = "Estado no encontrado";
-          }
-        }
+        //   // Verificar si detalleMovimiento tiene contenido antes de asignar su valor
+        //   if (detalleMovimiento.length > 0) {
+        //     reclamo.estado_reclamo = detalleMovimiento[0].estado_reclamo;
+        //   } else {
+        //     reclamo.estado_reclamo = "Estado no encontrado";
+        //   }
+        // }
         await connection.end();
 
         res.status(200).json({ reclamos });
@@ -512,15 +511,7 @@ const guardarImagen = async (body, idReclamo) => {
 
     for (let index = 0; index < arrayFoto?.length; index++) {
       const foto = arrayFoto[index];
-      const extension = foto.startsWith("data:image/jpeg")
-        ? "jpg"
-        : foto.startsWith("data:image/png")
-        ? "png"
-        : foto.startsWith("data:image/gif")
-        ? "gif"
-        : foto.startsWith("data:image/svg")
-        ? "svg"
-        : "png";
+      const extension = getImageExtension(foto);
 
       const nombreArchivo = `${idReclamo}_${index + 1}.${extension}`;
       const base64Data = foto.replace(/^data:image\/\w+;base64,/, "");
@@ -557,6 +548,47 @@ const guardarImagen = async (body, idReclamo) => {
     return { error: "Error al guardar y subir las imágenes" };
   }
 };
+
+function getImageExtension(base64String) {
+  // Decodificar la cadena base64
+  const binaryString = atob(base64String);
+
+  // Convertir la cadena binaria a un array de bytes
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  // Leer los primeros bytes
+  const header = bytes.subarray(0, 4);
+
+  // Identificar el tipo de imagen basado en los primeros bytes
+  if (header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff) {
+    // El formato JPEG y JPG comparten el mismo encabezado
+    return "jpeg";
+  } else if (
+    header[0] === 0x89 &&
+    header[1] === 0x50 &&
+    header[2] === 0x4e &&
+    header[3] === 0x47
+  ) {
+    return "png";
+  } else if (
+    header[0] === 0x47 &&
+    header[1] === 0x49 &&
+    header[2] === 0x46 &&
+    header[3] === 0x38
+  ) {
+    return "gif";
+  } else if (
+    binaryString.startsWith("<?xml") ||
+    binaryString.includes("<svg")
+  ) {
+    return "svg";
+  } else {
+    return "png";
+  }
+}
 
 module.exports = {
   obtenerCategorias,
