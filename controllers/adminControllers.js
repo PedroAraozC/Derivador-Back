@@ -21,7 +21,7 @@ const sobrescribirArchivo = (rutaArchivoAntiguo, rutaArchivoNuevo) => {
 // Función para obtener la ruta del archivo antiguo
 const obtenerRutaArchivoAntiguo = (oldName) => {
   // Suponiendo que los archivos antiguos se guardan en una carpeta llamada 'pdfs' en el escritorio
-  const rutaArchivoAntiguo = path.join('C:/Users/Tobias/Desktop', oldName);
+  const rutaArchivoAntiguo = path.join('./pdf', oldName);
   console.log(rutaArchivoAntiguo)
   return rutaArchivoAntiguo;
 };
@@ -29,7 +29,7 @@ const obtenerRutaArchivoAntiguo = (oldName) => {
 // Función para obtener la ruta del nuevo archivo
 const obtenerRutaArchivoNuevo = (nombre_archivo) => {
   // Suponiendo que los archivos nuevos también se guardan en una carpeta llamada 'pdfs' en el escritorio
-  const rutaArchivoNuevo = path.join('C:/Users/Tobias/Desktop', nombre_archivo);
+  const rutaArchivoNuevo = path.join('./pdf', nombre_archivo);
   return rutaArchivoNuevo;
 };
 
@@ -288,7 +288,7 @@ const agregarContratacion = async (req, res) => {
     }
 
     // Obtener el nombre del archivo cargado
-    const nombre_archivo = archivo.originalname;
+    const nombre_archivo = archivo.filename;
     
     // Obtener el último id_contratacion de la tabla
     const connection = await conectarSMTContratacion();
@@ -323,8 +323,66 @@ const agregarContratacion = async (req, res) => {
   }
 };
 
+const agregarAnexo = async (req, res) => {
+  try {
+
+    const archivo = req.file;
+
+    if (!archivo) {
+      return res.status(400).json({ message: "Por favor, adjunta un archivo" });
+    }
+
+    // Obtener el nombre del archivo cargado
+    const nombre_anexo = archivo.filename;
+    
+    // Obtener el último id_contratacion de la tabla
+    const connection = await conectarSMTContratacion();
+    const [lastIdResult] = await connection.query("SELECT MAX(id_contratacion) AS max_id FROM contratacion");
+    let maxId = lastIdResult[0].max_id;
+    // Query para insertar una nueva convocatoria
+    const sql = "UPDATE contratacion SET `nombre_anexo`= ? WHERE `id_contratacion`= ?";
+    const values = [
+      nombre_anexo,
+      maxId
+    ];
+    console.log(values)
+    // Ejecutar la consulta SQL para insertar la nueva convocatoria
+    await connection.execute(sql, values);
+
+    res.status(201).json({ message: "Anexo agregado con éxito"});
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+
+const editarAnexo = async (req, res) => {
+  try {
+    const {id, oldName, num_instrumento, expte} = req.query
+    console.log(req.query)
+    const archivo = req.file;
+    let nombre_anexo = null;
+    if (archivo) {
+      nombre_anexo = `CONTRATACION_${num_instrumento}_EXPTE_${expte}_ANEXO.pdf`;
+      const rutaArchivoAntiguo = obtenerRutaArchivoAntiguo(oldName); // Define esta función para obtener la ruta del archivo antiguo
+      const rutaArchivoNuevo = obtenerRutaArchivoNuevo(nombre_anexo); // Define esta función para obtener la ruta del archivo nuevo
+      sobrescribirArchivo(rutaArchivoAntiguo, rutaArchivoNuevo); // Define esta función para sobrescribir el archivo físico
+    }
+    // Query para actualizar la contratacion
+    const sql = "UPDATE contratacion SET `nombre_anexo`= ? WHERE `id_contratacion`= ?";
+    const values = [nombre_anexo, id];
+    // Verificar si la contratacion ya existe con otra ID
+    const connection = await conectarSMTContratacion();
+    await connection.execute(sql, values);
+    res.status(201).json({ message: "Anexo editado con éxito"});
+    connection.end();
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+
 const borrarContratacion = async (req, res) => {
   const { id } = req.body;
+  console.log(req.body)
   const sql = "UPDATE contratacion set habilita = 0 WHERE id_contratacion = ?";
   const values = [id];
 
@@ -347,8 +405,10 @@ const editarContratacion = async (req, res) => {
   try {
     const { id, nombre_contratacion, id_tcontratacion, fecha_presentacion, hora_presentacion, num_instrumento, valor_pliego, expte, id_tinstrumento, fecha_apertura, hora_apertura, habilita, oldName, detalle } = req.body;
     // Verificar si hay un archivo adjunto
+    console.log(req.body)
     const archivo = req.file;
     let nombre_archivo = null;
+    nombre_archivo = `CONTRATACION_${num_instrumento}_EXPTE_${expte}.pdf`;
     if (archivo) {
       nombre_archivo = `CONTRATACION_${num_instrumento}_EXPTE_${expte}.pdf`;
       console.log(req.body)
@@ -380,6 +440,7 @@ const editarContratacion = async (req, res) => {
         contratacion: contratacion[0],
       });
     }
+    connection.end();
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
@@ -387,4 +448,4 @@ const editarContratacion = async (req, res) => {
 //-----------CONTRATACIONES--------------
 
 
-module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, listarContratacionPorId}
+module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, editarAnexo, listarContratacionPorId}
