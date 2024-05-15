@@ -12,7 +12,7 @@ const router = Router();
 router.post(
     "/login",
     [
-        check("dni", "El DNI de usuario no cumple con los requisitos").not().isEmpty().isInt().isLength({ min: 11, max: 11 }),
+        check("dni", "El CUIL de usuario no cumple con los requisitos").not().isEmpty().isInt().isLength({ min: 11, max: 11 }),
         check("password", "La contraseña no cumple con los requisitos").isLength({ min: 4, max: 30 }),
         validateFields,
     ],
@@ -30,16 +30,10 @@ router.delete("/",[auth,verifyRole, check("id").not().isEmpty(), validateFields,
 router.get('/dni/:dni', obtenerCiudadanoPorDNIMYSQL);
 router.get('/email/:email', obtenerCiudadanoPorEmailMYSQL);  
 router.put("/validar", validarUsuarioMYSQL)
-router.put("/editarUsuario", editarUsuarioCompleto)
-router.put("/editarClave", editarClave)
+router.put("/editarUsuario",auth, editarUsuarioCompleto)
+router.put("/editarClave",auth, editarClave)
 router.put("/restablecerClave", restablecerClave)
-router.post("/registro",
-// [
-//     check("nombre_ciudadano","el nombre es obligatorio").not().isEmpty(),
-//     check("clave_ciudadano","el password es obligatorio").not().isEmpty(),
-   
-// ],
-agregarUsuarioMYSQL)
-router.post("/email", enviarEmailValidacion)
+router.post("/registro",agregarUsuarioMYSQL)
+router.put("/email", enviarEmailValidacion)
 
 module.exports = router;

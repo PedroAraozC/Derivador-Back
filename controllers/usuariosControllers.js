@@ -4,36 +4,61 @@ const jwt = require("jsonwebtoken");
 const { conectarBDEstadisticasMySql } = require("../config/dbEstadisticasMYSQL");
 const nodemailer = require('nodemailer');
 const moment = require('moment-timezone');
+const https = require('https');
 const Persona = require("../models/Derivador/Persona");
 const Empleado = require("../models/Derivador/Empleado");
 const { sequelize_ciu_digital_derivador } = require("../config/sequelize");
 
 // Configurar el transporte de Nodemailer
 const transporter = nodemailer.createTransport({
-    service: 'Zoho',
-    auth: {
-      user: 'develop.ditec@zohomail.com', 
+  // host: 'smtp.gmail.com',
+  service:"gmail",
+  // port: 465,
+  // secure: true,
+  auth: {
+      user: 'no-reply-cdigital@smt.gob.ar',
       pass: process.env.PASSWORD_MAIL
-    }
-  });
+  }
+});
+
+
+// const transporter = nodemailer.createTransport({
+//   service: 'Zoho',
+//   auth: {
+//     user: 'develop.ditec@zohomail.com', 
+//      pass: process.env.PASSWORD_MAIL
+
+//   }
+// });
 
 //funciones
-const enviarEmail=(codigo,email)=>{
-  const mailOptions = {
-    from: 'develop.ditec@zohomail.com', // Coloca tu dirección de correo electrónico
-    to: email, // Utiliza el correo electrónico del usuario recién registrado
-    subject: 'Código de validación',
-    text: `Tu código de validación es: ${codigo}`
-};
+const enviarEmail = (codigo, email) => {
 
-transporter.sendMail(mailOptions, (errorEmail, info) => {
-    if (errorEmail) {
-      res.status(500).json({msg:'Error al enviar el correo electrónico:',error: errorEmail});
-    } else {
-      res.status(200).json({mge:'Correo electrónico enviado correctamente:',info: info.response});
-    }
-});
+  try {
+    const mailOptions = {
+      from: 'SMT-Ciudadano Digital <no-reply-cdigital@smt.gob.ar>',
+      to: email,
+      subject: 'Código de validación',
+      text: `Tu código de validación es: ${codigo}`
+    };
+
+    transporter.sendMail(mailOptions, (errorEmail, info) => {
+      if (errorEmail) {
+        console.log("error al enviar correo");
+        // return res.status(500).json({ mge: 'Error al enviar el correo electrónico:', ok: false, error: errorEmail });
+      }
+
+      else {
+        // return res.status(200).json({mge:'Correo electrónico enviado correctamente:',ok: true});
+        console.log("email enviado");
+      }
+    });
+  } catch (error) {
+    console.log("error al enviar email");
+  }
+
 }
+
 const generarCodigo=(numero)=> {
   const numeroInvertido = parseInt(numero.toString().split('').reverse().join(''));
   const ultimosCuatroDigitos = numeroInvertido % 10000;
@@ -54,22 +79,27 @@ function generarCodigoAfaNumerico() {
 
       //VALIDACION DE EMPLEADO PARA ASIGNAR TIPO DE USUARIO
       const validarEmpleado = async (cuil) =>{
-        const JSONdata = JSON.stringify({ 
-          tarea: "legajo_municipal",
-          cuil: cuil ,
-        }); 
-        const endpoint = "http://181.105.6.205:86/api_civitas/ciudadano.php";
-      
-        const options = {
-          method: "POST",
-          headers: { "Content-Type": "application/json" }, 
-          body: JSONdata,
-        };
-        const response = await fetch(endpoint, options);
-      
-        const result = await response.json();
-        console.log(result.legajo[0])
-        return result;
+        try {
+          const JSONdata = JSON.stringify({ 
+            tarea: "legajo_municipal",
+            cuil: cuil ,
+          }); 
+          const endpoint = "http://181.105.6.205:86/api_civitas/ciudadano.php";
+        
+          const options = {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }, 
+            body: JSONdata,
+          };
+          const response = await fetch(endpoint, options);
+        
+          const result = await response.json();
+          console.log(result.legajo[0])
+          return result;
+        } catch (error) {
+          console.log(error);
+        }
+    
       }
 
       // -----------------------------------------------------------------------------------------------------
@@ -87,8 +117,11 @@ const login = async (req, res) => {
         const [result] = await connection.execute(
           '    SELECT persona.*, tipo_usuario.nombre_tusuario AS tipoDeUsuario FROM persona JOIN tipo_usuario ON persona.id_tusuario = tipo_usuario.id_tusuario WHERE persona.documento_persona = ?',[dni]
         );
+        
 
         if (result.length == 0) throw new CustomError("Usuario no encontrado", 404);
+
+         if (result[0].validado==0) throw new CustomError("Usuario no validado. Revise su correo o reenvie el email de validación", 404);
 
         const permiso_persona = await connection.execute('SELECT permiso_persona.*,proceso.nombre_proceso AS proceso,proceso.habilita AS habilitado FROM permiso_persona JOIN proceso ON permiso_persona.id_proceso=proceso.id_proceso WHERE permiso_persona.id_persona = ?',[result[0].id_persona]) 
     
@@ -266,21 +299,18 @@ const editarUsuarioCompleto = async (req, res) => {
                     'UPDATE persona SET nombre_persona = ?, apellido_persona = ?, email_persona = ?, telefono_persona = ?, domicilio_persona = ?, localidad_persona = ? WHERE documento_persona = ?',
                     [nombre_persona.toUpperCase(), apellido_persona.toUpperCase(), email_persona, telefono_persona, domicilio_persona.toUpperCase(),localidad_persona.toUpperCase(), documento_persona]
                   ); 
+                  await connection.end();
         return res.status(200).json({ message: "Usuario editado con éxito", ok: true });
           
       
       } else {
-          // No se encontró el usuario
+        await connection.end();
           return res.status(404).json({ message: "Usuario no encontrado" });
       }
+      
   } catch (error) {
       return res.status(500).json({ message: error.message || "Algo salió mal :(" });
-  } finally {
-      // Cerrar la conexión a la base de datos
-      if (connection) {
-          connection.end();
-      }
-  }
+  } 
 };
 
 const borrarUsuario = async (req, res) => {
@@ -311,7 +341,7 @@ const obtenerCiudadanoPorDNIMYSQL = async (req, res) => {
 
       const userDNI = req.params.dni;
       const queryResult = await connection.query("SELECT * FROM persona WHERE documento_persona = ?", [userDNI]);
- 
+      await connection.end();
       if (queryResult.length > 0) {
           const ciudadano = queryResult[0]; // Suponiendo que solo hay un usuario con ese DNI
           if (ciudadano.length > 0) {
@@ -324,11 +354,7 @@ const obtenerCiudadanoPorDNIMYSQL = async (req, res) => {
       }
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
-  } finally {
-      if (connection) {
-          connection.end();
-      }
-  }
+  } 
 };
 
 const obtenerCiudadanoPorEmailMYSQL = async (req, res) => { 
@@ -338,7 +364,7 @@ const obtenerCiudadanoPorEmailMYSQL = async (req, res) => {
 
       const userEmail = req.params.email;
       const queryResult = await connection.query("SELECT * FROM persona WHERE email_persona = ?", [userEmail]);
-
+      await connection.end();
       if (queryResult.length > 0) {
           const ciudadano = queryResult[0]; // Suponiendo que solo hay un usuario con ese DNI
           if (ciudadano.length > 0) {
@@ -351,11 +377,7 @@ const obtenerCiudadanoPorEmailMYSQL = async (req, res) => {
       }
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" }); 
-  } finally {
-      if (connection) {
-          connection.end();
-      }
-  }
+  } 
 };
 
 const validarUsuarioMYSQL = async (req, res) => {
@@ -365,10 +387,10 @@ const validarUsuarioMYSQL = async (req, res) => {
 
       // Establecer la conexión a la base de datos MySQL
       connection = await conectarBDEstadisticasMySql();
-
+    
       // Consultar el usuario por su email
       const [result] = await connection.query('SELECT * FROM persona WHERE email_persona = ?', [email_persona]);
-
+     
       // Verificar si se encontró el usuario
       if (result.length > 0) {
           const usuario = result[0];
@@ -380,27 +402,29 @@ const validarUsuarioMYSQL = async (req, res) => {
               if (codigo === codigo_verif) {
                   // Actualizar el estado de validación del usuario
                   await connection.query('UPDATE persona SET validado = 1, habilita = 1 WHERE email_persona = ?', [email_persona]);
+                  await connection.end();
                   return res.status(200).json({ message: "Usuario validado con éxito", ok: true });
               } else {
-                  // El código de verificación no coincide
+                await connection.end();
                   return res.status(200).json({ message: "El código de verificación es incorrecto", ok: false });
               }
           } else {
-              // El usuario ya está validado
-              return res.status(400).json({ message: "El usuario ya está validado" });
+            await connection.end();
+              return res.status(200).json({ message: "El usuario ya está validado" ,ok:false});
           }
-      } else {
-          // No se encontró el usuario
+   
+        } 
+        else {
+          await connection.end();
           return res.status(404).json({ message: "Usuario no encontrado" });
+          
       }
-  } catch (error) {
+    
+  } 
+  
+  catch (error) {
       return res.status(500).json({ message: error.message || "Algo salió mal :(" });
-  } finally {
-      // Cerrar la conexión a la base de datos
-      if (connection) {
-          connection.end();
-      }
-  }
+  } 
 };
 
 const agregarUsuarioMYSQL = async (req, res) => {
@@ -421,7 +445,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
           id_pais,
           fecha_nacimiento_persona,
           id_genero,
-          id_tdocumento,
+        
           validado,
           habilita
       } = req.body;
@@ -434,7 +458,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
       const codigoValidacion=generarCodigo(documento_persona);
       // Iniciar una transacción
       transaction = await sequelize_ciu_digital_derivador.transaction();
-      const connection = await conectarBDEstadisticasMySql();
+      connection = await conectarBDEstadisticasMySql();
 
       // Consultar si ya existe un usuario con el mismo email o documento
       const [resultEmail] = await connection.query('SELECT * FROM persona WHERE email_persona = ?', [email_persona]);
@@ -447,7 +471,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
         return res.status(400).json({ message: "DNI ya registrado", userDNI: documento_persona });
       }
       
-      const empleadoValidado = await validarEmpleado(req.body.documento_persona);
+      const empleadoValidado = await validarEmpleado(documento_persona);
 
       
       if (empleadoValidado.legajo[0] !== null) {
@@ -467,13 +491,13 @@ const agregarUsuarioMYSQL = async (req, res) => {
           email_persona,
           clave: hashedPassword,
           telefono_persona,
-          domicilio_persona: domicilio_persona.toUpperCase(),
+          domicilio_persona: domicilio_persona?.toUpperCase(),
           id_provincia,
           id_pais,
-          localidad_persona: localidad_persona.toUpperCase(),
+          localidad_persona: localidad_persona?.toUpperCase(),
           fecha_nacimiento_persona: fechaFormateada,
           id_genero,
-          id_tdocumento,
+          id_tdocumento:null,
           id_tusuario: usuarioEmpleado,
         },
         { transaction }
@@ -495,23 +519,26 @@ const agregarUsuarioMYSQL = async (req, res) => {
 
       await transaction.commit();
 
-      } else {
+      } 
+      else {
         // No se encontró un legajo
         console.log("No se encontró un legajo");
         // Insertar el nuevo usuario
         const [resultInsert] = await connection.query(
-            'INSERT INTO persona (documento_persona, nombre_persona, apellido_persona, email_persona, clave, telefono_persona, domicilio_persona, id_provincia, id_pais, localidad_persona, validado, habilita, fecha_nacimiento_persona, id_genero, id_tdocumento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [documento_persona, nombre_persona.toUpperCase(), apellido_persona.toUpperCase(), email_persona, hashedPassword, telefono_persona, domicilio_persona.toUpperCase(), id_provincia, id_pais, localidad_persona.toUpperCase(), validado, habilita, fechaFormateada, id_genero, id_tdocumento]
+            'INSERT INTO persona (documento_persona, nombre_persona, apellido_persona, email_persona, clave, telefono_persona, domicilio_persona, id_provincia, id_pais, localidad_persona, validado, habilita, fecha_nacimiento_persona, id_genero) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?)',
+            [documento_persona, nombre_persona.toUpperCase(), apellido_persona.toUpperCase(), email_persona, hashedPassword, telefono_persona, domicilio_persona?.toUpperCase(), id_provincia, id_pais, localidad_persona?.toUpperCase(), validado, habilita, fechaFormateada, id_genero]
         );
       }
       // Enviar correo electrónico al usuario recién registrado
-        enviarEmail(codigoValidacion,email_persona);                 
+       enviarEmail(codigoValidacion,email_persona);                 
 
-      return res.status(200).json({ message: "Ciudadano creado con éxito" });
+      connection.end();
+      res.status(200).json({ message: "Ciudadano creado con éxito" ,ok:true});
   } catch (error) {
-      await transaction.rollback();
-      return res.status(500).json({ message: error.message || "Algo salió mal :(" });
-  } finally {
+      console.log(error);
+      // await transaction.rollback();
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }finally {
       // Cerrar la conexión a la base de datos
       if (connection) {
           connection.end();
@@ -519,13 +546,37 @@ const agregarUsuarioMYSQL = async (req, res) => {
   }
 };
 
-const enviarEmailValidacion=(req)=>{
+const enviarEmailValidacion=async(req,res)=>{
 
 const {email_persona,documento_persona}=req.body;
+connection = await conectarBDEstadisticasMySql();
 
-const codigoValidacion=generarCodigo(documento_persona);
+const queryResult = await connection.query("SELECT * FROM persona WHERE documento_persona = ?", [documento_persona]);
 
-enviarEmail(codigoValidacion,email_persona);
+if(queryResult[0].length==0)
+{
+  await connection.end();
+  return res.status(200).json({ mge: "Usuario no registrado" ,ok:false});
+}
+
+const validado=queryResult[0][0].validado;
+// const documento_persona=queryResult[0][0].documento_persona;
+
+if(validado==0)
+{
+  const codigoValidacion=generarCodigo(documento_persona);
+
+   await connection.query("UPDATE persona SET email_persona=? WHERE documento_persona = ?", [email_persona, documento_persona]);
+
+  enviarEmail(codigoValidacion,email_persona);
+  await connection.end();
+}
+
+else {
+  await connection.end();
+  return res.status(200).json({ mge: "el usuario ya está validado" ,ok:false});
+
+}
 
 }
 
@@ -543,9 +594,10 @@ const editarClave = async (req, res) => {
       // Verificar si se encontró el usuario
       if (result.length > 0) {
           const usuario = result[0];
-      
           const passOk = await bcrypt.compare(clave_actual, usuario.clave);
-          if (!passOk) return res.status(200).json({ message:  "La clave actual es incorrecta ", ok: false });
+          if (!passOk) {
+            await connection.end();
+            return res.status(200).json({ message:  "La clave actual es incorrecta ", ok: false });}
          
           // Verificar si el usuario ya está validado
           if (usuario.validado) {
@@ -555,27 +607,26 @@ const editarClave = async (req, res) => {
               
                   // Actualizar el estado de validación del usuario
                   await connection.query('UPDATE persona SET clave = ? WHERE documento_persona = ?', [hashedPassword, documento_persona]);
-
+                  await connection.end();
                   return res.status(200).json({ message: "Clave modificada con éxito",ok: true});
               
               
           
-          } else {
+          }
+           else {
               // El usuario ya está validado
+              await connection.end();
               return res.status(200).json({ message: "El usuario no está validado",ok: false});
           }
-      } else {
+      } 
+      else {
           // No se encontró el usuario
+          await connection.end();
           return res.status(200).json({ message: "Usuario no encontrado" ,ok: false});
       }
   } catch (error) {
       return res.status(500).json({ message: error.message || "Algo salió mal :(" });
-  } finally {
-      // Cerrar la conexión a la base de datos
-      if (connection) {
-          connection.end();
-      }
-  }
+  } 
 };
 
 
@@ -591,17 +642,20 @@ const restablecerClave = async (req, res) => {
 
       // Consultar el usuario por su email
       const [result] = await connection.query('SELECT * FROM persona WHERE email_persona = ?', [email]);
-
+      
       // Verificar si se encontró el usuario
       if (result.length > 0) {
-          const usuario = result[0];
-      
+          
+      if(result[0].validado==0){
+        await connection.end();
+        return res.status(200).json({ message: "¡Usuario no validado! El usuario debe estar validado para poder restablecer su clave", ok: false });
+      } 
           const hashedPassword = await bcrypt.hash(clave_nueva, 10);
               
           await connection.query('UPDATE persona SET clave = ? WHERE email_persona = ?', [hashedPassword, email]);
-
+          await connection.end();
           const mailOptions = {
-            from: 'develop.ditec@zohomail.com', // Coloca tu dirección de correo electrónico
+            from: 'SMT-Ciudadano Digital <no-reply-cdigital@smt.gob.ar>', // Coloca tu dirección de correo electrónico
             to: email, // Utiliza el correo electrónico del usuario recién registrado
             subject: 'Restablecer Clave',
             text: `Tu nueva clave temporal es: ${clave_nueva}. Recuerda cambiarla después de iniciar sesión`
@@ -617,16 +671,11 @@ const restablecerClave = async (req, res) => {
           
       } else {
           // No se encontró el usuario
-          return res.status(200).json({ message: "Usuario no encontrado", ok: false });
+          return res.status(200).json({ message: "El email ingresado no corresponde a un usuario registrado", ok: false });
       }
   } catch (error) {
       return res.status(500).json({ message: error.message || "Algo salió mal :(" });
-  } finally {
-      // Cerrar la conexión a la base de datos
-      if (connection) {
-          connection.end();
-      }
-  }
+  } 
 };
 
 
