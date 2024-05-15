@@ -512,16 +512,8 @@ const guardarImagen = async (body, idReclamo) => {
 
     for (let index = 0; index < arrayFoto?.length; index++) {
       const foto = arrayFoto[index];
-      const extension = foto.startsWith("data:image/jpeg")
-        ? "jpg"
-        : foto.startsWith("data:image/png")
-        ? "png"
-        : foto.startsWith("data:image/gif")
-        ? "gif"
-        : foto.startsWith("data:image/svg")
-        ? "svg"
-        : "png";
-
+      const extension = getImageExtension(foto) 
+ 
       const nombreArchivo = `${idReclamo}_${index + 1}.${extension}`;
       const base64Data = foto.replace(/^data:image\/\w+;base64,/, "");
       const imageData = Buffer.from(base64Data, "base64");
@@ -557,6 +549,34 @@ const guardarImagen = async (body, idReclamo) => {
     return { error: "Error al guardar y subir las imágenes" };
   }
 };
+
+function getImageExtension(base64String) {
+  // Decodificar la cadena base64
+  const binaryString = atob(base64String);
+  
+  // Convertir la cadena binaria a un array de bytes
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  // Leer los primeros bytes
+  const header = bytes.subarray(0, 4);
+  
+  // Identificar el tipo de imagen basado en los primeros bytes
+  if (header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF) {
+      // El formato JPEG y JPG comparten el mismo encabezado
+      return 'jpeg';
+  } else if (header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47) {
+      return 'png';
+  } else if (header[0] === 0x47 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x38) {
+      return 'gif';
+  } else if (binaryString.startsWith('<?xml') || binaryString.includes('<svg')) {
+      return 'svg';
+  } else {
+      return 'png';
+  }
+}
 
 module.exports = {
   obtenerCategorias,
