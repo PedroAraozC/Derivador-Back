@@ -4,7 +4,6 @@ const jwt = require("jsonwebtoken");
 const { conectarBDEstadisticasMySql } = require("../config/dbEstadisticasMYSQL");
 const nodemailer = require('nodemailer');
 const moment = require('moment-timezone');
-const https = require('https');
 const Persona = require("../models/Derivador/Persona");
 const Empleado = require("../models/Derivador/Empleado");
 const { sequelize_ciu_digital_derivador } = require("../config/sequelize");
@@ -92,7 +91,7 @@ function generarCodigoAfaNumerico() {
             body: JSONdata,
           };
           const response = await fetch(endpoint, options);
-        
+          
           const result = await response.json();
           console.log(result.legajo[0])
           return result;
@@ -486,7 +485,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
       const empleadoValidado = await validarEmpleado(documento_persona);
 
       
-      if (empleadoValidado?.legajo[0] !== null) {
+      if (empleadoValidado && empleadoValidado?.legajo[0] !== null) {
         // Se encontró un legajo
         // Iniciar una transacción
         const transaction = await sequelize_ciu_digital_derivador.transaction();
