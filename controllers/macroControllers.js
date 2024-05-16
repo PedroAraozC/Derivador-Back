@@ -12,8 +12,8 @@ const Reclamo = require("../models/Macro/Reclamo");
 const { conectarFTPCiudadano } = require("../config/winscpCiudadano");
 
 const obtenerCategorias = async (req, res) => {
+  const connection = await conectarMySql();
   try {
-    const connection = await conectarMySql();
     console.log("Conectado a MySQL");
 
     const [results, fields] = await connection.execute(
@@ -29,13 +29,18 @@ const obtenerCategorias = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
 const obtenerTiposDeReclamoPorCategoria = async (req, res) => {
+  const connection = await conectarMySql();
   try {
     const id_categoria = req.query.id_categoria;
-    const connection = await conectarMySql();
     console.log("Conectado a MySQL");
 
     const [results, fields] = await connection.execute(
@@ -53,11 +58,17 @@ const obtenerTiposDeReclamoPorCategoria = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
 const ingresarReclamo = async (req, res) => {
   let transaction;
+  const connection = await conectarMySql();
   try {
     const {
       id_categoria,
@@ -78,7 +89,6 @@ const ingresarReclamo = async (req, res) => {
 
     transaction = await sequelize_ciu_digital.transaction();
 
-    const connection = await conectarMySql();
     console.log("Conectado a MySQL");
 
     const [tipoDeReclamoPerteneceACategoria] = await connection.execute(
@@ -146,7 +156,7 @@ const ingresarReclamo = async (req, res) => {
 
       await transaction.commit();
 
-      if (req.body.foto.length > 0) {
+      if (req.body.foto?.length > 0) {
         try {
           const mondongo = await guardarImagen(req.body, reclamoId);
           // connection.execute(
@@ -178,6 +188,11 @@ const ingresarReclamo = async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
@@ -289,6 +304,11 @@ const listarReclamosCiudadano = async (req, res) => {
     await connection.end();
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
@@ -322,32 +342,42 @@ const buscarReclamoPorId = async (req, res) => {
       res.status(200).json({ message: "no se encontro un reclamo con ese id" });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
 const obtenerTurnosDisponiblesPorDia = async (req, res) => {
+  const connection = await conectarDBTurnos();
   try {
-    const connection = await conectarDBTurnos();
 
     console.log("Conectado a MySQL");
 
     let sqlQuery = `CALL api_obtenerturnospordia(?)`;
     const [results, fields] = await connection.execute(sqlQuery, [1]);
 
-    connection.close();
+    await connection.end();
     res.status(200).json(results[0]);
 
     console.log("Conexión cerrada");
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
 const obtenerTurnosDisponiblesPorHora = async (req, res) => {
+  const connection = await conectarDBTurnos();
   try {
     const fecha_solicitada = req.query.fecha_solicitada;
-    const connection = await conectarDBTurnos();
 
     console.log("Conectado a MySQL");
 
@@ -357,37 +387,48 @@ const obtenerTurnosDisponiblesPorHora = async (req, res) => {
       1,
       fecha_solicitada,
     ]);
-    connection.close();
+    await connection.end();
     res.status(200).json(results[0]);
 
     console.log("Conexión cerrada");
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
 const existeTurno = async (req, res) => {
+  const connection = await conectarDBTurnos();
   try {
     const cuil = req.query.cuil;
-    const connection = await conectarDBTurnos();
     // console.log(cuil);
     console.log("Conectado a MySQL");
 
     let sqlQuery = `CALL api_existeturno(?,?)`;
     const [results, fields] = await connection.execute(sqlQuery, [1, cuil]);
 
-    connection.close();
+    await connection.end();
     res.status(200).json(results[0]);
 
     console.log("Conexión cerrada");
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
 const confirmarTurno = async (req, res) => {
+  const connection = await conectarDBTurnos();
   try {
     const cuil = req.query.cuil;
     const apellido = req.query.apellido;
@@ -395,7 +436,6 @@ const confirmarTurno = async (req, res) => {
     const fecha_solicitada = req.query.fecha_solicitada;
     const hora_solicitada = req.query.hora_solicitada;
 
-    const connection = await conectarDBTurnos();
     // console.log(req.query);
     console.log("Conectado a MySQL");
 
@@ -410,57 +450,67 @@ const confirmarTurno = async (req, res) => {
       " ",
     ]);
 
-    connection.close();
+    await connection.end();
     res.status(200).json(results[0]);
 
     console.log("Conexión cerrada");
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
 const anularTurno = async (req, res) => {
+  const connection = await conectarDBTurnos();
   try {
     const cuil = req.query.cuil;
 
-    const connection = await conectarDBTurnos();
     // console.log(req.query);
     console.log("Conectado a MySQL");
 
     let sqlQuery = `SELECT api_anularturno(?, ?)`;
     const [results, fields] = await connection.execute(sqlQuery, [1, cuil]);
 
-    connection.close();
+    await connection.end();
     res.status(200).json(results[0]);
 
     console.log("Conexión cerrada");
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
 const usuarioExistente = async (req, res) => {
   // VERIFICA SI EXISTE USUARIO POR CORREO O CUIT EN BD_MUNI
+  const connection = await conectarBDEstadisticasMySql();
   try {
     const { cuit_persona, email_persona } = req.query;
 
-    const connection = await conectarBDEstadisticasMySql();
 
     const [resultEmailyCuit] = await connection.query(
       "SELECT * FROM persona WHERE email_persona = ? OR documento_persona = ?",
       [email_persona, cuit_persona]
     );
     if (resultEmailyCuit.length > 0) {
-      connection.close();
+      await connection.end();
       return res.status(400).json({
         message: "Datos ya registrados",
         userEmail: resultEmailyCuit[0].email_persona,
         userCuit: resultEmailyCuit[0].documento_persona,
       });
     } else {
-      connection.close();
+      await connection.end();
       return res.status(400).json({
         message: "Datos no encontrados",
         userEmail: email_persona,
@@ -470,13 +520,18 @@ const usuarioExistente = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
 const tipoUsuario = async (req, res) => {
+  const connection = await conectarBDEstadisticasMySql();
   try {
     const { cuit_persona } = req.query;
-    const connection = await conectarBDEstadisticasMySql();
 
     const [resultCuit] = await connection.query(
       "SELECT id_tusuario FROM persona WHERE documento_persona = ?",
@@ -489,7 +544,7 @@ const tipoUsuario = async (req, res) => {
       [tipo]
     );
     // console.log(tipo, "aaa", resultTipo, "bbb");
-    connection.close();
+    await connection.end();
 
     return res.status(400).json({
       message: "Tipo de usuario",
@@ -498,6 +553,11 @@ const tipoUsuario = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
