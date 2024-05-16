@@ -107,12 +107,12 @@ function generarCodigoAfaNumerico() {
 //controladores
 const login = async (req, res) => {
  
+  const connection = await conectarBDEstadisticasMySql();
     try {
         const { dni, password } = req.body;
         if (!dni || !password)
             throw new CustomError("Usuario y contraseña son requeridas", 400);
 
-        const connection = await conectarBDEstadisticasMySql();
 
         const [result] = await connection.execute(
           '    SELECT persona.*, tipo_usuario.nombre_tusuario AS tipoDeUsuario FROM persona JOIN tipo_usuario ON persona.id_tusuario = tipo_usuario.id_tusuario WHERE persona.documento_persona = ?',[dni]
@@ -142,14 +142,19 @@ const login = async (req, res) => {
         res
             .status(error.code || 500)
             .json({ message: error.message || "algo explotó :|" });
+    }finally {
+      // Cerrar la conexión a la base de datos
+      if (connection) {
+        await connection.end();
+      }
     }
 };
 
 const getAuthStatus = async (req, res) => {
+  const connection = await conectarBDEstadisticasMySql();
     try {
         const id = req.id;
 
-        const connection = await conectarBDEstadisticasMySql();
         const [user] = await connection.execute(
             'SELECT * FROM persona WHERE id_persona = ?',
             [id]
@@ -164,6 +169,11 @@ const getAuthStatus = async (req, res) => {
             message:
                 error.message || "Ups! Hubo un problema, por favor intenta más tarde",
         });
+    }finally {
+      // Cerrar la conexión a la base de datos
+      if (connection) {
+        await connection.end();
+      }
     }
 };
 
@@ -424,7 +434,12 @@ const validarUsuarioMYSQL = async (req, res) => {
   
   catch (error) {
       return res.status(500).json({ message: error.message || "Algo salió mal :(" });
-  } 
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
 };
 
 const agregarUsuarioMYSQL = async (req, res) => {
@@ -474,7 +489,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
       const empleadoValidado = await validarEmpleado(documento_persona);
 
       
-      if (empleadoValidado.legajo[0] !== null) {
+      if (empleadoValidado?.legajo[0] !== null) {
         // Se encontró un legajo
         const [resultReparticion] = await connection.query(
           'SELECT * FROM reparticion WHERE reparticion.habilita = 1 AND reparticion.item = ?',
@@ -532,7 +547,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
       // Enviar correo electrónico al usuario recién registrado
        enviarEmail(codigoValidacion,email_persona);                 
 
-      connection.end();
+       await connection.end();
       res.status(200).json({ message: "Ciudadano creado con éxito" ,ok:true});
   } catch (error) {
       console.log(error);
@@ -541,7 +556,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
   }finally {
       // Cerrar la conexión a la base de datos
       if (connection) {
-          connection.end();
+        await connection.end();
       }
   }
 };
