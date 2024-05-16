@@ -443,9 +443,7 @@ const validarUsuarioMYSQL = async (req, res) => {
 };
 
 const agregarUsuarioMYSQL = async (req, res) => {
-  // 
   let connection;
-  let transaction;
   try {
       const {     
           documento_persona,
@@ -471,8 +469,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
       const fechaFormateada = moment(fechaStr).format('YYYY-MM-DD');
 
       const codigoValidacion=generarCodigo(documento_persona);
-      // Iniciar una transacción
-      transaction = await sequelize_ciu_digital_derivador.transaction();
+  
       connection = await conectarBDEstadisticasMySql();
 
       // Consultar si ya existe un usuario con el mismo email o documento
@@ -491,6 +488,9 @@ const agregarUsuarioMYSQL = async (req, res) => {
       
       if (empleadoValidado?.legajo[0] !== null) {
         // Se encontró un legajo
+        // Iniciar una transacción
+        const transaction = await sequelize_ciu_digital_derivador.transaction();
+        
         const [resultReparticion] = await connection.query(
           'SELECT * FROM reparticion WHERE reparticion.habilita = 1 AND reparticion.item = ?',
           [empleadoValidado.legajo[0].codi_17]
@@ -551,7 +551,6 @@ const agregarUsuarioMYSQL = async (req, res) => {
       res.status(200).json({ message: "Ciudadano creado con éxito" ,ok:true});
   } catch (error) {
       console.log(error);
-      // await transaction.rollback();
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }finally {
       // Cerrar la conexión a la base de datos
