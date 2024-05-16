@@ -6,6 +6,7 @@ const PermisoTUsuario = require("../models/Derivador/PermisoTUsuario");
 const PermisoPersona = require("../models/Derivador/PermisoPersona");
 const fs = require('fs');
 const path = require('path');
+const { conectarFTPCiudadano } = require("../config/winscpCiudadano");
 
 const sobrescribirArchivo = (rutaArchivoAntiguo, rutaArchivoNuevo) => {
   try {
@@ -289,7 +290,8 @@ const agregarContratacion = async (req, res) => {
 
     // Obtener el nombre del archivo cargado
     const nombre_archivo = archivo.filename;
-    
+    const detalleValorPorDefecto = ''; // Puedes cambiar esto por cualquier otro valor por defecto que desees
+    const detalleFinal = detalle ?? detalleValorPorDefecto;
     // Obtener el último id_contratacion de la tabla
     const connection = await conectarSMTContratacion();
     const [lastIdResult] = await connection.query("SELECT MAX(id_contratacion) AS max_id FROM contratacion");
@@ -311,12 +313,20 @@ const agregarContratacion = async (req, res) => {
       valor_pliego,
       habilita,
       nombre_archivo,
-      detalle
+      detalleFinal
     ];
     console.log(values)
     // Ejecutar la consulta SQL para insertar la nueva convocatoria
     await connection.execute(sql, values);
+    const ftpClient = await conectarFTPCiudadano();
+    const remoteFilePath = `/PDF-Convocatorias/${nombre_archivo}`;
+    const localFilePath = path.join("./pdf", nombre_archivo);
+    // Subir la imagen al servidor FTP
+    await ftpClient.uploadFrom(localFilePath, remoteFilePath);
 
+    // Eliminar la imagen local después de subirla
+    fs.unlinkSync(localFilePath);
+    await ftpClient.close();
     res.status(201).json({ message: "Convocatoria creada con éxito", id: nextId, num_contratacion: nextId });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -348,7 +358,15 @@ const agregarAnexo = async (req, res) => {
     console.log(values)
     // Ejecutar la consulta SQL para insertar la nueva convocatoria
     await connection.execute(sql, values);
+    const ftpClient = await conectarFTPCiudadano();
+    const remoteFilePath = `/PDF-Convocatorias/${nombre_anexo}`;
+    const localFilePath = path.join("./pdf", nombre_anexo);
+    // Subir la imagen al servidor FTP
+    await ftpClient.uploadFrom(localFilePath, remoteFilePath);
 
+    // Eliminar la imagen local después de subirla
+    fs.unlinkSync(localFilePath);
+    await ftpClient.close();
     res.status(201).json({ message: "Anexo agregado con éxito"});
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -362,10 +380,23 @@ const editarAnexo = async (req, res) => {
     const archivo = req.file;
     let nombre_anexo = null;
     if (archivo) {
-      nombre_anexo = `CONTRATACION_${num_instrumento}_EXPTE_${expte}_ANEXO.pdf`;
-      const rutaArchivoAntiguo = obtenerRutaArchivoAntiguo(oldName); // Define esta función para obtener la ruta del archivo antiguo
-      const rutaArchivoNuevo = obtenerRutaArchivoNuevo(nombre_anexo); // Define esta función para obtener la ruta del archivo nuevo
-      sobrescribirArchivo(rutaArchivoAntiguo, rutaArchivoNuevo); // Define esta función para sobrescribir el archivo físico
+      const instrumento = num_instrumento.replace(/\//g, '-');
+      const expediente = expte.replace(/\//g, '-');
+      let nombreViejo = oldName.replace(/\//g, '-')
+      nombre_anexo = `CONTRATACION_${instrumento}_EXPTE_${expediente}_ANEXO.pdf`;
+      // const rutaArchivoAntiguo = obtenerRutaArchivoAntiguo(oldName);
+      // const rutaArchivoNuevo = obtenerRutaArchivoNuevo(nombre_anexo); 
+      // sobrescribirArchivo(rutaArchivoAntiguo, rutaArchivoNuevo); 
+      const ftpClient = await conectarFTPCiudadano();
+      const localFilePath = path.join("./pdf", nombre_anexo);
+      const remoteFilePath = `/PDF-Convocatorias/${nombre_anexo}`;
+      await ftpClient.remove(`/PDF-Convocatorias/${nombreViejo}`)
+      // Subir la imagen al servidor FTP
+      await ftpClient.uploadFrom(localFilePath, remoteFilePath);
+
+      // Eliminar la imagen local después de subirla
+      fs.unlinkSync(localFilePath);
+      await ftpClient.close();
     }
     // Query para actualizar la contratacion
     const sql = "UPDATE contratacion SET `nombre_anexo`= ? WHERE `id_contratacion`= ?";
@@ -373,6 +404,7 @@ const editarAnexo = async (req, res) => {
     // Verificar si la contratacion ya existe con otra ID
     const connection = await conectarSMTContratacion();
     await connection.execute(sql, values);
+    
     res.status(201).json({ message: "Anexo editado con éxito"});
     connection.end();
   } catch (error) {
@@ -410,12 +442,19 @@ const editarContratacion = async (req, res) => {
     let nombre_archivo = null;
     nombre_archivo = `CONTRATACION_${num_instrumento}_EXPTE_${expte}.pdf`;
     if (archivo) {
-      nombre_archivo = `CONTRATACION_${num_instrumento}_EXPTE_${expte}.pdf`;
-      console.log(req.body)
-      // Sobrescribir el archivo físico en el sistema de archivos si es necesario
-      const rutaArchivoAntiguo = obtenerRutaArchivoAntiguo(oldName); // Define esta función para obtener la ruta del archivo antiguo
-      const rutaArchivoNuevo = obtenerRutaArchivoNuevo(nombre_archivo); // Define esta función para obtener la ruta del archivo nuevo
-      sobrescribirArchivo(rutaArchivoAntiguo, rutaArchivoNuevo); // Define esta función para sobrescribir el archivo físico
+      let nombreViejo = oldName.replace(/\//g, '-')
+      let archivoViejo = nombre_archivo.replace(/\//g, '-')
+      console.log(nombreViejo)
+      const ftpClient = await conectarFTPCiudadano();
+      const localFilePath = path.join("./pdf", archivoViejo);
+      const remoteFilePath = `/PDF-Convocatorias/${archivoViejo}`;
+      await ftpClient.remove(`/PDF-Convocatorias/${nombreViejo}`)
+      // Subir la imagen al servidor FTP
+      await ftpClient.uploadFrom(localFilePath, remoteFilePath);
+
+      // Eliminar la imagen local después de subirla
+      fs.unlinkSync(localFilePath);
+      await ftpClient.close();
     }
     // Query para actualizar la contratacion
     const sql = "UPDATE contratacion SET nombre_contratacion = ?, id_tcontratacion = ?, fecha_presentacion = ?, hora_presentacion = ?, num_instrumento = ?, valor_pliego = ?, expte = ?, id_tinstrumento = ?, fecha_apertura = ?, hora_apertura = ?, habilita = ?, nombre_archivo = ?, detalle = ? WHERE id_contratacion = ?";
