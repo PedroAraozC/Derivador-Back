@@ -67,7 +67,7 @@ const obtenerTiposDeReclamoPorCategoria = async (req, res) => {
 };
 
 const ingresarReclamo = async (req, res) => {
-  let transaction;
+  
   const connection = await conectarMySql();
   try {
     const {
@@ -85,10 +85,8 @@ const ingresarReclamo = async (req, res) => {
       cuit,
       foto,
     } = req.body;
+
     console.log(foto?.length);
-
-    transaction = await sequelize_ciu_digital.transaction();
-
     console.log("Conectado a MySQL");
 
     const [tipoDeReclamoPerteneceACategoria] = await connection.execute(
@@ -97,6 +95,8 @@ const ingresarReclamo = async (req, res) => {
     );
 
     if (tipoDeReclamoPerteneceACategoria[0].existe_tipo_reclamo == "true") {
+      const transaction = await sequelize_ciu_digital.transaction();
+      
       const [tipoDeReclamo, fieldsTipoDeReclamo] = await connection.execute(
         "SELECT tipo_reclamo.id_prioridad FROM tipo_reclamo WHERE tipo_reclamo.id_treclamo = ? AND tipo_reclamo.habilita = ?",
         [id_treclamo, 1]
