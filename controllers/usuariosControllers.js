@@ -559,37 +559,48 @@ const agregarUsuarioMYSQL = async (req, res) => {
   }
 };
 
-const enviarEmailValidacion=async(req,res)=>{
+const enviarEmailValidacion = async (req, res) => {
 
-const {email_persona,documento_persona}=req.body;
-connection = await conectarBDEstadisticasMySql();
+  let connection;
 
-const queryResult = await connection.query("SELECT * FROM persona WHERE documento_persona = ?", [documento_persona]);
+  try {
+    connection = await conectarBDEstadisticasMySql();
 
-if(queryResult[0].length==0)
-{
-  await connection.end();
-  return res.status(200).json({ mge: "Usuario no registrado" ,ok:false});
-}
+    const { email_persona, documento_persona } = req.body;
 
-const validado=queryResult[0][0].validado;
-// const documento_persona=queryResult[0][0].documento_persona;
+    const queryResult = await connection.query("SELECT * FROM persona WHERE documento_persona = ?", [documento_persona]);
 
-if(validado==0)
-{
-  const codigoValidacion=generarCodigo(documento_persona);
+    if (queryResult[0].length == 0) {
+      return res.status(200).json({ mge: "Usuario no registrado", ok: false });
+    }
 
-   await connection.query("UPDATE persona SET email_persona=? WHERE documento_persona = ?", [email_persona, documento_persona]);
+    const validado = queryResult[0][0].validado;
+    // const documento_persona=queryResult[0][0].documento_persona;
 
-  enviarEmail(codigoValidacion,email_persona);
-  await connection.end();
-}
+    if (validado == 0) {
+      const codigoValidacion = generarCodigo(documento_persona);
 
-else {
-  await connection.end();
-  return res.status(200).json({ mge: "el usuario ya está validado" ,ok:false});
+      await connection.query("UPDATE persona SET email_persona=? WHERE documento_persona = ?", [email_persona, documento_persona]);
 
-}
+      enviarEmail(codigoValidacion, email_persona);
+      return res.status(200).json({ mge: "Correo de validación enviado", ok: true });
+
+    } else {
+
+      return res.status(200).json({ mge: "el usuario ya está validado", ok: false });
+
+    }
+
+  } catch (error) {
+
+    console.log(error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
 
 }
 
