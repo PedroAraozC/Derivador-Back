@@ -10,6 +10,9 @@ const { sequelize_ciu_digital } = require("../config/sequelize");
 const MovimientoReclamo = require("../models/Macro/MovimientoReclamo");
 const Reclamo = require("../models/Macro/Reclamo");
 const { conectarFTPCiudadano } = require("../config/winscpCiudadano");
+const fsDelete = require("fs-extra");
+// const imageTypePromise = import('image-type');
+// import * as fileType from 'file-type';;
 
 const obtenerCategorias = async (req, res) => {
   const connection = await conectarMySql();
@@ -565,10 +568,14 @@ const guardarImagen = async (body, idReclamo) => {
     const imagesArray = [];
 
     const ftpClient = await conectarFTPCiudadano();
+    const { fileTypeFromBuffer } = await import("file-type");
 
     for (let index = 0; index < arrayFoto?.length; index++) {
       const foto = arrayFoto[index];
-      const extension = getImageExtension(foto);
+      const extension = await getImageExtension(
+        { fromBuffer: fileTypeFromBuffer },
+        foto
+      );
 
       const nombreArchivo = `${idReclamo}_${index + 1}.${extension}`;
       const base64Data = foto.replace(/^data:image\/\w+;base64,/, "");
@@ -577,27 +584,39 @@ const guardarImagen = async (body, idReclamo) => {
       imagesArray.push({ name: nombreArchivo, data: imageData });
     }
 
+    const tempUploadsDir = "./tempUploads";
+
+    if (!fs.existsSync(tempUploadsDir)) {
+      fs.mkdirSync(tempUploadsDir);
+    }
+
     for (const image of imagesArray) {
-      const tempUploadsDir = "./tempUploads";
-      if (!fs.existsSync(tempUploadsDir)) {
-        fs.mkdirSync(tempUploadsDir);
-      }
-
       const remoteFilePath = `/Fotos/${image.name}`;
-
-      // Guardar la imagen localmente
       const localFilePath = path.join(tempUploadsDir, image.name);
+
       fs.writeFileSync(localFilePath, image.data);
 
-      // Subir la imagen al servidor FTP
       await ftpClient.uploadFrom(localFilePath, remoteFilePath);
       console.log(
         `Imagen ${image.name} subida correctamente a ${remoteFilePath}`
       );
-
       // Eliminar la imagen local después de subirla
-      fs.unlinkSync(localFilePath);
+      // fs.unlinkSync(localFilePath);
     }
+    // Eliminar el contenido de carpeta local temporal después de subir el contenido
+    fsDelete
+      .emptyDir(tempUploadsDir)
+      .then(() => {
+        // console.log(
+        //   `Contenido de la carpeta ${tempUploadsDir} eliminado exitosamente.`
+        // );
+      })
+      .catch((err) => {
+        console.error(
+          `Error al borrar el contenido de la carpeta ${tempUploadsDir}:`,
+          err
+        );
+      });
 
     await ftpClient.close();
     console.log("Conexión FTP cerrada correctamente");
@@ -611,43 +630,18 @@ const guardarImagen = async (body, idReclamo) => {
   }
 };
 
-function getImageExtension(base64String) {
-  // Decodificar la cadena base64
-  const binaryString = atob(base64String);
+async function getImageExtension(fileType, base64String) {
+  const buffer = Buffer.from(base64String, "base64");
+  try {
+    const type = await fileType.fromBuffer(buffer);
 
-  // Convertir la cadena binaria a un array de bytes
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-
-  // Leer los primeros bytes
-  const header = bytes.subarray(0, 4);
-
-  // Identificar el tipo de imagen basado en los primeros bytes
-  if (header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff) {
-    // El formato JPEG y JPG comparten el mismo encabezado
-    return "jpeg";
-  } else if (
-    header[0] === 0x89 &&
-    header[1] === 0x50 &&
-    header[2] === 0x4e &&
-    header[3] === 0x47
-  ) {
-    return "png";
-  } else if (
-    header[0] === 0x47 &&
-    header[1] === 0x49 &&
-    header[2] === 0x46 &&
-    header[3] === 0x38
-  ) {
-    return "gif";
-  } else if (
-    binaryString.startsWith("<?xml") ||
-    binaryString.includes("<svg")
-  ) {
-    return "svg";
-  } else {
+    if (type) {
+      return type.ext;
+    } else {
+      return "png";
+    }
+  } catch (error) {
+    console.error("Error al obtener el tipo de imagen:", error);
     return "png";
   }
 }
