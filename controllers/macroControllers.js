@@ -29,7 +29,7 @@ const obtenerCategorias = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -58,7 +58,7 @@ const obtenerTiposDeReclamoPorCategoria = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -67,7 +67,6 @@ const obtenerTiposDeReclamoPorCategoria = async (req, res) => {
 };
 
 const ingresarReclamo = async (req, res) => {
-  
   const connection = await conectarMySql();
   try {
     const {
@@ -96,7 +95,7 @@ const ingresarReclamo = async (req, res) => {
 
     if (tipoDeReclamoPerteneceACategoria[0].existe_tipo_reclamo == "true") {
       const transaction = await sequelize_ciu_digital.transaction();
-      
+
       const [tipoDeReclamo, fieldsTipoDeReclamo] = await connection.execute(
         "SELECT tipo_reclamo.id_prioridad FROM tipo_reclamo WHERE tipo_reclamo.id_treclamo = ? AND tipo_reclamo.habilita = ?",
         [id_treclamo, 1]
@@ -203,29 +202,29 @@ const listarReclamosCiudadano = async (req, res) => {
   console.log("Conectado a MySQL");
 
   try {
-    let sqlQuery = ` SELECT r.id_reclamo, tr.nombre_treclamo, r.asunto, r.direccion, r.apellido_nombre, r.fecha_hora_inicio, cr.nombre_categoria,(SELECT detalle_movi FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = r.id_reclamo)) as estado_reclamo FROM reclamo_prueba r JOIN categoria_reclamo cr ON r.id_categoria = cr.id_categoria JOIN tipo_reclamo tr ON r.id_treclamo = tr.id_treclamo WHERE `
+    let sqlQuery = ` SELECT r.id_reclamo, tr.nombre_treclamo, r.asunto, r.direccion, r.apellido_nombre, r.fecha_hora_inicio, cr.nombre_categoria,(SELECT detalle_movi FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = r.id_reclamo)) as estado_reclamo FROM reclamo_prueba r JOIN categoria_reclamo cr ON r.id_categoria = cr.id_categoria JOIN tipo_reclamo tr ON r.id_treclamo = tr.id_treclamo WHERE `;
 
     if (cuit && telefono) {
       sqlQuery += "r.cuit = ? AND r.telefono LIKE CONCAT('%', ?, '%')";
       const [reclamos] = await connection.execute(sqlQuery, [cuit, telefono]);
 
-       if (reclamos.length > 0) {
-      //   for (const reclamo of reclamos) {
-      //     // Consulta para obtener el estado (detalle_movi) de cada reclamo
-      //     const detalleSqlQuery =
-      //       "SELECT detalle_movi as estado_reclamo FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = ?) AND id_reclamo = ?";
-      //     const [detalleMovimiento] = await connection.execute(
-      //       detalleSqlQuery,
-      //       [reclamo.id_reclamo, reclamo.id_reclamo]
-      //     );
+      if (reclamos.length > 0) {
+        //   for (const reclamo of reclamos) {
+        //     // Consulta para obtener el estado (detalle_movi) de cada reclamo
+        //     const detalleSqlQuery =
+        //       "SELECT detalle_movi as estado_reclamo FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = ?) AND id_reclamo = ?";
+        //     const [detalleMovimiento] = await connection.execute(
+        //       detalleSqlQuery,
+        //       [reclamo.id_reclamo, reclamo.id_reclamo]
+        //     );
 
-      //     Verificar si detalleMovimiento tiene contenido antes de asignar su valor
-      //     if (detalleMovimiento.length > 0) {
-      //       reclamo.estado_reclamo = detalleMovimiento[0].estado_reclamo;
-      //     } else {
-      //       reclamo.estado_reclamo = "Estado no encontrado";
-      //     }
-      //   }
+        //     Verificar si detalleMovimiento tiene contenido antes de asignar su valor
+        //     if (detalleMovimiento.length > 0) {
+        //       reclamo.estado_reclamo = detalleMovimiento[0].estado_reclamo;
+        //     } else {
+        //       reclamo.estado_reclamo = "Estado no encontrado";
+        //     }
+        //   }
         await connection.end();
 
         res.status(200).json({ reclamos });
@@ -304,7 +303,7 @@ const listarReclamosCiudadano = async (req, res) => {
     await connection.end();
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -342,7 +341,7 @@ const buscarReclamoPorId = async (req, res) => {
       res.status(200).json({ message: "no se encontro un reclamo con ese id" });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -353,7 +352,6 @@ const buscarReclamoPorId = async (req, res) => {
 const obtenerTurnosDisponiblesPorDia = async (req, res) => {
   const connection = await conectarDBTurnos();
   try {
-
     console.log("Conectado a MySQL");
 
     let sqlQuery = `CALL api_obtenerturnospordia(?)`;
@@ -366,7 +364,7 @@ const obtenerTurnosDisponiblesPorDia = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -394,7 +392,7 @@ const obtenerTurnosDisponiblesPorHora = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -419,7 +417,7 @@ const existeTurno = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -457,7 +455,7 @@ const confirmarTurno = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -483,7 +481,7 @@ const anularTurno = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -496,7 +494,6 @@ const usuarioExistente = async (req, res) => {
   const connection = await conectarBDEstadisticasMySql();
   try {
     const { cuit_persona, email_persona } = req.query;
-
 
     const [resultEmailyCuit] = await connection.query(
       "SELECT * FROM persona WHERE email_persona = ? OR documento_persona = ?",
@@ -520,7 +517,7 @@ const usuarioExistente = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -553,7 +550,7 @@ const tipoUsuario = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -581,10 +578,15 @@ const guardarImagen = async (body, idReclamo) => {
     }
 
     for (const image of imagesArray) {
+      const tempUploadsDir = "./tempUploads";
+      if (!fs.existsSync(tempUploadsDir)) {
+        fs.mkdirSync(tempUploadsDir);
+      }
+
       const remoteFilePath = `/Fotos/${image.name}`;
 
       // Guardar la imagen localmente
-      const localFilePath = path.join("./tempUploads", image.name);
+      const localFilePath = path.join(tempUploadsDir, image.name);
       fs.writeFileSync(localFilePath, image.data);
 
       // Subir la imagen al servidor FTP
