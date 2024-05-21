@@ -10,6 +10,9 @@ const { sequelize_ciu_digital } = require("../config/sequelize");
 const MovimientoReclamo = require("../models/Macro/MovimientoReclamo");
 const Reclamo = require("../models/Macro/Reclamo");
 const { conectarFTPCiudadano } = require("../config/winscpCiudadano");
+const fsDelete = require("fs-extra");
+// const imageTypePromise = import('image-type');
+// import * as fileType from 'file-type';;
 
 const obtenerCategorias = async (req, res) => {
   const connection = await conectarMySql();
@@ -29,7 +32,7 @@ const obtenerCategorias = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -58,7 +61,7 @@ const obtenerTiposDeReclamoPorCategoria = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -67,7 +70,6 @@ const obtenerTiposDeReclamoPorCategoria = async (req, res) => {
 };
 
 const ingresarReclamo = async (req, res) => {
-  
   const connection = await conectarMySql();
   try {
     const {
@@ -96,7 +98,7 @@ const ingresarReclamo = async (req, res) => {
 
     if (tipoDeReclamoPerteneceACategoria[0].existe_tipo_reclamo == "true") {
       const transaction = await sequelize_ciu_digital.transaction();
-      
+
       const [tipoDeReclamo, fieldsTipoDeReclamo] = await connection.execute(
         "SELECT tipo_reclamo.id_prioridad FROM tipo_reclamo WHERE tipo_reclamo.id_treclamo = ? AND tipo_reclamo.habilita = ?",
         [id_treclamo, 1]
@@ -203,29 +205,29 @@ const listarReclamosCiudadano = async (req, res) => {
   console.log("Conectado a MySQL");
 
   try {
-    let sqlQuery = ` SELECT r.id_reclamo, tr.nombre_treclamo, r.asunto, r.direccion, r.apellido_nombre, r.fecha_hora_inicio, cr.nombre_categoria,(SELECT detalle_movi FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = r.id_reclamo)) as estado_reclamo FROM reclamo_prueba r JOIN categoria_reclamo cr ON r.id_categoria = cr.id_categoria JOIN tipo_reclamo tr ON r.id_treclamo = tr.id_treclamo WHERE `
+    let sqlQuery = ` SELECT r.id_reclamo, tr.nombre_treclamo, r.asunto, r.direccion, r.apellido_nombre, r.fecha_hora_inicio, cr.nombre_categoria,(SELECT detalle_movi FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = r.id_reclamo)) as estado_reclamo FROM reclamo_prueba r JOIN categoria_reclamo cr ON r.id_categoria = cr.id_categoria JOIN tipo_reclamo tr ON r.id_treclamo = tr.id_treclamo WHERE `;
 
     if (cuit && telefono) {
       sqlQuery += "r.cuit = ? AND r.telefono LIKE CONCAT('%', ?, '%')";
       const [reclamos] = await connection.execute(sqlQuery, [cuit, telefono]);
 
-       if (reclamos.length > 0) {
-      //   for (const reclamo of reclamos) {
-      //     // Consulta para obtener el estado (detalle_movi) de cada reclamo
-      //     const detalleSqlQuery =
-      //       "SELECT detalle_movi as estado_reclamo FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = ?) AND id_reclamo = ?";
-      //     const [detalleMovimiento] = await connection.execute(
-      //       detalleSqlQuery,
-      //       [reclamo.id_reclamo, reclamo.id_reclamo]
-      //     );
+      if (reclamos.length > 0) {
+        //   for (const reclamo of reclamos) {
+        //     // Consulta para obtener el estado (detalle_movi) de cada reclamo
+        //     const detalleSqlQuery =
+        //       "SELECT detalle_movi as estado_reclamo FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = ?) AND id_reclamo = ?";
+        //     const [detalleMovimiento] = await connection.execute(
+        //       detalleSqlQuery,
+        //       [reclamo.id_reclamo, reclamo.id_reclamo]
+        //     );
 
-      //     Verificar si detalleMovimiento tiene contenido antes de asignar su valor
-      //     if (detalleMovimiento.length > 0) {
-      //       reclamo.estado_reclamo = detalleMovimiento[0].estado_reclamo;
-      //     } else {
-      //       reclamo.estado_reclamo = "Estado no encontrado";
-      //     }
-      //   }
+        //     Verificar si detalleMovimiento tiene contenido antes de asignar su valor
+        //     if (detalleMovimiento.length > 0) {
+        //       reclamo.estado_reclamo = detalleMovimiento[0].estado_reclamo;
+        //     } else {
+        //       reclamo.estado_reclamo = "Estado no encontrado";
+        //     }
+        //   }
         await connection.end();
 
         res.status(200).json({ reclamos });
@@ -304,7 +306,7 @@ const listarReclamosCiudadano = async (req, res) => {
     await connection.end();
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -342,7 +344,7 @@ const buscarReclamoPorId = async (req, res) => {
       res.status(200).json({ message: "no se encontro un reclamo con ese id" });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -353,7 +355,6 @@ const buscarReclamoPorId = async (req, res) => {
 const obtenerTurnosDisponiblesPorDia = async (req, res) => {
   const connection = await conectarDBTurnos();
   try {
-
     console.log("Conectado a MySQL");
 
     let sqlQuery = `CALL api_obtenerturnospordia(?)`;
@@ -366,7 +367,7 @@ const obtenerTurnosDisponiblesPorDia = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -394,7 +395,7 @@ const obtenerTurnosDisponiblesPorHora = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -419,7 +420,7 @@ const existeTurno = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -457,7 +458,7 @@ const confirmarTurno = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -483,7 +484,7 @@ const anularTurno = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -496,7 +497,6 @@ const usuarioExistente = async (req, res) => {
   const connection = await conectarBDEstadisticasMySql();
   try {
     const { cuit_persona, email_persona } = req.query;
-
 
     const [resultEmailyCuit] = await connection.query(
       "SELECT * FROM persona WHERE email_persona = ? OR documento_persona = ?",
@@ -520,7 +520,7 @@ const usuarioExistente = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -553,7 +553,7 @@ const tipoUsuario = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
-  }finally {
+  } finally {
     // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
@@ -568,10 +568,14 @@ const guardarImagen = async (body, idReclamo) => {
     const imagesArray = [];
 
     const ftpClient = await conectarFTPCiudadano();
+    const { fileTypeFromBuffer } = await import("file-type");
 
     for (let index = 0; index < arrayFoto?.length; index++) {
       const foto = arrayFoto[index];
-      const extension = getImageExtension(foto);
+      const extension = await getImageExtension(
+        { fromBuffer: fileTypeFromBuffer },
+        foto
+      );
 
       const nombreArchivo = `${idReclamo}_${index + 1}.${extension}`;
       const base64Data = foto.replace(/^data:image\/\w+;base64,/, "");
@@ -580,22 +584,39 @@ const guardarImagen = async (body, idReclamo) => {
       imagesArray.push({ name: nombreArchivo, data: imageData });
     }
 
+    const tempUploadsDir = "./tempUploads";
+
+    if (!fs.existsSync(tempUploadsDir)) {
+      fs.mkdirSync(tempUploadsDir);
+    }
+
     for (const image of imagesArray) {
       const remoteFilePath = `/Fotos/${image.name}`;
+      const localFilePath = path.join(tempUploadsDir, image.name);
 
-      // Guardar la imagen localmente
-      const localFilePath = path.join("./tempUploads", image.name);
       fs.writeFileSync(localFilePath, image.data);
 
-      // Subir la imagen al servidor FTP
       await ftpClient.uploadFrom(localFilePath, remoteFilePath);
       console.log(
         `Imagen ${image.name} subida correctamente a ${remoteFilePath}`
       );
-
       // Eliminar la imagen local después de subirla
-      fs.unlinkSync(localFilePath);
+      // fs.unlinkSync(localFilePath);
     }
+    // Eliminar el contenido de carpeta local temporal después de subir el contenido
+    fsDelete
+      .emptyDir(tempUploadsDir)
+      .then(() => {
+        // console.log(
+        //   `Contenido de la carpeta ${tempUploadsDir} eliminado exitosamente.`
+        // );
+      })
+      .catch((err) => {
+        console.error(
+          `Error al borrar el contenido de la carpeta ${tempUploadsDir}:`,
+          err
+        );
+      });
 
     await ftpClient.close();
     console.log("Conexión FTP cerrada correctamente");
@@ -609,43 +630,18 @@ const guardarImagen = async (body, idReclamo) => {
   }
 };
 
-function getImageExtension(base64String) {
-  // Decodificar la cadena base64
-  const binaryString = atob(base64String);
+async function getImageExtension(fileType, base64String) {
+  const buffer = Buffer.from(base64String, "base64");
+  try {
+    const type = await fileType.fromBuffer(buffer);
 
-  // Convertir la cadena binaria a un array de bytes
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-
-  // Leer los primeros bytes
-  const header = bytes.subarray(0, 4);
-
-  // Identificar el tipo de imagen basado en los primeros bytes
-  if (header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff) {
-    // El formato JPEG y JPG comparten el mismo encabezado
-    return "jpeg";
-  } else if (
-    header[0] === 0x89 &&
-    header[1] === 0x50 &&
-    header[2] === 0x4e &&
-    header[3] === 0x47
-  ) {
-    return "png";
-  } else if (
-    header[0] === 0x47 &&
-    header[1] === 0x49 &&
-    header[2] === 0x46 &&
-    header[3] === 0x38
-  ) {
-    return "gif";
-  } else if (
-    binaryString.startsWith("<?xml") ||
-    binaryString.includes("<svg")
-  ) {
-    return "svg";
-  } else {
+    if (type) {
+      return type.ext;
+    } else {
+      return "png";
+    }
+  } catch (error) {
+    console.error("Error al obtener el tipo de imagen:", error);
     return "png";
   }
 }
