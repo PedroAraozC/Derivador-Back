@@ -10,9 +10,7 @@ const { sequelize_ciu_digital } = require("../config/sequelize");
 const MovimientoReclamo = require("../models/Macro/MovimientoReclamo");
 const Reclamo = require("../models/Macro/Reclamo");
 const { conectarFTPCiudadano } = require("../config/winscpCiudadano");
-const fsDelete = require("fs-extra");
-// const imageTypePromise = import('image-type');
-// import * as fileType from 'file-type';;
+const streamifier = require("streamifier");
 
 const obtenerCategorias = async (req, res) => {
   const connection = await conectarMySql();
@@ -182,12 +180,8 @@ const ingresarReclamo = async (req, res) => {
 
       if (req.body.foto?.length > 0) {
         try {
-          const mondongo = await guardarImagen(req.body, reclamoId);
-          // connection.execute(
-          //   `UPDATE reclamo SET foto = 1 WHERE id_reclamo = ?`,
-          //   [reclamoId]
-          // );
-          console.log(mondongo, "mondongo");
+          const resUpdateImage = await guardarImagen(req.body, reclamoId);
+          console.log(resUpdateImage);
         } catch (error) {
           console.error("Error:", error);
           res.status(500).json({ error: "Error de servidor imagenes" });
@@ -234,22 +228,6 @@ const listarReclamosCiudadano = async (req, res) => {
       const [reclamos] = await connection.execute(sqlQuery, [cuit, telefono]);
 
       if (reclamos.length > 0) {
-        //   for (const reclamo of reclamos) {
-        //     // Consulta para obtener el estado (detalle_movi) de cada reclamo
-        //     const detalleSqlQuery =
-        //       "SELECT detalle_movi as estado_reclamo FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = ?) AND id_reclamo = ?";
-        //     const [detalleMovimiento] = await connection.execute(
-        //       detalleSqlQuery,
-        //       [reclamo.id_reclamo, reclamo.id_reclamo]
-        //     );
-
-        //     Verificar si detalleMovimiento tiene contenido antes de asignar su valor
-        //     if (detalleMovimiento.length > 0) {
-        //       reclamo.estado_reclamo = detalleMovimiento[0].estado_reclamo;
-        //     } else {
-        //       reclamo.estado_reclamo = "Estado no encontrado";
-        //     }
-        //   }
         await connection.end();
 
         res.status(200).json({ reclamos });
@@ -264,22 +242,6 @@ const listarReclamosCiudadano = async (req, res) => {
       const [reclamos] = await connection.execute(sqlQuery, [cuit]);
 
       if (reclamos.length > 0) {
-        // for (const reclamo of reclamos) {
-        //   // Consulta para obtener el estado (detalle_movi) de cada reclamo
-        //   const detalleSqlQuery =
-        //     "SELECT detalle_movi as estado_reclamo FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = ?) AND id_reclamo = ?";
-        //   const [detalleMovimiento] = await connection.execute(
-        //     detalleSqlQuery,
-        //     [reclamo.id_reclamo, reclamo.id_reclamo]
-        //   );
-
-        //   // Verificar si detalleMovimiento tiene contenido antes de asignar su valor
-        //   if (detalleMovimiento.length > 0) {
-        //     reclamo.estado_reclamo = detalleMovimiento[0].estado_reclamo;
-        //   } else {
-        //     reclamo.estado_reclamo = "Estado no encontrado";
-        //   }
-        // }
         await connection.end();
 
         res.status(200).json({ reclamos });
@@ -294,22 +256,6 @@ const listarReclamosCiudadano = async (req, res) => {
       const [reclamos] = await connection.execute(sqlQuery, [telefono]);
 
       if (reclamos.length > 0) {
-        // for (const reclamo of reclamos) {
-        //   // Consulta para obtener el estado (detalle_movi) de cada reclamo
-        //   const detalleSqlQuery =
-        //     "SELECT detalle_movi as estado_reclamo FROM mov_reclamo WHERE id_movi = (SELECT MAX(id_movi) FROM mov_reclamo WHERE id_reclamo = ?) AND id_reclamo = ?";
-        //   const [detalleMovimiento] = await connection.execute(
-        //     detalleSqlQuery,
-        //     [reclamo.id_reclamo, reclamo.id_reclamo]
-        //   );
-
-        //   // Verificar si detalleMovimiento tiene contenido antes de asignar su valor
-        //   if (detalleMovimiento.length > 0) {
-        //     reclamo.estado_reclamo = detalleMovimiento[0].estado_reclamo;
-        //   } else {
-        //     reclamo.estado_reclamo = "Estado no encontrado";
-        //   }
-        // }
         await connection.end();
 
         res.status(200).json({ reclamos });
@@ -329,7 +275,6 @@ const listarReclamosCiudadano = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
-    // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
     }
@@ -584,71 +529,41 @@ const tipoUsuario = async (req, res) => {
 };
 
 const guardarImagen = async (body, idReclamo) => {
+  const ftpClient = await conectarFTPCiudadano();
+  const { fileTypeFromBuffer } = await import("file-type");
+
   try {
     const { foto } = body;
     const arrayFoto = Array.isArray(foto) ? foto : [foto];
-    const imagesArray = [];
 
-    const ftpClient = await conectarFTPCiudadano();
-    const { fileTypeFromBuffer } = await import("file-type");
-
-    for (let index = 0; index < arrayFoto?.length; index++) {
+    for (let index = 0; index < arrayFoto.length; index++) {
       const foto = arrayFoto[index];
       const extension = await getImageExtension(
         { fromBuffer: fileTypeFromBuffer },
         foto
       );
-
       const nombreArchivo = `${idReclamo}_${index + 1}.${extension}`;
       const base64Data = foto.replace(/^data:image\/\w+;base64,/, "");
       const imageData = Buffer.from(base64Data, "base64");
+      const remoteFilePath = `/Fotos/${nombreArchivo}`;
 
-      imagesArray.push({ name: nombreArchivo, data: imageData });
-    }
-
-    const tempUploadsDir = "./tempUploads";
-
-    if (!fs.existsSync(tempUploadsDir)) {
-      fs.mkdirSync(tempUploadsDir);
-    }
-
-    for (const image of imagesArray) {
-      const remoteFilePath = `/Fotos/${image.name}`;
-      const localFilePath = path.join(tempUploadsDir, image.name);
-
-      fs.writeFileSync(localFilePath, image.data);
-
-      await ftpClient.uploadFrom(localFilePath, remoteFilePath);
+      const stream = streamifier.createReadStream(imageData);
+      await ftpClient.uploadFrom(stream, remoteFilePath);
       console.log(
-        `Imagen ${image.name} subida correctamente a ${remoteFilePath}`
+        `Imagen ${nombreArchivo} subida correctamente a ${remoteFilePath}`
       );
-      // Eliminar la imagen local después de subirla
-      // fs.unlinkSync(localFilePath);
     }
-    // Eliminar el contenido de carpeta local temporal después de subir el contenido
-    fsDelete
-      .emptyDir(tempUploadsDir)
-      .then(() => {
-        // console.log(
-        //   `Contenido de la carpeta ${tempUploadsDir} eliminado exitosamente.`
-        // );
-      })
-      .catch((err) => {
-        console.error(
-          `Error al borrar el contenido de la carpeta ${tempUploadsDir}:`,
-          err
-        );
-      });
 
-    await ftpClient.close();
-    console.log("Conexión FTP cerrada correctamente");
-
+    console.log("Todas las imágenes se subieron correctamente");
     return {
       message: "Imágenes enviadas y subidas al servidor FTP correctamente",
     };
   } catch (error) {
     console.error("Error al guardar y subir las imágenes:", error);
     return { error: "Error al guardar y subir las imágenes" };
+  } finally {
+    await ftpClient.close();
+    console.log("Conexión FTP cerrada correctamente");
   }
 };
 
@@ -656,12 +571,7 @@ async function getImageExtension(fileType, base64String) {
   const buffer = Buffer.from(base64String, "base64");
   try {
     const type = await fileType.fromBuffer(buffer);
-
-    if (type) {
-      return type.ext;
-    } else {
-      return "png";
-    }
+    return type ? type.ext : "png";
   } catch (error) {
     console.error("Error al obtener el tipo de imagen:", error);
     return "png";
