@@ -15,6 +15,7 @@ const {
   usuarioExistente,
   tipoUsuario,
   guardarImagen,
+  funcionPrueba,
 } = require("../controllers/macroControllers");
 
 const router = Router();
@@ -34,6 +35,7 @@ router.get("/buscarTurnosDisponiblesPorHora", obtenerTurnosDisponiblesPorHora);
 router.get("/existeTurno", existeTurno);
 router.get("/confirmarTurno", confirmarTurno);
 router.get("/anularTurno", anularTurno);
+router.get("/prueba",funcionPrueba);
 
 router.get("/existe", usuarioExistente); // USUARIO EXISTE EN BD_MUNI POR CUIT Y/O EMAIL
 router.get("/tipoUsuario", tipoUsuario); // TIPO DE USUARIO EN BD_MUNI
