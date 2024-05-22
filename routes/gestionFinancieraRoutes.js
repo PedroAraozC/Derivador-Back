@@ -3,7 +3,7 @@ const auth = require("../middlewares/auth");
 const verifyRole = require("../middlewares/verifyRole");
 
 
-const { listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas, agregarPartida, editarPartida, borrarPartida, agregarEjercicio, editarEjercicio, borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente, listarPartidasConCodigo, obtenerDetPresupuestoPorItemYpartida, agregarMovimiento, listarPartidasCONCAT,partidaExistente, buscarExpediente,listarAnteproyecto, actualizarPresupuestoAnteproyecto, listarEjercicio } = require("../controllers/gestionFinancieraControllers");
+const { listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas, agregarPartida, editarPartida, borrarPartida, agregarEjercicio, editarEjercicio, borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente, listarPartidasConCodigo, obtenerDetPresupuestoPorItemYpartida, agregarMovimiento, listarPartidasCONCAT,partidaExistente, buscarExpediente,listarAnteproyecto, actualizarPresupuestoAnteproyecto, listarEjercicio, actualizarCredito, actualizarPresupuestoAprobado } = require("../controllers/gestionFinancieraControllers");
 
 const router = Router();
 
@@ -54,5 +54,9 @@ router.post("/movimiento/alta",agregarMovimiento)
 router.get("/anteproyecto/listar", listarAnteproyecto);
 
 router.put("/anteproyecto/editar", actualizarPresupuestoAnteproyecto);
+
+router.put("/credito/editar", actualizarCredito);
+
+router.put("/presupuesto/editar", actualizarPresupuestoAprobado);
 
 module.exports = router;

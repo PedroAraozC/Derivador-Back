@@ -567,9 +567,9 @@ const listarPartidas =async(req,res)=>{
           sqlQuery += ' WHERE LOWER(partida_codigo) LIKE LOWER(?) OR LOWER(partida_det) LIKE LOWER(?)';
       }
       const [partidas] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
- await connection.end();
+      await connection.end();
       res.status(200).json({ partidas });
-      connection.end();
+  
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
@@ -798,12 +798,13 @@ const partidaExistente = async (req, res) => {
     let value=[id]
     const connection = await conectar_BD_GAF_MySql();
     const [result] = await connection.execute(sqlQuery,value);
-console.log(result);
+    console.log(result);
     if (result[0]["COUNT(detpresupuesto_id)"]===1) {
       res.status(200).json({ message: "No se puede editar ni eliminar esta partida",ok:false});
     } else {
       res.status(200).json({ message: "Esta partida se puede editar y eliminar",ok:true});
     }
+    await connection.end();
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
@@ -884,7 +885,7 @@ const listarAnteproyecto= async (req, res) => {
   const item=req.query.item;
   const ejercicio=req.query.ejercicio;
   try {
-    let sqlQuery = `SELECT a.detpresupuesto_id,a.partida_id,b.partida_credito,b.partida_codigo,b.partida_det,a.presupuesto_credito,a.presupuesto_anteproyecto
+    let sqlQuery = `SELECT a.detpresupuesto_id,a.partida_id,b.partida_credito,b.partida_codigo,b.partida_det,a.presupuesto_credito,a.presupuesto_anteproyecto,a.presupuesto_aprobado
     FROM detpresupuesto a inner JOIN partidas b
     ON a.partida_id=b.partida_id WHERE a.presupuesto_id=? AND a.item_id=?
     order by b.partida_codigo`;
@@ -933,9 +934,80 @@ const actualizarPresupuestoAnteproyecto=async(req, res)=> {
   }
 }
 
+
+const actualizarCredito=async(req, res)=> {
+  try {
+    const datosActualizar = req.body;
+
+    // Crear una conexión a la base de datos
+    const connection = await conectar_BD_GAF_MySql();
+
+    // Iterar sobre cada elemento a actualizar
+    for (const elemento of datosActualizar) {
+      const { detpresupuesto_id, presupuesto_credito } = elemento;
+
+      // Consulta SQL para actualizar el presupuesto_anteproyecto
+      const sqlQuery = 'UPDATE detpresupuesto SET presupuesto_credito = ? WHERE detpresupuesto_id = ?';
+
+      // Ejecutar la consulta SQL con los parámetros proporcionados
+      const [result] = await connection.execute(sqlQuery, [presupuesto_credito, detpresupuesto_id]);
+
+      // Verificar si se realizó la actualización correctamente
+      if (result.affectedRows === 1) {
+        console.log(`Se actualizó correctamente el presupuesto_credito para el detpresupuesto_id ${detpresupuesto_id}.`);
+      } else {
+        res.status(200).send({mge:`No se encontró ningún registro con el detpresupuesto_id ${detpresupuesto_id}.`,ok:false});
+      }
+    }
+
+    // Cerrar la conexión a la base de datos
+    await connection.end();
+
+    res.status(200).send({mge:'Credito actualizado',ok:true});
+  } catch (error) {
+    console.error('Error al actualizar el presupuesto_anteproyecto:', error);
+    res.status(500).send('Error en el servidor');
+  }
+}
+
+const actualizarPresupuestoAprobado=async(req, res)=> {
+  try {
+    const datosActualizar = req.body;
+
+    // Crear una conexión a la base de datos
+    const connection = await conectar_BD_GAF_MySql();
+
+    // Iterar sobre cada elemento a actualizar
+    for (const elemento of datosActualizar) {
+      const { detpresupuesto_id, presupuesto_aprobado } = elemento;
+
+      // Consulta SQL para actualizar el presupuesto_anteproyecto
+      const sqlQuery = 'UPDATE detpresupuesto SET presupuesto_aprobado = ? WHERE detpresupuesto_id = ?';
+
+      // Ejecutar la consulta SQL con los parámetros proporcionados
+      const [result] = await connection.execute(sqlQuery, [presupuesto_aprobado, detpresupuesto_id]);
+
+      // Verificar si se realizó la actualización correctamente
+      if (result.affectedRows === 1) {
+        console.log(`Se actualizó correctamente el presupuesto_aprobado para el detpresupuesto_id ${detpresupuesto_id}.`);
+      } else {
+        res.status(200).send({mge:`No se encontró ningún registro con el detpresupuesto_id ${detpresupuesto_id}.`,ok:false});
+      }
+    }
+
+    // Cerrar la conexión a la base de datos
+    await connection.end();
+
+    res.status(200).send({mge:'Presupuesto aprobado actualizado',ok:true});
+  } catch (error) {
+    console.error('Error al actualizar el presupuesto_anteproyecto:', error);
+    res.status(500).send('Error en el servidor');
+  }
+}
+
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida,
   agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,buscarExpediente,
-  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto}
+  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado}
 
 
 
