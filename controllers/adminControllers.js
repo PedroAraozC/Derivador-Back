@@ -1,4 +1,4 @@
-const { conectarBDEstadisticasMySql } = require("../config/dbEstadisticasMYSQL");
+const { conectarBDEstadisticasMySql, conectarSMTPatrimonio } = require("../config/dbEstadisticasMYSQL");
 const { conectarSMTContratacion } = require("../config/dbEstadisticasMYSQL");
 const { sequelize_ciu_digital_derivador } = require("../config/sequelize");
 const Proceso = require("../models/Derivador/Proceso");
@@ -487,4 +487,169 @@ const editarContratacion = async (req, res) => {
 //-----------CONTRATACIONES--------------
 
 
-module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, editarAnexo, listarContratacionPorId}
+
+
+//-----------PATRIMOINIO MUNICIPAL--------------
+
+const agregarCategoriaPatrimonio = async (req, res) => {
+  try {
+    const { nombre_categoria, habilita } = req.body;
+
+    // Verificar que los valores requeridos estén definidos
+    if (nombre_categoria === undefined || habilita === undefined) {
+      throw new Error("Los parámetros de la solicitud son inválidos");
+    }
+
+    // Query para insertar una nueva categoria
+    const sql = "INSERT INTO categoria (nombre_categoria, habilita) VALUES (?, ?)";
+    const values = [nombre_categoria, habilita];
+
+    // Ejecutar la consulta SQL para insertar la nueva opción
+    const connection = await conectarSMTPatrimonio();
+    const [result] = await connection.execute(sql, values);
+    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+
+    res.status(201).json({ id: nuevoId, message: "Categoria creada con éxito" });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+
+const agregarTipologiaPatrimonio = async (req, res) => {
+  try {
+    const { nombre_tipologia, habilita } = req.body;
+
+    // Verificar que los valores requeridos estén definidos
+    if (nombre_tipologia === undefined || habilita === undefined) {
+      throw new Error("Los parámetros de la solicitud son inválidos");
+    }
+
+    // Query para insertar una nueva tipologia
+    const sql = "INSERT INTO tipologia (nombre_tipologia, habilita) VALUES (?, ?)";
+    const values = [nombre_tipologia, habilita];
+
+    // Ejecutar la consulta SQL para insertar la nueva opción
+    const connection = await conectarSMTPatrimonio();
+    const [result] = await connection.execute(sql, values);
+    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+
+    res.status(201).json({ id: nuevoId, message: "Tipología creada con éxito" });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+
+const listarTipologiaPatrimonio = async (req, res) => {
+  const connection = await conectarSMTPatrimonio();
+  try {
+    const [tipologias] = await connection.execute(
+      'SELECT * FROM tipologia WHERE habilita = 1'
+    );
+    connection.end();
+    res.status(200).json({ tipologias })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const agregarMaterialPatrimonio = async (req, res) => {
+  try {
+    const { nombre_material, habilita } = req.body;
+
+    // Verificar que los valores requeridos estén definidos
+    if (nombre_material === undefined || habilita === undefined) {
+      throw new Error("Los parámetros de la solicitud son inválidos");
+    }
+
+    // Query para insertar una nueva tipologia
+    const sql = "INSERT INTO material (nombre_material, habilita) VALUES (?, ?)";
+    const values = [nombre_material, habilita];
+
+    // Ejecutar la consulta SQL para insertar la nueva opción
+    const connection = await conectarSMTPatrimonio();
+    const [result] = await connection.execute(sql, values);
+    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+
+    res.status(201).json({ id: nuevoId, message: "Material creado con éxito" });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+
+const agregarEstadoPatrimonio = async (req, res) => {
+  try {
+    const { nombre_estado, habilita } = req.body;
+
+    // Verificar que los valores requeridos estén definidos
+    if (nombre_estado === undefined || habilita === undefined) {
+      throw new Error("Los parámetros de la solicitud son inválidos");
+    }
+
+    // Query para insertar una nuevo estado
+    const sql = "INSERT INTO estado (nombre_estado, habilita) VALUES (?, ?)";
+    const values = [nombre_estado, habilita];
+
+    // Ejecutar la consulta SQL para insertar la nueva opción
+    const connection = await conectarSMTPatrimonio();
+    const [result] = await connection.execute(sql, values);
+    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+
+    res.status(201).json({ id: nuevoId, message: "Estado creado con éxito" });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+
+const agregarAutorPatrimonio = async (req, res) => {
+  try {
+    const { nombre_autor, descripcion_autor, habilita } = req.body;
+
+    // Verificar que los valores requeridos estén definidos
+    if (nombre_autor === undefined || descripcion_autor === undefined || habilita === undefined) {
+      throw new Error("Los parámetros de la solicitud son inválidos");
+    }
+
+    // Query para insertar una nuevo estado
+    const sql = "INSERT INTO autor (nombre_autor, descripcion_autor, habilita) VALUES (?, ?, ?)";
+    const values = [nombre_autor, descripcion_autor, habilita];
+
+    // Ejecutar la consulta SQL para insertar el nuevo autor
+    const connection = await conectarSMTPatrimonio();
+    const [result] = await connection.execute(sql, values);
+    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+
+    res.status(201).json({ id: nuevoId, message: "Autor creado con éxito" });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+const agregarUbicacionPatrimonio = async (req, res) => {
+  try {
+    const { nombre_ubicacion, habilita } = req.body;
+
+    // Verificar que los valores requeridos estén definidos
+    if (nombre_ubicacion === undefined || habilita === undefined) {
+      throw new Error("Los parámetros de la solicitud son inválidos");
+    }
+
+    // Query para insertar una nuevo estado
+    const sql = "INSERT INTO ubicacion (nombre_ubicacion, habilita) VALUES (?, ?, ?)";
+    const values = [nombre_ubicacion, habilita];
+
+    // Ejecutar la consulta SQL para insertar el nuevo autor
+    const connection = await conectarSMTPatrimonio();
+    const [result] = await connection.execute(sql, values);
+    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+
+    res.status(201).json({ id: nuevoId, message: "Autor creado con éxito" });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+
+//-----------PATRIMOINIO MUNICIPAL--------------
+
+
+
+module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, editarAnexo, listarContratacionPorId, listarTipologiaPatrimonio}

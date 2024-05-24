@@ -1,7 +1,7 @@
 const { Router } = require("express");
 const auth = require("../middlewares/auth");
 const verifyRole = require("../middlewares/verifyRole");
-const { agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacion, listarContratacionBack, borrarContratacion, editarContratacion, editarAnexo, listarContratacionPorId } = require("../controllers/adminControllers");
+const { agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacion, listarContratacionBack, borrarContratacion, editarContratacion, editarAnexo, listarContratacionPorId, listarTipologiaPatrimonio } = require("../controllers/adminControllers");
 const fs = require('fs');
 const router = Router();
 const multer  = require('multer');
@@ -55,5 +55,7 @@ router.post("/editarAnexo", uploadAnexo.single('anexo'), editarAnexo);
 router.post("/borrarContratacion", borrarContratacion);
 //--------Contrataciones-------------
 
-
+//--------Patrimonio Municipal ----------
+router.get("listarTipologiasPatrimonio", listarTipologiaPatrimonio)
+//--------Patrimonio Municipal ----------
 module.exports = router;
