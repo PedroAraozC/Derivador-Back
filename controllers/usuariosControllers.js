@@ -214,7 +214,8 @@ const obtenerPermisos = async (req, res) => {
         FROM permiso_persona pp
         LEFT JOIN proceso pro ON pp.id_proceso = pro.id_proceso 
         LEFT JOIN opcion o ON pro.id_opcion = o.id_opcion
-        WHERE pp.id_persona = ?`,
+        WHERE pp.id_persona = ?
+        ORDER BY pro.id_proceso ASC`,
         [req.params.id]
       );
 
