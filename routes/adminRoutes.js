@@ -56,6 +56,5 @@ router.post("/borrarContratacion", borrarContratacion);
 //--------Contrataciones-------------
 
 //--------Patrimonio Municipal ----------
-router.get("listarTipologiasPatrimonio", listarTipologiaPatrimonio)
 //--------Patrimonio Municipal ----------
 module.exports = router;
