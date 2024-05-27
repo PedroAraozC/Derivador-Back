@@ -610,6 +610,7 @@ const agregarAutorPatrimonio = async (req, res) => {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
 };
+
 const agregarUbicacionPatrimonio = async (req, res) => {
   try {
     const { nombre_ubicacion, habilita } = req.body;
@@ -634,8 +635,91 @@ const agregarUbicacionPatrimonio = async (req, res) => {
   }
 };
 
+const agregarPatrimonio = async (req, res) => {
+  try {
+    const {
+      nombre_patrimonio,
+      anio_emplazamiento,
+      descripcion,
+      origen,
+      id_categoria,
+      id_tipologia,
+      id_material,
+      id_estado,
+      id_autor,
+      id_ubicacion,
+      longitud,
+      latitud,
+      habilita
+    } = req.body;
+
+    const archivo = req.file;
+
+    if (!archivo) {
+      return res.status(400).json({ message: "Por favor, adjunta un archivo" });
+    }
+
+    // Obtener el nombre del archivo cargado
+    const nombre_archivo = archivo.filename;
+    // Obtener el último id_patrimonio de la tabla
+    const connection = await conectarSMTPatrimonio();
+    const [lastIdResult] = await connection.query("SELECT MAX(id_patrimobio) AS max_id FROM patrimonio");
+    let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_patrimonio
+    // Query para insertar una nuevo patrimonio
+    const sql =
+      "INSERT INTO contratacion (id_patrimonio, nombre_patrimonio, anio_emplazamiento, descripcion, origen, id_categoria, id_tipologia, id_material, id_estado, id_autor, id_ubicacion, longitud, latitud, habilita, nombre_archivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    const values = [
+      nextId,
+      nombre_patrimonio,
+      anio_emplazamiento,
+      descripcion,
+      origen,
+      id_categoria,
+      id_tipologia,
+      id_material,
+      id_estado,
+      id_autor,
+      id_ubicacion,
+      longitud,
+      latitud,
+      habilita,
+      nombre_archivo,
+    ];
+    console.log(values)
+    // Ejecutar la consulta SQL para insertar la nueva convocatoria
+    await connection.execute(sql, values);
+    const ftpClient = await conectarFTPCiudadano();
+    const remoteFilePath = `/PDF-Convocatorias/${nombre_archivo}`;
+    const localFilePath = path.join("./pdf", nombre_archivo);
+    // Subir la imagen al servidor FTP
+    await ftpClient.uploadFrom(localFilePath, remoteFilePath);
+
+    // Eliminar la imagen local después de subirla
+    fs.unlinkSync(localFilePath);
+    await ftpClient.close();
+    res.status(201).json({ message: "Patrimonio creado con éxito", id: nextId, num_patrimonio: nextId });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+
+const listarPatrimonioBack = async (req, res) => {
+  const connection = await conectarSMTContratacion();
+  try {
+    const [patrimonios] = await connection.execute(
+      'SELECT * FROM patrimonio'
+    );
+
+    contrataciones.reverse();
+    connection.end();
+    res.status(200).json({ patrimonios })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
 //-----------PATRIMOINIO MUNICIPAL--------------
 
 
 
-module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, editarAnexo, listarContratacionPorId}
+module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, editarAnexo, listarContratacionPorId, agregarPatrimonio, agregarCategoriaPatrimonio, agregarEstadoPatrimonio, agregarAutorPatrimonio, agregarMaterialPatrimonio, agregarUbicacionPatrimonio, agregarTipologiaPatrimonio, listarPatrimonioBack }
