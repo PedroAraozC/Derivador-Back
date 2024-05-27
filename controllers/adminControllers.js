@@ -718,8 +718,92 @@ const listarPatrimonioBack = async (req, res) => {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
 }
+
+const listarAutorPatrimonioBack = async (req, res) => {
+  const connection = await conectarSMTPatrimonio();
+  try {
+    const [autores] = await connection.execute(
+      'SELECT * FROM autor'
+    );
+    connection.end();
+    res.status(200).json({ autores })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const listarUbicacionPatrimonioBack = async (req, res) => {
+  const connection = await conectarSMTPatrimonio();
+  try {
+    const [ubicaciones] = await connection.execute(
+      'SELECT * FROM ubicacion'
+    );
+    connection.end();
+    res.status(200).json({ ubicaciones })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const listarEstadoPatrimonioBack = async (req, res) => {
+  const connection = await conectarSMTPatrimonio();
+  try {
+    const [estados] = await connection.execute(
+      'SELECT * FROM estado'
+    );
+    connection.end();
+    res.status(200).json({ estados })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const listarMaterialPatrimonioBack = async (req, res) => {
+  const connection = await conectarSMTPatrimonio();
+  try {
+    const [materiales] = await connection.execute(
+      'SELECT * FROM material'
+    );
+    connection.end();
+    res.status(200).json({ materiales })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const listarCategoriaPatrimonioBack = async (req, res) => {
+  const connection = await conectarSMTPatrimonio();
+  try {
+    const [categorias] = await connection.execute(
+      'SELECT * FROM categoria'
+    );
+    connection.end();
+    res.status(200).json({ categorias })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const listarTipologiaPatrimonioBack = async (req, res) => {
+  const connection = await conectarSMTPatrimonio();
+  try {
+    const [tipologias] = await connection.execute(
+      'SELECT * FROM tipologia'
+    );
+    connection.end();
+    res.status(200).json({ tipologias })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
 //-----------PATRIMOINIO MUNICIPAL--------------
 
 
 
-module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, editarAnexo, listarContratacionPorId, agregarPatrimonio, agregarCategoriaPatrimonio, agregarEstadoPatrimonio, agregarAutorPatrimonio, agregarMaterialPatrimonio, agregarUbicacionPatrimonio, agregarTipologiaPatrimonio, listarPatrimonioBack }
+module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, editarAnexo, listarContratacionPorId, agregarPatrimonio, agregarCategoriaPatrimonio, agregarEstadoPatrimonio, agregarAutorPatrimonio, agregarMaterialPatrimonio, agregarUbicacionPatrimonio, agregarTipologiaPatrimonio, listarPatrimonioBack, listarAutorPatrimonioBack, listarTipologiaPatrimonioBack, listarCategoriaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarUbicacionPatrimonioBack}

@@ -1,7 +1,7 @@
 const { Router } = require("express");
 const auth = require("../middlewares/auth");
 const verifyRole = require("../middlewares/verifyRole");
-const { agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacion, listarContratacionBack, borrarContratacion, editarContratacion, editarAnexo, listarContratacionPorId, listarTipologiaPatrimonio, listarPatrimonioBack } = require("../controllers/adminControllers");
+const { agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacion, listarContratacionBack, borrarContratacion, editarContratacion, editarAnexo, listarContratacionPorId, listarTipologiaPatrimonio, listarPatrimonioBack, listarCategoriaPatrimonioBack, listarTipologiaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarAutorPatrimonioBack, listarUbicacionPatrimonioBack } = require("../controllers/adminControllers");
 const fs = require('fs');
 const router = Router();
 const multer  = require('multer');
@@ -57,6 +57,12 @@ router.post("/borrarContratacion", borrarContratacion);
 
 //--------Patrimonio Municipal ----------
 router.get("/listarPatrimonio", listarPatrimonioBack);
+router.get("/listarCategorias", listarCategoriaPatrimonioBack);
+router.get("/listarTipologias", listarTipologiaPatrimonioBack);
+router.get("/listarMateriales", listarMaterialPatrimonioBack);
+router.get("/listarEstados", listarEstadoPatrimonioBack);
+router.get("/listarAutores", listarAutorPatrimonioBack);
+router.get("/listarUbicaciones", listarUbicacionPatrimonioBack);
 
 //--------Patrimonio Municipal ----------
 module.exports = router;
