@@ -667,7 +667,7 @@ const agregarPatrimonio = async (req, res) => {
     let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_patrimonio
     // Query para insertar una nuevo patrimonio
     const sql =
-      "INSERT INTO contratacion (id_patrimonio, nombre_patrimonio, anio_emplazamiento, descripcion, origen, id_categoria, id_tipologia, id_material, id_estado, id_autor, id_ubicacion, longitud, latitud, habilita, nombre_archivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO contratacion (id_patrimonio, nombre_patrimonio, anio_emplazamiento, descripcion, origen, id_categoria, id_tipologia, id_material, id_estado, id_autor, id_ubicacion, longitud, latitud, habilita, nombre_archivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     const values = [
       nextId,
       nombre_patrimonio,
@@ -802,8 +802,29 @@ const listarTipologiaPatrimonioBack = async (req, res) => {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
 }
+
+const deshabilitarPatrimonio = async (req, res) => {
+  const { id } = req.body;
+  console.log(req.body)
+  const sql = "UPDATE patrimonio set habilita = 0 WHERE id_patrimonio = ?";
+  const values = [id];
+
+  try {
+    const connection = await conectarSMTPatrimonio();
+    const [result] = await connection.execute(sql, values); 
+    await connection.end();
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "patrimonio deshabilitado con éxito" });
+    } else {
+      res.status(400).json({ message: "patrimonio no encontrada" });
+    }
+  } catch (error) {
+    console.error("Error al eliminar el patrimonio:", error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
 //-----------PATRIMOINIO MUNICIPAL--------------
 
 
 
-module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, editarAnexo, listarContratacionPorId, agregarPatrimonio, agregarCategoriaPatrimonio, agregarEstadoPatrimonio, agregarAutorPatrimonio, agregarMaterialPatrimonio, agregarUbicacionPatrimonio, agregarTipologiaPatrimonio, listarPatrimonioBack, listarAutorPatrimonioBack, listarTipologiaPatrimonioBack, listarCategoriaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarUbicacionPatrimonioBack}
+module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, editarAnexo, listarContratacionPorId, agregarPatrimonio, agregarCategoriaPatrimonio, agregarEstadoPatrimonio, agregarAutorPatrimonio, agregarMaterialPatrimonio, agregarUbicacionPatrimonio, agregarTipologiaPatrimonio, listarPatrimonioBack, listarAutorPatrimonioBack, listarTipologiaPatrimonioBack, listarCategoriaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarUbicacionPatrimonioBack, deshabilitarPatrimonio}
