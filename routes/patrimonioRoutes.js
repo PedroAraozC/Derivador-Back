@@ -3,7 +3,7 @@ const { listarTipologiaPatrimonio } = require("../controllers/patrimonioControll
 const router = Router();
 
 
-router.get("listarTipologiasPatrimonio", listarTipologiaPatrimonio)
+router.get("/listarTipologiasPatrimonio", listarTipologiaPatrimonio)
 
 
 
