@@ -83,7 +83,7 @@ function generarCodigoAfaNumerico() {
             tarea: "legajo_municipal",
             cuil: cuil ,
           }); 
-          const endpoint = "http://181.105.6.205:86/api_civitas/ciudadano.php";
+          const endpoint = "http://181.105.6.205:82/api_civitas/ciudadano.php";
         
           const options = {
             method: "POST",
