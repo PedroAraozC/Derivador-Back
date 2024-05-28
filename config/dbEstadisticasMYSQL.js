@@ -68,6 +68,7 @@ const conectar_BD_GAF_MySql = async () => {
             user: process.env.USER_CIU_DIGITAL,
             password: process.env.PASSWORD_CIU_DIGITAL,
             database: process.env.DB_GAF,
+            port: process.env.PORT_CIU_DIGITAL,
         });
         return connection
     } catch (error) {
