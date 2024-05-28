@@ -579,9 +579,10 @@ const listarPartidasConCodigo =async(req,res)=>{
   try {
   
       const connection = await conectar_BD_GAF_MySql();
+      const gastoOCredito = req.query.gastoOCredito;
 
       const [partidas] = await connection.execute(
-         "SELECT partida_id,CONCAT(partida_codigo, ' _ ', partida_det) AS partida FROM partidas WHERE partida_gasto = 1 ORDER BY partida_codigo"
+         `SELECT partida_id,CONCAT(partida_codigo, ' _ ', partida_det) AS partida FROM partidas WHERE ${gastoOCredito == "gasto"? "partida_gasto = 1":"partida_credito = 1" } ORDER BY partida_codigo`
       );
       console.log(partidas); 
       await connection.end();
