@@ -24,6 +24,7 @@ const educacionRoutes = require("./routes/educacionRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const macroRoutes = require("./routes/macroRoutes")
 const turnosRoutes = require("./routes/turnosRoutes");
+const patrimonioRoutes = require("./routes/patrimonioRoutes");
 
 const PORT = process.env.PORT;
 
@@ -41,6 +42,7 @@ app.use('/educacion', educacionRoutes)
 app.use('/admin', adminRoutes)
 app.use("/macro",macroRoutes)
 app.use("/turnos", turnosRoutes);
+app.use("/patrimonio", patrimonioRoutes);
 
 const options = {
   key: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),
