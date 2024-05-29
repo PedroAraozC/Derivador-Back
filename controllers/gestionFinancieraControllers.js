@@ -869,6 +869,7 @@ const buscarExpediente = async (req, res) => {
 
 const listarEjercicio= async (req, res) => {
   const connection = await conectar_BD_GAF_MySql();
+  console.log(connection)
   try {
     let sqlQuery = `SELECT *  FROM presupuesto`;
 
@@ -1006,9 +1007,46 @@ const actualizarPresupuestoAprobado=async(req, res)=> {
   }
 }
 
+const acumular = async (req, res) => {
+  try {
+    const {campo, partida, item } = req.body;
+
+    // Verificar que partida e item están definidos
+    if (!partida || !item) {
+      return res.status(400).send({ mge: 'Datos inválidos', ok: false });
+    }
+
+    // Crear una conexión a la base de datos
+    const connection = await conectar_BD_GAF_MySql();
+
+    // Consulta SQL para actualizar el presupuesto_anteproyecto
+    const sqlQuery = "CALL sp_actualizaacumuladores(?,?, ?)";
+
+    // Ejecutar la consulta SQL con los parámetros proporcionados
+    const result = await connection.execute(sqlQuery, [campo,item, partida]);
+
+    // Verificar si se realizó la actualización correctamente
+    if (result)
+     {
+      console.log(`Se actualizó correctamente el presupuesto`);
+      await connection.end(); // Cerrar la conexión a la base de datos
+      return res.status(200).send({ mge: 'Presupuesto actualizado', ok: true });
+    }
+     else {
+      await connection.end(); // Cerrar la conexión a la base de datos
+      return res.status(200).send({ mge: 'Error en la actualización', ok: false });
+    }
+  } catch (error) {
+    console.error('Error al actualizar el presupuesto_anteproyecto:', error);
+    return res.status(500).send('Error en el servidor');
+  }
+};
+
+
+
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida,
   agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,buscarExpediente,
-  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado}
+  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado,acumular}
 
 
 
