@@ -4,6 +4,8 @@ const cors = require("cors");
 const morgan = require("morgan");
 const connectDB = require("./config/dbUsuariosMongoDB");
 const bodyParser = require('body-parser');
+const https = require('https');
+const fs = require('fs');
 
 const app = express();
 app.use(cors());
@@ -42,7 +44,17 @@ app.use("/macro",macroRoutes)
 app.use("/turnos", turnosRoutes);
 app.use("/patrimonio", patrimonioRoutes);
 
+const options = {
+  key: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),
+  cert: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),
+  //ca: fs.readFileSync('/opt/psa/var/certificates/scfqdiDyQ') // si tienes un archivo CA bundle
+};
 
-app.listen(PORT, () => {
+https.createServer(options, app).listen(PORT, () => {
   console.log(`server listening on port ${PORT}`);
+});
+
+
+app.listen(3000, () => {
+  console.log(`server listening on port 3000`);
 });
