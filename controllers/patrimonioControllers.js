@@ -100,7 +100,7 @@ const listarPatrimonio = async (req, res) => {
 
 const listarPatrimonioPorId = async (req, res) => {
   const { id } = req.params; 
-  const sql = "SELECT * FROM patrimonio WHERE id_contratacion = ?";
+  const sql = "SELECT * FROM patrimonio WHERE id_patrimonio = ?";
   const values = [id];
   try {
     const connection = await conectarSMTPatrimonio();
