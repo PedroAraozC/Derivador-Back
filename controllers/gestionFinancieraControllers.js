@@ -767,11 +767,40 @@ const obtenerDetPresupuestoPorItemYpartida = async (req,res) =>{
     const connection = await conectar_BD_GAF_MySql();
 
     const [detPresupuesto] = await connection.execute(
-        "SELECT detpresupuesto_id FROM detpresupuesto WHERE item_id = ? AND partida_id = ?",
+        "SELECT dm.detmovimiento_id, dp.detpresupuesto_id FROM detmovimiento dm JOIN detpresupuesto dp ON dm.detpresupuesto_id = dp.detpresupuesto_id  WHERE dp.item_id = ? AND dp.partida_id = ?",
         [item,partida]
       );
+
  await connection.end();
       res.status(200).json({detPresupuesto})
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const editarDetalleMovimiento = async (req,res) =>{
+  try {
+    const connection = await conectar_BD_GAF_MySql();
+
+    const {detmovimiento_id,item,partida,importe} = req.body;
+
+    const [detPresupuesto] = await connection.execute(
+      "SELECT dm.detmovimiento_id, dp.detpresupuesto_id FROM detmovimiento dm JOIN detpresupuesto dp ON dm.detpresupuesto_id = dp.detpresupuesto_id  WHERE dp.item_id = ? AND dp.partida_id = ?",
+      [item,partida]
+    );
+
+    if(detPresupuesto.length > 0){
+      const [detPresupuesto] = await connection.query(
+        "UPDATE detmovimiento dm JOIN detpresupuesto dp ON dm.detpresupuesto_id = dp.detpresupuesto_id SET dm.detmovimiento_importe = ?, dp.partida_id = ? WHERE dm.detmovimiento_id = ?",
+        [importe,partida,detmovimiento_id])
+
+        await connection.end();
+        return res.status(200).json({detPresupuesto})
+    }
+
+    await connection.end();
+    return res.status(200).json({detPresupuesto})
+    
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
@@ -848,6 +877,39 @@ const agregarMovimiento = async (req, res) => {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
 };
+
+const modificarMovimiento = async (req,res) =>{
+  let connection;
+  try {
+    const { movimiento, detMovimiento } = req.body;
+    console.log(req.body);
+    connection = await conectar_BD_GAF_MySql();
+    
+    for (let i = 0; i < detMovimiento.length; i++) {
+      const { detMovimiento_id, importe, detPresupuesto_id,partida_id } = detMovimiento[i];
+
+      // const [result] = await connection.query(
+      //   "UPDATE detmovimiento dm JOIN movimiento m ON dm.movimiento_id = m.movimiento_id JOIN detpresupuesto dp ON dm.detpresupuesto_id = dp.detpresupuesto_id SET dm.detpresupuesto_id = ?,dm.detmovimiento_importe = ?, dp.partida_id = ? WHERE dm.detmovimiento_id = ?",
+      //   [detPresupuesto_id,importe,partida_id, detMovimiento_id]
+      // );
+
+      const [result] = await connection.query(
+        "UPDATE detmovimiento dm JOIN detpresupuesto dp ON dm.detpresupuesto_id = dp.detpresupuesto_id SET dm.detmovimiento_importe = ?,  dp.partida_id = ? WHERE dm.detmovimiento_id = ?",
+        [importe,partida_id,detMovimiento_id]
+      );
+      console.log(result);
+
+
+      //EDITAR PARTIDAS Y AGREGAR DETALLE MOVIMIENTO CUANDO SE AGREGA UNO (GPT)
+    }
+
+    await connection.end();
+    res.status(200).json("movimiento modificado con éxito");
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
 
 const buscarExpediente = async (req, res) => {
   try {
@@ -1006,9 +1068,28 @@ const actualizarPresupuestoAprobado=async(req, res)=> {
   }
 }
 
+const obtenerPartidasPorItemYMovimiento = async (req,res)=>{
+  try {
+    const itemId = req.query.item;
+    const tipomovimiento_id = req.query.tipomovimiento_id
+    const connection = await conectar_BD_GAF_MySql();
+    let sqlQuery = `CALL sp_partidas(?,?)`;
+    const [results, fields] = await connection.execute(sqlQuery, [tipomovimiento_id, itemId]);
+
+    console.log(results);
+    await connection.end();
+
+    res.status(200).send({mge:'partidas:',results});
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).send('Error en el servidor');
+  }
+}
+
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida,
   agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,buscarExpediente,
-  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado}
+  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado, modificarMovimiento,obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento}
 
 
 
