@@ -466,6 +466,33 @@ const listarItems = async (req, res) => {
   }
 };
 
+const listarItemsFiltrado = async (req, res) => {
+  const cuil=req.params.cuil
+  const connection = await conectar_BD_GAF_MySql();
+
+
+
+
+  try {
+      // Verifica si hay un término de búsqueda en los parámetros de la solicitud
+      const searchTerm = req.query.searchTerm || '';
+
+      let sqlQuery =  `CALL sp_items(${cuil})`
+
+      // Agrega la cláusula WHERE para la búsqueda si hay un término de búsqueda
+      if (searchTerm) {
+          
+          sqlQuery += ' WHERE LOWER(item_codigo) LIKE LOWER(?) OR LOWER(item_det) LIKE LOWER(?)';
+      } 
+      const [items] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
+      await connection.end();
+      res.status(200).json({ items });
+  } catch (error) {
+    console.log(error);
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+
 const agregarItem =async(req,res)=>{
   try {
       const {codigo, descripcion,anexo_id,finalidad_id,funcion_id,fechaInicio,fechaFin,organismo_id} = req.body;
@@ -559,7 +586,7 @@ const listarPartidas =async(req,res)=>{
       // Verifica si hay un término de búsqueda en los parámetros de la solicitud
       const searchTerm = req.query.searchTerm || '';
 
-      let sqlQuery =  'SELECT * FROM partidas'
+      let sqlQuery =  'SELECT * FROM partidas ORDER BY partida_codigo'
 
       // Agrega la cláusula WHERE para la búsqueda si hay un término de búsqueda
       if (searchTerm) {
@@ -617,7 +644,7 @@ const agregarPartida = async (req, res) => {
         principal,
         parcial,
         subparcial,
-        descripcion,
+        descripcion.toUpperCase() ,
         partidapadre_id,
         gasto,
         credito,
@@ -1046,7 +1073,7 @@ const acumular = async (req, res) => {
 
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida,
   agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,buscarExpediente,
-  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado,acumular}
+  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado,acumular,listarItemsFiltrado}
 
 
 
