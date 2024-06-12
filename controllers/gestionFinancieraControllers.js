@@ -1151,10 +1151,46 @@ const acumular = async (req, res) => {
   }
 };
 
+const obtenerPerfilPorCuil = async (req, res) => {
+  const { cuil } = req.params;
+  const connection = await conectar_BD_GAF_MySql();
+
+  try {
+      // Obtener el perfil_id correspondiente al cuil
+      const [usuarios] = await connection.execute(
+          'SELECT perfil_id FROM usuarios WHERE cuil = ?',
+          [cuil]
+      );
+
+      if (usuarios.length === 0) {
+          return res.status(404).json({ message: 'Usuario no encontrado' });
+      }
+
+      const perfilId = usuarios[0].perfil_id;
+
+      // Obtener la fila completa del perfil correspondiente al perfil_id
+      const [perfiles] = await connection.execute(
+          'SELECT * FROM perfiles WHERE perfil_id = ?',
+          [perfilId]
+      );
+
+      if (perfiles.length === 0) {
+          return res.status(404).json({ message: 'Perfil no encontrado' });
+      }
+
+      res.status(200).json(perfiles[0]);
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: error.message || 'Algo salió mal :(' });
+  } finally {
+      await connection.end();
+  }
+};
+
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida,
   agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,buscarExpediente,
   obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado,acumular,listarItemsFiltrado,
-  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado, modificarMovimiento,obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular}
+  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado, modificarMovimiento,obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular,obtenerPerfilPorCuil}
 
 
 
