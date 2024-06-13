@@ -48,7 +48,7 @@ router.get("/organismo/listar", listarOrganismos);
 
 router.post("/expediente/alta",agregarExpediente)
 router.get("/expediente/buscar", buscarExpediente)
-router.get("/expediente/buscarDefinitiva", buscarExpedienteParaModificarDefinitiva)
+router.get("/expediente/buscarExpedienteComun", buscarExpedienteParaModificarDefinitiva)
 
 router.patch("/editarDetalleMovimiento", editarDetalleMovimiento)
 

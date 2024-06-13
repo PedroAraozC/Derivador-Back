@@ -723,10 +723,11 @@ const listarOrganismos =async(req,res)=>{
 }
 
 const agregarExpediente = async (req, res) => {
+  let connection;
   try {
     const { anio, numero, causante, asunto, fecha, organismo_id } = req.body;
-
-    const connection = await conectar_BD_GAF_MySql();
+    
+     connection = await conectar_BD_GAF_MySql();
 
     const [expediente] = await connection.execute(
       "SELECT * FROM expediente WHERE expediente_numero = ?",
@@ -743,7 +744,7 @@ const agregarExpediente = async (req, res) => {
         "INSERT INTO expediente (organismo_id,expediente_numero,expediente_anio,expediente_causante,expediente_asunto, expediente_fecha) VALUES (?,?,?,?,?,?)",
         [organismo_id, numero, anio, causante, asunto, fecha]
       );
- await connection.end();
+//  await connection.end();
       res
         .status(200)
         .json({
@@ -757,31 +758,37 @@ const agregarExpediente = async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }finally {
+    connection.end();
   }
 };
 
 const obtenerDetPresupuestoPorItemYpartida = async (req,res) =>{
+  let connection;
   try {
     const item = req.query.item;
     const partida = req.query.partida;
+   connection = await conectar_BD_GAF_MySql();
 
-    const connection = await conectar_BD_GAF_MySql();
 
     const [detPresupuesto] = await connection.execute(
         "SELECT dm.detmovimiento_id, dp.detpresupuesto_id FROM detmovimiento dm JOIN detpresupuesto dp ON dm.detpresupuesto_id = dp.detpresupuesto_id  WHERE dp.item_id = ? AND dp.partida_id = ?",
         [item,partida]
       );
 
- await connection.end();
+//  await connection.end();
       res.status(200).json({detPresupuesto})
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }finally {
+    connection.end();
   }
 }
 
 const editarDetalleMovimiento = async (req,res) =>{
+  let connection;
   try {
-    const connection = await conectar_BD_GAF_MySql();
+     connection = await conectar_BD_GAF_MySql();
 
     const {detmovimiento_id,item,partida,importe} = req.body;
 
@@ -799,35 +806,40 @@ const editarDetalleMovimiento = async (req,res) =>{
         return res.status(200).json({detPresupuesto})
     }
 
-    await connection.end();
+    // await connection.end();
     return res.status(200).json({detPresupuesto})
     
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }finally {
+    connection.end();
   }
 }
 
 const listarPartidasCONCAT = async (req, res) => {
-  const connection = await conectar_BD_GAF_MySql();
+  let connection;
   try {
+     connection = await conectar_BD_GAF_MySql();
     let sqlQuery = `SELECT partida_id, CONCAT(partida_codigo, ' - ', partida_det) AS partida_concatenada FROM partidas ORDER BY partida_codigo`;
 
     const [partidas] = await connection.execute(sqlQuery);
- await connection.end();
+//  await connection.end();
     res.status(200).json({ partidas });
 
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }finally {
+    connection.end();
   }
 }
 
 const partidaExistente = async (req, res) => {
-  
+  let connection;
   try {
+     connection = await conectar_BD_GAF_MySql();
     const{id}=req.body
     let sqlQuery = `SELECT COUNT(detpresupuesto_id) FROM detpresupuesto WHERE partida_id=?`;
     let value=[id]
-    const connection = await conectar_BD_GAF_MySql();
     const [result] = await connection.execute(sqlQuery,value);
     console.log(result);
     if (result[0]["COUNT(detpresupuesto_id)"]===1) {
@@ -835,9 +847,11 @@ const partidaExistente = async (req, res) => {
     } else {
       res.status(200).json({ message: "Esta partida se puede editar y eliminar",ok:true});
     }
-    await connection.end();
+    // await connection.end();
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }finally {
+    connection.end();
   }
 }
 
@@ -952,10 +966,10 @@ const obtenerPresupuestosParaMovimientoPresupuestario = async (req, res) => {
 const modificarMovimiento = async (req, res) => {
   const {  movimiento, detMovimiento } = req.body;
 
-  const connection = await conectar_BD_GAF_MySql();
-  await connection.beginTransaction();
-
+  let connection;
   try {
+     connection = await conectar_BD_GAF_MySql();
+    await connection.beginTransaction();
       // Paso 1: Eliminar los detalles de movimiento existentes para el movimiento
       await connection.query('DELETE FROM detmovimiento WHERE detmovimiento.movimiento_id = ?', [movimiento.id]);
 
@@ -968,7 +982,7 @@ const modificarMovimiento = async (req, res) => {
       await Promise.all(insertPromises);
 
       await connection.commit();
-      res.status(200).json({ message: 'Detalles de movimiento actualizados correctamente' });
+      res.status(200).json({ message: 'Movimiento actualizado correctamente' });
   } catch (error) {
     console.log(error);
       await connection.rollback();
@@ -979,50 +993,115 @@ const modificarMovimiento = async (req, res) => {
 };
 
 const buscarExpediente = async (req, res) => {
+  let connection;
   try {
+     connection = await conectar_BD_GAF_MySql();
     const numero = req.query.numero;
     const tipomovimiento_id = req.query.tipomovimiento_id;
     const anio = req.query.anio;
 
-  
+    // const query = `SELECT * FROM expediente AS e LEFT JOIN movimiento AS m ON e.expediente_id = m.expediente_id LEFT JOIN detmovimiento AS d ON m.movimiento_id = d.movimiento_id LEFT JOIN detpresupuesto AS dp ON d.detpresupuesto_id = dp.detpresupuesto_id LEFT JOIN item AS i ON dp.item_id = i.item_id LEFT JOIN partidas AS pda ON dp.partida_id=pda.partida_id WHERE e.expediente_numero = ? AND m.tipomovimiento_id = ? AND e.expediente_anio = ? AND not(m.movimiento_id IN (SELECT definitiva.movimiento_id2 FROM movimiento as definitiva WHERE definitiva.movimiento_id2=m.movimiento_id))
+    // `;
+    // const [result] = await connection.execute(query, [numero,tipomovimiento_id == 5 ? tipomovimiento_id - 1: tipomovimiento_id,anio]);
 
-    const connection = await conectar_BD_GAF_MySql();
-    const query = `SELECT * FROM expediente AS e LEFT JOIN movimiento AS m ON e.expediente_id = m.expediente_id LEFT JOIN detmovimiento AS d ON m.movimiento_id = d.movimiento_id LEFT JOIN detpresupuesto AS dp ON d.detpresupuesto_id = dp.detpresupuesto_id LEFT JOIN item AS i ON dp.item_id = i.item_id LEFT JOIN partidas AS pda ON dp.partida_id=pda.partida_id WHERE e.expediente_numero = ? AND m.tipomovimiento_id = ? AND e.expediente_anio = ?
+    // Primera consulta: Obtener los detalles del expediente
+    const query1 = `
+    SELECT e.*, m.movimiento_id, m.*, d.*, dp.*, i.*, pda.*
+    FROM expediente AS e
+    LEFT JOIN movimiento AS m ON e.expediente_id = m.expediente_id
+    LEFT JOIN detmovimiento AS d ON m.movimiento_id = d.movimiento_id
+    LEFT JOIN detpresupuesto AS dp ON d.detpresupuesto_id = dp.detpresupuesto_id
+    LEFT JOIN item AS i ON dp.item_id = i.item_id
+    LEFT JOIN partidas AS pda ON dp.partida_id = pda.partida_id
+    WHERE e.expediente_numero = ? 
+    AND m.tipomovimiento_id = ? 
+    AND e.expediente_anio = ? 
+`;
+    const [result1] = await connection.execute(query1, [numero, tipomovimiento_id == 5 ? tipomovimiento_id - 1 : tipomovimiento_id, anio]);
+
+    // Obtener los `movimiento_id` para la segunda consulta
+    const movimientoIds = result1.map(row => row.movimiento_id);
+    console.log(movimientoIds);
+
+    if (movimientoIds.length > 0) {
+      // Segunda consulta: Obtener los `movimiento_id` a excluir
+      const query2 = `
+        SELECT definitiva.movimiento_id2 
+        FROM movimiento AS definitiva 
+        WHERE definitiva.movimiento_id2 IN (${movimientoIds.join(', ')})
     `;
-    const [result] = await connection.execute(query, [numero,tipomovimiento_id == 5 ? tipomovimiento_id - 1: tipomovimiento_id,anio]);
+      const [result2] = await connection.execute(query2);
+
+      // Responder al cliente con los resultados de ambas consultas
+      const response1 = result1; // Resultado de la primera consulta
+      const response2 = result2; // Resultado de la segunda consulta
+
+      // Ejemplo de cómo podrías estructurar la respuesta al cliente
+      const response = {
+        primeraConsulta: response1,
+        segundaConsulta: response2,
+      };
+
+      // Enviar la respuesta al cliente
+      console.log(response);
+      if (response.primeraConsulta.length > 0 && response.segundaConsulta.length > 0) {
+        throw new Error("Ya tiene preventiva")
+      } else if (response.primeraConsulta.length > 0 && response.segundaConsulta.length == 0) {
+        res.status(200).json(response.primeraConsulta);
+      }
+
+    } else {
+      // Si no hay movimientoIds, solo responde con el resultado de la primera consulta
+
+      if (result1.length > 0) {
+
+        const response = {
+          primeraConsulta: result1,
+          segundaConsulta: [],
+        };
+        res.status(200).json(response.primeraConsulta);
+      } else throw new Error("No existe el expediente")
+    }
 
 
-    await connection.end();
-    res.status(200).json(result);
+    // await connection.end();
+    // res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
   }
 };
 
+
 const buscarExpedienteParaModificarDefinitiva = async (req,res)=>{
+  let connection;
   try {
+     connection = await conectar_BD_GAF_MySql();
     const numero = req.query.numero;
     const tipomovimiento_id = req.query.tipomovimiento_id;
     const anio = req.query.anio;
 
 
-    const connection = await conectar_BD_GAF_MySql();
     const query = `SELECT * FROM expediente AS e LEFT JOIN movimiento AS m ON e.expediente_id = m.expediente_id LEFT JOIN detmovimiento AS d ON m.movimiento_id = d.movimiento_id LEFT JOIN detpresupuesto AS dp ON d.detpresupuesto_id = dp.detpresupuesto_id LEFT JOIN item AS i ON dp.item_id = i.item_id LEFT JOIN partidas AS pda ON dp.partida_id=pda.partida_id WHERE e.expediente_numero = ? AND m.tipomovimiento_id = ? AND e.expediente_anio = ?
     `;
     const [result] = await connection.execute(query, [numero,tipomovimiento_id ,anio]);
 
 
-    await connection.end();
+    // await connection.end();
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }finally {
+    connection.end();
   }
 }
 
 const listarEjercicio= async (req, res) => {
-  const connection = await conectar_BD_GAF_MySql();
-  console.log(connection)
+  let connection;
   try {
+    connection = await conectar_BD_GAF_MySql();
+    console.log(connection)
     let sqlQuery = `SELECT *  FROM presupuesto`;
 
     const [ejercicio] = await connection.execute(sqlQuery);
@@ -1031,6 +1110,8 @@ const listarEjercicio= async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }finally {
+    connection.end();
   }
 }
 
