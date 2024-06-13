@@ -43,15 +43,15 @@ const conectarSMTPatrimonio = async () => {
     }
 }
 
-const pool = mysql.createPool({
-    host: process.env.HOST_CIU_DIGITAL,
-    user: process.env.USER_CIU_DIGITAL,
-    password: process.env.PASSWORD_CIU_DIGITAL,
-    database: process.env.DB_EDUCACION,
-    waitForConnections: true,
-    connectionLimit: 10, // Ajusta según sea necesario
-    queueLimit: 0,
-});
+// const pool = mysql.createPool({
+//     host: process.env.HOST_CIU_DIGITAL,
+//     user: process.env.USER_CIU_DIGITAL,
+//     password: process.env.PASSWORD_CIU_DIGITAL,
+//     database: process.env.DB_EDUCACION,
+//     waitForConnections: true,
+//     connectionLimit: 10, // Ajusta según sea necesario
+//     queueLimit: 0,
+// });
 
 // const conectar_BD_GAF_MySql = async () => {
 //     try {
@@ -79,8 +79,13 @@ const conectar_BD_GAF_MySql = async () => {
 }
 const conectar_BD_EDUCACION_MySql = async () => {
     try {
-        const connection = await pool.getConnection();
-     
+        const connection = await mysql.createConnection({
+            host: process.env.HOST_CIU_DIGITAL,
+            user: process.env.USER_CIU_DIGITAL,
+            password: process.env.PASSWORD_CIU_DIGITAL,
+            database: process.env.DB_EDUCACION,
+            port: process.env.PORT_CIU_DIGITAL,
+        });
         return connection
     } catch (error) {
         console.log(error.message);

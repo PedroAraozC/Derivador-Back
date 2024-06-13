@@ -150,7 +150,7 @@ const listarConvocatorias =async(req,res)=>{
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }  finally {
       if (connection) {
-        connection.release();
+        connection.end();
       }
     }
 }
@@ -170,7 +170,7 @@ const listarConvocatoriasTabla =async(req,res)=>{
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }  finally {
       if (connection) {
-        connection.release();
+        connection.end();
       }
     }
 }
@@ -187,7 +187,7 @@ const listarNiveles =async(req,res)=>{
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }  finally {
       if (connection) {
-        connection.release();
+        connection.end();
       }
     }
 }
@@ -203,7 +203,7 @@ const listarNivelesTabla =async(req,res)=>{
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }  finally {
       if (connection) {
-        connection.release();
+        connection.end();
       }
     }
 }
@@ -238,7 +238,7 @@ const agregarNivel = async (req, res) => {
     
     res.status(201).json({ message: "Nivel creado con éxito", id: nextId, nombre_nivel: nombre_nivel });
     
-    connection.release();
+    connection.end();
     
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -273,7 +273,7 @@ const editarNivel = async(req,res) =>{
     
     res.status(200).json({ message: "Nivel actualizada con éxito", id: id, nombre_nivel: nombre_nivel });
     
-    connection.release();
+    connection.end();
     
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -292,7 +292,7 @@ const listarEstablecimientos =async(req,res)=>{
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }  finally {
       if (connection) {
-        connection.release();
+        connection.end();
       }
     }
 }
@@ -308,7 +308,7 @@ try {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
 }  finally {
     if (connection) {
-      connection.release();
+      connection.end();
     }
   }
 }
@@ -348,7 +348,7 @@ try {
   
   res.status(201).json({ message: "Establecimiento creado con éxito", id: nextId, nombre_establecimiento: nombre_establecimiento });
   
-  connection.release();
+  connection.end();
   
 } catch (error) {
   res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -388,7 +388,7 @@ try {
   
   res.status(200).json({ message: "Establecimiento actualizado con éxito", id: id, nombre_establecimiento: nombre_establecimiento });
   
-  connection.release();
+  connection.end();
   
 } catch (error) {
   res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -407,7 +407,7 @@ const listarCausal =async(req,res)=>{
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }  finally {
       if (connection) {
-        connection.release();
+        connection.end();
       }
     }
 }
@@ -423,7 +423,7 @@ const listarCausalTabla =async(req,res)=>{
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }  finally {
       if (connection) {
-        connection.release();
+        connection.end();
       }
     }
 }
@@ -455,7 +455,7 @@ const agregarCausal = async (req, res) => {
     
     res.status(201).json({ message: "Causal creada con éxito", id: nextId, nombre_causal: nombre_causal });
     
-    connection.release();
+    connection.end();
     
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -487,7 +487,7 @@ const editarCausal = async (req, res) => {
     
     res.status(200).json({ message: "Causal actualizada con éxito", id: id, nombre_causal: nombre_causal });
     
-    connection.release();
+    connection.end();
     
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -506,7 +506,7 @@ const listarCaracter =async(req,res)=>{
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }  finally {
       if (connection) {
-        connection.release();
+        connection.end();
       }
     }
 }
@@ -522,7 +522,7 @@ const listarCaracterTabla =async(req,res)=>{
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }  finally {
       if (connection) {
-        connection.release();
+        connection.end();
       }
     }
 }
@@ -553,7 +553,7 @@ const agregarCaracter = async(req,res) =>{
     
     res.status(201).json({ message: "Caracter creada con éxito", id: nextId, nombre_caracter: nombre_caracter });
     
-    connection.release();
+    connection.end();
     
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -584,7 +584,7 @@ const editarCaracter = async(req,res) =>{
     
     res.status(200).json({ message: "Caracter actualizada con éxito", id: id, nombre_caracter: nombre_caracter });
     
-    connection.release();
+    connection.end();
     
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
