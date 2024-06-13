@@ -45,8 +45,8 @@ app.use("/turnos", turnosRoutes);
 app.use("/patrimonio", patrimonioRoutes);
 
 const options = {
-  key: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),
-  cert: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),
+  // key: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),
+  // cert: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),
   //ca: fs.readFileSync('/opt/psa/var/certificates/scfqdiDyQ') // si tienes un archivo CA bundle
 };
 
