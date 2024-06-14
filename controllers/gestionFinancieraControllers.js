@@ -1118,7 +1118,7 @@ const obtenerPartidasPorItemYMovimiento = async (req,res)=>{
 
 const acumular = async (req, res) => {
   try {
-    const {campo, partida, item } = req.body;
+    const {campo, partida, item ,presupuesto_id} = req.body;
 
     // Verificar que partida e item están definidos
     if (!partida || !item) {
@@ -1129,10 +1129,10 @@ const acumular = async (req, res) => {
     const connection = await conectar_BD_GAF_MySql();
 
     // Consulta SQL para actualizar el presupuesto_anteproyecto
-    const sqlQuery = "CALL sp_actualizaacumuladores(?,?, ?)";
+    const sqlQuery = "CALL sp_actualizaacumuladores(?,?, ?,?)";
 
     // Ejecutar la consulta SQL con los parámetros proporcionados
-    const result = await connection.execute(sqlQuery, [campo,item, partida]);
+    const result = await connection.execute(sqlQuery, [campo,item, partida,presupuesto_id]);
 
     // Verificar si se realizó la actualización correctamente
     if (result)
