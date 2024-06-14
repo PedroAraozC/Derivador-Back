@@ -7,33 +7,8 @@ const PermisoPersona = require("../models/Derivador/PermisoPersona");
 const fs = require('fs');
 const path = require('path');
 const { conectarFTPCiudadano } = require("../config/winscpCiudadano");
-const { conectarFTPLICITACIONES } = require("../config/winscpLicitaciones");
 
-// const sobrescribirArchivo = (rutaArchivoAntiguo, rutaArchivoNuevo) => {
-//   try {
-//     // Leer el contenido del nuevo archivo
-//     const contenidoNuevo = fs.readFileSync(rutaArchivoNuevo);
-//     // Sobrescribir el archivo antiguo con el contenido del nuevo archivo
-//     fs.writeFileSync(rutaArchivoAntiguo, contenidoNuevo);
-//     console.log(`Archivo sobrescrito: ${rutaArchivoAntiguo}`);
-//   } catch (error) {
-//     console.error(`Error al sobrescribir el archivo: ${error}`);
-//   }
-// };
-// // Función para obtener la ruta del archivo antiguo
-// const obtenerRutaArchivoAntiguo = (oldName) => {
-//   // Suponiendo que los archivos antiguos se guardan en una carpeta llamada 'pdfs' en el escritorio
-//   const rutaArchivoAntiguo = path.join('./pdf', oldName);
-//   console.log(rutaArchivoAntiguo)
-//   return rutaArchivoAntiguo;
-// };
 
-// // Función para obtener la ruta del nuevo archivo
-// const obtenerRutaArchivoNuevo = (nombre_archivo) => {
-//   // Suponiendo que los archivos nuevos también se guardan en una carpeta llamada 'pdfs' en el escritorio
-//   const rutaArchivoNuevo = path.join('./pdf', nombre_archivo);
-//   return rutaArchivoNuevo;
-// };
 
 const agregarOpcion = async (req, res) => {
     try {
@@ -57,7 +32,7 @@ const agregarOpcion = async (req, res) => {
     } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
     }
-  };
+};
 
 const agregarProceso = async (req, res) => {
     let transaction;
@@ -131,40 +106,7 @@ const agregarProceso = async (req, res) => {
       // Responder con un mensaje de error
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
     }
-  };
-
-
-// const editarConvocatoria = async (req, res) => {
-//   try {
-//     const { id, nivel, cargo, establecimiento, causal, expte, caracter, fecha, hora, archivo, habilita } = req.body;
-
-//     // Query para actualizar la convocatoria
-//     const sql = "UPDATE convocatoria SET id_nivel = ?, cargo = ?, id_establecimiento = ?, id_causal = ?, expte = ?, id_caracter = ?, fecha_designa = ?, hora_designa = ?,nombre_archivo = ?, habilita = ? WHERE id_convoca = ?";
-//     const values = [nivel, cargo, establecimiento, causal, expte, caracter, fecha, hora, archivo, habilita, id];
-
-//     // Verificar si la convocatoria ya existe con otra ID
-//     const connection = await conectar_BD_EDUCACION_MySql();
-//     const [convocatoria] = await connection.execute(
-//       "SELECT * FROM convocatoria WHERE (cargo = ? AND id_establecimiento = ? AND id_causal = ? AND expte = ? AND id_caracter = ? AND fecha_designa = ? AND hora_designa = ? AND nombre_archivo = ? AND habilita = ?) AND id_convoca != ?",
-//       [cargo, establecimiento, causal, expte, caracter, fecha, hora, archivo, habilita, id]
-//     );
-
-//     if (convocatoria.length === 0) {
-//       // No existe otra convocatoria con los mismos datos, se puede proceder con la actualización
-//       const [result] = await connection.execute(sql, values);
-//       console.log("Filas actualizadas:", result.affectedRows);
-//       res.status(200).json({ message: "Convocatoria modificada con éxito", result });
-//     } else {
-//       // Ya existe otra convocatoria con los mismos datos, devolver un error
-//       res.status(400).json({
-//         message: "Ya existe una convocatoria con los mismos datos",
-//         convocatoria: convocatoria[0],
-//       });
-//     }
-//   } catch (error) {
-//     res.status(500).json({ message: error.message || "Algo salió mal :(" });
-//   }
-// };
+};
 
 const borrarOpcion = async (req, res) => {
   const { id } = req.body;
@@ -185,6 +127,257 @@ const borrarOpcion = async (req, res) => {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }
 };
+
+// --------------------PANEL PARA GENERO DERIVADOR----------------------
+
+const agregarGenero = async (req, res) =>{
+  try {
+    const { nombre_genero, habilita } = req.body;
+    
+    // Verificar que los valores requeridos estén definidos
+    if (nombre_genero === undefined || habilita === undefined) {
+      throw new Error("Los parámetros de la solicitud son inválidos");
+    }
+
+    // Query para insertar una nuevo genero
+    const sql = "INSERT INTO genero (nombre_genero, habilita) VALUES (?, ?)";
+    const values = [nombre_genero, habilita];
+
+    // Ejecutar la consulta SQL para insertar la nueva opción
+    const connection = await conectarBDEstadisticasMySql();
+    const [result] = await connection.execute(sql, values);
+    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+
+    res.status(201).json({ id: nuevoId, message: "Tipología creada con éxito" });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const editarGenero = async (req, res) =>{
+  const { id, nombre_genero, habilita } = req.body;
+  const sql = "UPDATE genero set habilita = ?, nombre_genero = ? WHERE id_genero = ?";
+  const values = [habilita, nombre_genero, id];
+
+  try {
+    const connection = await conectarBDEstadisticasMySql();
+    const [result] = await connection.execute(sql, values); 
+    await connection.end();
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Genero editado con éxito" });
+    } else {
+      res.status(400).json({ message: "Genero no encontrado" });
+    }
+  } catch (error) {
+    console.error("Error al editar el genero:", error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const listarGenero = async (req, res) => {
+  const connection = await conectarBDEstadisticasMySql();
+  try {
+    const [generos] = await connection.execute(
+      'SELECT * FROM genero'
+    );
+    connection.end();
+    res.status(200).json({ generos })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+// --------------------PANEL PARA GENERO DERIVADOR----------------------
+
+
+
+// --------------------PANEL PARA TIPO DOCUMENTO DERIVADOR----------------------
+
+const agregarTipoDoc = async (req, res) =>{
+  try {
+    const { nombre_tdocumento, habilita } = req.body;
+    
+    // Verificar que los valores requeridos estén definidos
+    if (nombre_tdocumento === undefined || habilita === undefined) {
+      throw new Error("Los parámetros de la solicitud son inválidos");
+    }
+
+    // Query para insertar una nuevo genero
+    const sql = "INSERT INTO tipo_documento (nombre_tdocumento, habilita) VALUES (?, ?)";
+    const values = [nombre_tdocumento, habilita];
+
+    // Ejecutar la consulta SQL para insertar la nueva opción
+    const connection = await conectarBDEstadisticasMySql();
+    const [result] = await connection.execute(sql, values);
+    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+
+    res.status(201).json({ id: nuevoId, message: "Tipo Documento creado con éxito" });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+const editarTipoDoc = async (req, res) =>{
+  const { id, nombre_tdocumento, habilita } = req.body;
+  const sql = "UPDATE genero set habilita = ?, nombre_tdocumento = ? WHERE id_tdocumento = ?";
+  const values = [habilita, nombre_tdocumento, id];
+
+  try {
+    const connection = await conectarBDEstadisticasMySql();
+    const [result] = await connection.execute(sql, values); 
+    await connection.end();
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Tipo documento editado con éxito" });
+    } else {
+      res.status(400).json({ message: "Tipo documento no encontrado" });
+    }
+  } catch (error) {
+    console.error("Error al editar el Tipo documento:", error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+const listarTipoDoc = async (req, res) => {
+  const connection = await conectarBDEstadisticasMySql();
+  try {
+    const [tdocumentos] = await connection.execute(
+      'SELECT * FROM tipo_documento'
+    );
+    connection.end();
+    res.status(200).json({ tdocumentos })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+// --------------------PANEL PARA TIPO DOCUMENTO DERIVADOR----------------------
+
+
+
+// --------------------PANEL PARA REPARTICIONES ----------------------
+
+const agregarReparticion = async (req, res) =>{
+  try {
+    const { item, nombre_reparticion, depende, secretaria, vigente_desde, vigente_hasta, habilita } = req.body;
+    
+    // Verificar que los valores requeridos estén definidos
+    if (item === undefined || nombre_reparticion === undefined || depende === undefined || secretaria === undefined || vigente_desde === undefined || vigente_hasta === undefined ||habilita === undefined) {
+      throw new Error("Los parámetros de la solicitud son inválidos");
+    }
+
+    // Query para insertar una nuevo genero
+    const sql = "INSERT INTO reparticion (item, nombre_reparticion, depende, secretaria, vigente_desde, vigente_hasta, habilita) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    const values = [item, nombre_reparticion, depende, secretaria, vigente_desde, vigente_hasta, habilita];
+
+    // Ejecutar la consulta SQL para insertar la nueva opción
+    const connection = await conectarBDEstadisticasMySql();
+    const [result] = await connection.execute(sql, values);
+    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+
+    res.status(201).json({ id: nuevoId, message: "Repartición creada con éxito" });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+const editarReparticion = async (req, res) =>{
+  const { id, item, nombre_reparticion, depende, secretaria, vigente_desde, vigente_hasta, habilita } = req.body;
+  const sql = "UPDATE reparticion set item = ?, nombre_reparticion = ?, depende = ?, secretaria = ?, vigente_desde = ?, vigente_hasta = ?, habilita = ? WHERE id_reparticion = ?";
+  const values = [item, nombre_reparticion, depende, secretaria, vigente_desde, vigente_hasta, habilita, id];
+
+  try {
+    const connection = await conectarBDEstadisticasMySql();
+    const [result] = await connection.execute(sql, values); 
+    await connection.end();
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Repartición editada con éxito" });
+    } else {
+      res.status(400).json({ message: "Repartición no encontrada" });
+    }
+  } catch (error) {
+    console.error("Error al editar la Repartición:", error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+const listarReparticion = async (req, res) => {
+  const connection = await conectarBDEstadisticasMySql();
+  try {
+    const [reparticiones] = await connection.execute(
+      'SELECT * FROM reparticion'
+    );
+    connection.end();
+    res.status(200).json({ reparticiones })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+// --------------------PANEL PARA REPARTICIONES ----------------------
+
+
+
+// --------------------PANEL PARA TIPO DE USUARIO DERIVADOR----------------------
+
+const agregarTipoDeUsuario = async (req, res) =>{
+  try {
+    const { nombre_tusuario, observacion, habilita } = req.body;
+    
+    // Verificar que los valores requeridos estén definidos
+    if (nombre_tusuario === undefined || observacion === undefined || habilita === undefined) {
+      throw new Error("Los parámetros de la solicitud son inválidos");
+    }
+
+    // Query para insertar una nuevo tipo de usuario
+    const sql = "INSERT INTO tipo_usuario (nombre_tusuario, observacion, habilita) VALUES (?, ?, ?)";
+    const values = [nombre_tusuario, observacion, habilita];
+
+    // Ejecutar la consulta SQL para insertar la nueva opción
+    const connection = await conectarBDEstadisticasMySql();
+    const [result] = await connection.execute(sql, values);
+    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+
+    res.status(201).json({ id: nuevoId, message: "Tipo de usuario creado con éxito" });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const listarTiposDeUsuario = async (req, res) => {
+  const connection = await conectarBDEstadisticasMySql();
+  try {
+    const [tusuarios] = await connection.execute(
+      'SELECT * FROM tipo_usuario'
+    );
+    connection.end();
+    res.status(200).json({ tusuarios })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+const editarTipoDeUsuario = async (req, res) =>{
+
+  const { id, nombre_tusuario, observacion, habilita } = req.body;
+  const sql = "UPDATE tipo_usuario set habilita = ?, nombre_tusuario = ? , observacion = ? WHERE id_tusuario = ?";
+  const values = [habilita, nombre_tusuario, observacion, id];
+
+  try {
+    const connection = await conectarBDEstadisticasMySql();
+    const [result] = await connection.execute(sql, values); 
+    await connection.end();
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Tipo de usuario editado con éxito" });
+    } else {
+      res.status(400).json({ message: "Tipo de usuario no encontrado" });
+    }
+  } catch (error) {
+    console.error("Error al editar el Tipo de usuario:", error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+}
+
+// --------------------PANEL PARA TIPO DE USUARIO DERIVADOR----------------------
 
 
 //-----------CONTRATACIONES--------------
@@ -952,4 +1145,4 @@ const deshabilitarPatrimonio = async (req, res) => {
 
 
 
-module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, editarAnexo, listarContratacionPorId, agregarPatrimonio, agregarCategoriaPatrimonio, agregarEstadoPatrimonio, agregarAutorPatrimonio, agregarMaterialPatrimonio, agregarUbicacionPatrimonio, agregarTipologiaPatrimonio, listarPatrimonioBack, listarAutorPatrimonioBack, listarTipologiaPatrimonioBack, listarCategoriaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarUbicacionPatrimonioBack, deshabilitarPatrimonio, editarPatrimonio}
+module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, editarAnexo, listarContratacionPorId, agregarPatrimonio, agregarCategoriaPatrimonio, agregarEstadoPatrimonio, agregarAutorPatrimonio, agregarMaterialPatrimonio, agregarUbicacionPatrimonio, agregarTipologiaPatrimonio, listarPatrimonioBack, listarAutorPatrimonioBack, listarTipologiaPatrimonioBack, listarCategoriaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarUbicacionPatrimonioBack, deshabilitarPatrimonio, editarPatrimonio, listarGenero, editarGenero, agregarGenero, agregarTipoDeUsuario, listarTiposDeUsuario, editarTipoDeUsuario, agregarTipoDoc, editarTipoDoc, listarTipoDoc, agregarReparticion, editarReparticion, listarReparticion}
