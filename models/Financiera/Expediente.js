@@ -41,7 +41,7 @@ const Expediente = sequelize.define('Expediente', {
   }
 },{
     tableName: 'expediente',
-    timestamps: false
+    timestamps: false,
 });
 
 module.exports = Expediente;

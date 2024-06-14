@@ -902,7 +902,13 @@ const agregarMovimiento = async (req, res) => {
 
     res.status(200).json({ message: "Movimiento creado con éxito" });
   } catch (error) {
-    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+ 
+    if(error.name == "SequelizeUniqueConstraintError"){
+      res.status(500).json({ message: "El número de expediente ingresado ya existe"});
+    }else{
+
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    }
   }
 };
 
