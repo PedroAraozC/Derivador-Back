@@ -561,6 +561,35 @@ const listarItems = async (req, res) => {
   }
 };
 
+const listarItemsFiltrado = async (req, res) => {
+  const cuil=req.params.cuil
+  let connection;
+  try {
+     connection = await conectar_BD_GAF_MySql();
+      // Verifica si hay un término de búsqueda en los parámetros de la solicitud
+      const searchTerm = req.query.searchTerm || '';
+
+      let sqlQuery =  `CALL sp_items(${cuil})`
+
+      // Agrega la cláusula WHERE para la búsqueda si hay un término de búsqueda
+      if (searchTerm) {
+          
+          sqlQuery += ' WHERE LOWER(item_codigo) LIKE LOWER(?) OR LOWER(item_det) LIKE LOWER(?)';
+      } 
+      const [items] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
+      await connection.end();
+      res.status(200).json({ items });
+  } catch (error) {
+    console.log(error);
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
 const agregarItem =async(req,res)=>{
   let connection;
   try {
@@ -673,7 +702,7 @@ const listarPartidas =async(req,res)=>{
       // Verifica si hay un término de búsqueda en los parámetros de la solicitud
       const searchTerm = req.query.searchTerm || '';
 
-      let sqlQuery =  'SELECT * FROM partidas'
+      let sqlQuery =  'SELECT * FROM partidas ORDER BY partida_codigo'
 
       // Agrega la cláusula WHERE para la búsqueda si hay un término de búsqueda
       if (searchTerm) {
@@ -743,7 +772,7 @@ const agregarPartida = async (req, res) => {
         principal,
         parcial,
         subparcial,
-        descripcion,
+        descripcion.toUpperCase() ,
         partidapadre_id,
         gasto,
         credito,
@@ -1332,14 +1361,14 @@ const listarAnteproyecto= async (req, res) => {
 const actualizarPresupuestoAnteproyecto=async(req, res)=> {
   let connection;
   try {
-    const datosActualizar = req.body;
+    const { detpresupuesto_id, presupuesto_anteproyecto } = req.body;
 
     // Crear una conexión a la base de datos
      connection = await conectar_BD_GAF_MySql();
 
     // Iterar sobre cada elemento a actualizar
-    for (const elemento of datosActualizar) {
-      const { detpresupuesto_id, presupuesto_anteproyecto } = elemento;
+   
+      
 
       // Consulta SQL para actualizar el presupuesto_anteproyecto
       const sqlQuery = 'UPDATE detpresupuesto SET presupuesto_anteproyecto = ? WHERE detpresupuesto_id = ?';
@@ -1353,7 +1382,7 @@ const actualizarPresupuestoAnteproyecto=async(req, res)=> {
       } else {
         res.status(200).send({mge:`No se encontró ningún registro con el detpresupuesto_id ${detpresupuesto_id}.`,ok:false});
       }
-    }
+    
 
     // Cerrar la conexión a la base de datos
     // await connection.end();
@@ -1373,6 +1402,41 @@ const actualizarPresupuestoAnteproyecto=async(req, res)=> {
 
 const actualizarCredito=async(req, res)=> {
   let connection;
+  try {
+    const { detpresupuesto_id, presupuesto_credito }= req.body;
+
+    // Crear una conexión a la base de datos
+    const connection = await conectar_BD_GAF_MySql();
+
+    // Iterar sobre cada elemento a actualizar
+ 
+      
+
+      // Consulta SQL para actualizar el presupuesto_anteproyecto
+      const sqlQuery = 'UPDATE detpresupuesto SET presupuesto_credito = ? WHERE detpresupuesto_id = ?';
+
+      // Ejecutar la consulta SQL con los parámetros proporcionados
+      const [result] = await connection.execute(sqlQuery, [presupuesto_credito, detpresupuesto_id]);
+
+      // Verificar si se realizó la actualización correctamente
+      if (result.affectedRows === 1) {
+        console.log(`Se actualizó correctamente el presupuesto_credito para el detpresupuesto_id ${detpresupuesto_id}.`);
+      } else {
+        res.status(200).send({mge:`No se encontró ningún registro con el detpresupuesto_id ${detpresupuesto_id}.`,ok:false});
+      }
+    
+
+    // Cerrar la conexión a la base de datos
+    await connection.end();
+
+    res.status(200).send({mge:'Credito actualizado',ok:true});
+  } catch (error) {
+    console.error('Error al actualizar el presupuesto_anteproyecto:', error);
+    res.status(500).send('Error en el servidor');
+  }
+}
+
+const actualizarCreditoCompleto=async(req, res)=> {
   try {
     const datosActualizar = req.body;
 
@@ -1412,8 +1476,44 @@ const actualizarCredito=async(req, res)=> {
   }
 }
 
+
 const actualizarPresupuestoAprobado=async(req, res)=> {
   let connection;
+  try {
+    const { detpresupuesto_id, presupuesto_aprobado }  = req.body;
+
+    // Crear una conexión a la base de datos
+    const connection = await conectar_BD_GAF_MySql();
+
+    // Iterar sobre cada elemento a actualizar
+     
+     
+
+      // Consulta SQL para actualizar el presupuesto_anteproyecto
+      const sqlQuery = 'UPDATE detpresupuesto SET presupuesto_aprobado = ? WHERE detpresupuesto_id = ?';
+
+      // Ejecutar la consulta SQL con los parámetros proporcionados
+      const [result] = await connection.execute(sqlQuery, [presupuesto_aprobado, detpresupuesto_id]);
+
+      // Verificar si se realizó la actualización correctamente
+      if (result.affectedRows === 1) {
+        console.log(`Se actualizó correctamente el presupuesto_aprobado para el detpresupuesto_id ${detpresupuesto_id}.`);
+      } else {
+        res.status(200).send({mge:`No se encontró ningún registro con el detpresupuesto_id ${detpresupuesto_id}.`,ok:false});
+      }
+    
+
+    // Cerrar la conexión a la base de datos
+    await connection.end();
+
+    res.status(200).send({mge:'Presupuesto aprobado actualizado',ok:true});
+  } catch (error) {
+    console.error('Error al actualizar el presupuesto_anteproyecto:', error);
+    res.status(500).send('Error en el servidor');
+  }
+}
+
+const actualizarPresupuestoAprobadoCompleto=async(req, res)=> {
   try {
     const datosActualizar = req.body;
 
@@ -1483,7 +1583,7 @@ const obtenerPartidasPorItemYMovimiento = async (req,res)=>{
 const acumular = async (req, res) => {
   let connection;
   try {
-    const {campo, partida, item } = req.body;
+    const {campo, partida, item ,presupuesto_id} = req.body;
 
     // Verificar que partida e item están definidos
     if (!partida || !item) {
@@ -1494,10 +1594,10 @@ const acumular = async (req, res) => {
      connection = await conectar_BD_GAF_MySql();
 
     // Consulta SQL para actualizar el presupuesto_anteproyecto
-    const sqlQuery = "CALL sp_actualizaacumuladores(?,?, ?)";
+    const sqlQuery = "CALL sp_actualizaacumuladores(?,?, ?,?)";
 
     // Ejecutar la consulta SQL con los parámetros proporcionados
-    const result = await connection.execute(sqlQuery, [campo,item, partida]);
+    const result = await connection.execute(sqlQuery, [campo,item, partida,presupuesto_id]);
 
     // Verificar si se realizó la actualización correctamente
     if (result)
@@ -1521,6 +1621,47 @@ const acumular = async (req, res) => {
   }
 };
 
+const obtenerPerfilPorCuil = async (req, res) => {
+  const { cuil } = req.params;
+  const connection = await conectar_BD_GAF_MySql();
+
+  try {
+      // Obtener el perfil_id correspondiente al cuil
+      const [usuarios] = await connection.execute(
+          'SELECT perfil_id FROM usuarios WHERE cuil = ?',
+          [cuil]
+      );
+
+      if (usuarios.length === 0) {
+          return res.status(404).json({ message: 'Usuario no encontrado' });
+      }
+
+      const perfilId = usuarios[0].perfil_id;
+
+      // Obtener la fila completa del perfil correspondiente al perfil_id
+      const [perfiles] = await connection.execute(
+          'SELECT * FROM perfiles WHERE perfil_id = ?',
+          [perfilId]
+      );
+
+      if (perfiles.length === 0) {
+          return res.status(404).json({ message: 'Perfil no encontrado' });
+      }
+
+      res.status(200).json(perfiles[0]);
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: error.message || 'Algo salió mal :(' });
+  } finally {
+      await connection.end();
+  }
+};
+
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida,
   agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,buscarExpediente,
-  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado, modificarMovimiento,obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular,buscarExpedienteParaModificarDefinitiva, agregarMovimientoDefinitivaPreventiva, obtenerPresupuestosParaMovimientoPresupuestario}
+  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado, modificarMovimiento,obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular,buscarExpedienteParaModificarDefinitiva, agregarMovimientoDefinitivaPreventiva, obtenerPresupuestosParaMovimientoPresupuestario,obtenerPerfilPorCuil,actualizarCreditoCompleto,actualizarPresupuestoAprobadoCompleto,listarItemsFiltrado}
+
+
+
+
+
