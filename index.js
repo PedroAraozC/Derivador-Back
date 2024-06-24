@@ -10,7 +10,7 @@ const fs = require('fs');
 const app = express();
 app.use(cors());
 dotenv.config();
-connectDB();
+// connectDB();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json({ limit: '20mb' }));
 
