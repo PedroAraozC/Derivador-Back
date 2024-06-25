@@ -36,7 +36,7 @@ const agregarOpcion = async (req, res) => {
       connection.end()
     }
 };
-
+//PROCESO A CAMBIAR PARA MANEJAR PERMISOS POR TIPO DE USUARIO
 const agregarProceso = async (req, res) => {
     let transaction;
     let connection;
