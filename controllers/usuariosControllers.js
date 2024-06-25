@@ -217,14 +217,25 @@ const obtenerPermisos = async (req, res) => {
   try {
      connection = await conectarBDEstadisticasMySql();
 
+    //CAMBIE EL CONTROLADOR PARA USAR SOLO LOS PERMISOS POR EL TIPO DE USUARIO YA QUE TIENE MENOS REGISTROS Y PUEDEN DARSE
+    // MAS FACIL LA BAJA Y EL ALTA DE ESTOS PERMISOS, SOLO QUEDA PROBARLOS Y DEJAR BIEN DEFINIDOS LOS TIPOS DE USUARIO QUE
+    // VAN A EXISTIR PARA QUE CADA UNO TENGA LOS PERMISOS NECESARIOS
+    // TAMBIEN HAY QUE VER SI ESTE DERIVADOR SERÁ SOLAMENTE EL BACK OFFICE Y DEJARLO SOLAMENTE CON LOS PANELES ADMIN
+    
     if (req.params.id) {
       const [user] = await connection.execute(
-        `SELECT pp.*, pro.descripcion, pro.nombre_proceso, o.id_opcion, o.nombre_opcion
-        FROM permiso_persona pp
-        LEFT JOIN proceso pro ON pp.id_proceso = pro.id_proceso 
+        // `SELECT pp.*, pro.descripcion, pro.nombre_proceso, o.id_opcion, o.nombre_opcion
+        // FROM permiso_persona pp
+        // LEFT JOIN proceso pro ON pp.id_proceso = pro.id_proceso 
+        // LEFT JOIN opcion o ON pro.id_opcion = o.id_opcion
+        // WHERE pp.id_persona = ?
+        // ORDER BY pro.id_proceso ASC`,
+        `SELECT pu.*, pro.descripcion, pro.nombre_proceso, o.id_opcion, o.nombre_opcion
+        FROM permiso_tusuario pu
+        LEFT JOIN proceso pro ON pu.id_proceso = pro.id_proceso 
         LEFT JOIN opcion o ON pro.id_opcion = o.id_opcion
-        WHERE pp.id_persona = ?
-        ORDER BY pro.id_proceso ASC`,
+        WHERE pu.id_tusuario = ?
+        ORDER BY o.id_opcion ASC`,
         [req.params.id]
       );
 
@@ -253,11 +264,11 @@ const obtenerOpcionesHabilitadas = async (req, res) => {
      connection = await conectarBDEstadisticasMySql();
     
     const [opciones] = await connection.execute(
-      `SELECT pp.*, pro.descripcion, pro.nombre_proceso, o.id_opcion, o.nombre_opcion
-      FROM permiso_persona pp
-      LEFT JOIN proceso pro ON pp.id_proceso = pro.id_proceso 
+      `SELECT pu.*, pro.descripcion, pro.nombre_proceso, o.id_opcion, o.nombre_opcion
+      FROM permiso_tusuario pu
+      LEFT JOIN proceso pro ON pu.id_proceso = pro.id_proceso 
       LEFT JOIN opcion o ON pro.id_opcion = o.id_opcion
-      WHERE pp.id_persona = 1
+      WHERE pu.id_tusuario = 5
       ORDER BY o.id_opcion ASC`
     );
     // await connection.end();
