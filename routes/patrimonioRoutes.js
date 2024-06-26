@@ -1,5 +1,5 @@
 const { Router } = require("express");
-const { listarTipologiaPatrimonio, listarCategoriaPatrimonio, listarMaterialPatrimonio, listarEstadoPatrimonio, listarAutorPatrimonio, listarUbicacionPatrimonio, listarPatrimonio } = require("../controllers/patrimonioControllers");
+const { listarTipologiaPatrimonio, listarCategoriaPatrimonio, listarMaterialPatrimonio, listarEstadoPatrimonio, listarAutorPatrimonio, listarUbicacionPatrimonio, listarPatrimonio, listarPatrimonioPorId } = require("../controllers/patrimonioControllers");
 const router = Router();
 
 
@@ -10,6 +10,7 @@ router.get("/listarEstadosPatrimonio", listarEstadoPatrimonio)
 router.get("/listarAutoresPatrimonio", listarAutorPatrimonio)
 router.get("/listarUbicacionesPatrimonio", listarUbicacionPatrimonio)
 router.get("/listarPatrimonios", listarPatrimonio)
+router.get("/listarPatrimoniosPorId/:id", listarPatrimonioPorId);
 
 
 

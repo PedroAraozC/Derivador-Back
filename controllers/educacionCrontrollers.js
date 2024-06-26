@@ -30,6 +30,7 @@ const obtenerRutaArchivoNuevo = (nombre_archivo) => {
 
 // --------------------------CONVOCATORIAS ABM--------------------------------
 const agregarConvocatoria = async (req, res) => {
+  let connection;
   try {
     const {
       id_nivel,
@@ -58,7 +59,7 @@ const agregarConvocatoria = async (req, res) => {
     const nombre_archivo = archivo.originalname;
     
     // Obtener el último id_convoca de la tabla
-    const connection = await conectar_BD_EDUCACION_MySql();
+    connection = await conectar_BD_EDUCACION_MySql();
     const [lastIdResult] = await connection.query("SELECT MAX(id_convoca) AS max_id FROM convocatoria");
 
     let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_convoca
@@ -91,9 +92,12 @@ const agregarConvocatoria = async (req, res) => {
     res.status(201).json({ message: "Convocatoria creada con éxito", id: nextId, num_convocatoria: num_convocatoria });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 };
 const editarConvocatoria = async (req, res) => {
+  let connection;
   try {
     const { id, nivel, cargo, establecimiento, causal, expte, caracter, fecha, hora, habilita, num_convocatoria, anio_convocatoria, oldName } = req.body;
     // Verificar si hay un archivo adjunto
@@ -112,7 +116,7 @@ const editarConvocatoria = async (req, res) => {
     const values = [nivel, cargo, establecimiento, causal, expte, caracter, fecha, hora, nombre_archivo, habilita, id];
 
     // Verificar si la convocatoria ya existe con otra ID
-    const connection = await conectar_BD_EDUCACION_MySql();
+    connection = await conectar_BD_EDUCACION_MySql();
     const [convocatoria] = await connection.execute(
       "SELECT * FROM convocatoria WHERE (cargo = ? AND id_establecimiento = ? AND id_causal = ? AND expte = ? AND id_caracter = ? AND fecha_designa = ? AND hora_designa = ? AND nombre_archivo = ? AND habilita = ?) AND id_convoca != ?",
       [cargo, establecimiento, causal, expte, caracter, fecha, hora, nombre_archivo, habilita, id]
@@ -132,6 +136,8 @@ const editarConvocatoria = async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 };
 const listarConvocatorias =async(req,res)=>{
@@ -150,7 +156,7 @@ const listarConvocatorias =async(req,res)=>{
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }  finally {
       if (connection) {
-        connection.release();
+        connection.end();
       }
     }
 }
@@ -170,7 +176,7 @@ const listarConvocatoriasTabla =async(req,res)=>{
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }  finally {
       if (connection) {
-        connection.release();
+        connection.end();
       }
     }
 }
@@ -187,7 +193,7 @@ const listarNiveles =async(req,res)=>{
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }  finally {
       if (connection) {
-        connection.release();
+        connection.end();
       }
     }
 }
@@ -203,11 +209,12 @@ const listarNivelesTabla =async(req,res)=>{
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }  finally {
       if (connection) {
-        connection.release();
+        connection.end();
       }
     }
 }
 const agregarNivel = async (req, res) => {
+  let connection;
   try {
     const {
       nombre_nivel,
@@ -217,7 +224,7 @@ const agregarNivel = async (req, res) => {
     } = req.body;
     
     // Obtener el último id_causal de la tabla
-    const connection = await conectar_BD_EDUCACION_MySql();
+    connection = await conectar_BD_EDUCACION_MySql();
     const [lastIdResult] = await connection.query("SELECT MAX(id_nivel) AS max_id FROM nivel");
     
     let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_causal
@@ -238,13 +245,15 @@ const agregarNivel = async (req, res) => {
     
     res.status(201).json({ message: "Nivel creado con éxito", id: nextId, nombre_nivel: nombre_nivel });
     
-    connection.release();
     
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 }
 const editarNivel = async(req,res) =>{
+  let connection;
   try {
     const {
       id,
@@ -255,7 +264,7 @@ const editarNivel = async(req,res) =>{
     } = req.body;
     
     // Obtener el último id_causal de la tabla
-    const connection = await conectar_BD_EDUCACION_MySql();
+    connection = await conectar_BD_EDUCACION_MySql();
     
     // Query para actualizar la causal
     const sql =
@@ -272,11 +281,12 @@ const editarNivel = async(req,res) =>{
     await connection.execute(sql, values);
     
     res.status(200).json({ message: "Nivel actualizada con éxito", id: id, nombre_nivel: nombre_nivel });
-    
-    connection.release();
+  
     
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 }
 //-------------------------------ESTABLECIMIENTOS ABM----------------------------------
@@ -292,7 +302,7 @@ const listarEstablecimientos =async(req,res)=>{
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }  finally {
       if (connection) {
-        connection.release();
+        connection.end();
       }
     }
 }
@@ -308,91 +318,94 @@ try {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
 }  finally {
     if (connection) {
-      connection.release();
+      connection.end();
     }
   }
 }
 const agregarEstablecimiento = async (req, res) => {
-  console.log(req.body)
-try {
-  const {
-    nombre_establecimiento,
-    domicilio,
-    telefono,
-    nombre_autoridad,
-    email_autoridad,
-    habilita
-  } = req.body;
-  
-  // Obtener el último id_causal de la tabla
-  const connection = await conectar_BD_EDUCACION_MySql();
-  const [lastIdResult] = await connection.query("SELECT MAX(id_establecimiento) AS max_id FROM establecimiento");
-  
-  let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_causal
-  
-  // Query para insertar una nueva causal
-  const sql =
-  "INSERT INTO establecimiento (id_establecimiento, nombre_establecimiento, domicilio, telefono, nombre_autoridad, email_autoridad, habilita) VALUES (?, ?, ?, ?, ? ,?, ?)";
-  const values = [
-    nextId,
-    nombre_establecimiento,
-    domicilio,
-    telefono,
-    nombre_autoridad,
-    email_autoridad,
-    habilita,
-  ];
-  
-  // Ejecutar la consulta SQL para insertar la nueva causal
-  await connection.execute(sql, values);
-  
-  res.status(201).json({ message: "Establecimiento creado con éxito", id: nextId, nombre_establecimiento: nombre_establecimiento });
-  
-  connection.release();
-  
-} catch (error) {
-  res.status(500).json({ message: error.message || "Algo salió mal :(" });
-}
+  let connection;
+  try {
+    const {
+      nombre_establecimiento,
+      domicilio,
+      telefono,
+      nombre_autoridad,
+      email_autoridad,
+      habilita
+    } = req.body;
+    
+    // Obtener el último id_causal de la tabla
+    connection = await conectar_BD_EDUCACION_MySql();
+    const [lastIdResult] = await connection.query("SELECT MAX(id_establecimiento) AS max_id FROM establecimiento");
+    
+    let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_causal
+    
+    // Query para insertar una nueva causal
+    const sql =
+    "INSERT INTO establecimiento (id_establecimiento, nombre_establecimiento, domicilio, telefono, nombre_autoridad, email_autoridad, habilita) VALUES (?, ?, ?, ?, ? ,?, ?)";
+    const values = [
+      nextId,
+      nombre_establecimiento,
+      domicilio,
+      telefono,
+      nombre_autoridad,
+      email_autoridad,
+      habilita,
+    ];
+    
+    // Ejecutar la consulta SQL para insertar la nueva causal
+    await connection.execute(sql, values);
+    
+    res.status(201).json({ message: "Establecimiento creado con éxito", id: nextId, nombre_establecimiento: nombre_establecimiento });
+    
+    
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
+  }
 }
 const editarEstablecimiento = async(req,res) =>{
   console.log(req.body)
-try {
-  const {
-    id,
-    nombre_establecimiento,
-    domicilio,
-    telefono,
-    nombre_autoridad,
-    email_autoridad,
-    habilita
-  } = req.body;
-  
-  // Obtener el último id_causal de la tabla
-  const connection = await conectar_BD_EDUCACION_MySql();
-  
-  // Query para actualizar la causal
-  const sql =
-  "UPDATE establecimiento SET nombre_establecimiento = ?, domicilio = ?, telefono = ?, nombre_autoridad = ?, email_autoridad =?, habilita = ? WHERE id_establecimiento = ?";
-  const values = [
-    nombre_establecimiento,
-    domicilio,
-    telefono,
-    nombre_autoridad,
-    email_autoridad,
-    habilita,
-    id,
-  ];
-  
-  // Ejecutar la consulta SQL para actualizar la causal
-  await connection.execute(sql, values);
-  
-  res.status(200).json({ message: "Establecimiento actualizado con éxito", id: id, nombre_establecimiento: nombre_establecimiento });
-  
-  connection.release();
-  
-} catch (error) {
-  res.status(500).json({ message: error.message || "Algo salió mal :(" });
-}
+  let connection;
+  try {
+    const {
+      id,
+      nombre_establecimiento,
+      domicilio,
+      telefono,
+      nombre_autoridad,
+      email_autoridad,
+      habilita
+    } = req.body;
+    
+    // Obtener el último id_causal de la tabla
+    connection = await conectar_BD_EDUCACION_MySql();
+    
+    // Query para actualizar la causal
+    const sql =
+    "UPDATE establecimiento SET nombre_establecimiento = ?, domicilio = ?, telefono = ?, nombre_autoridad = ?, email_autoridad =?, habilita = ? WHERE id_establecimiento = ?";
+    const values = [
+      nombre_establecimiento,
+      domicilio,
+      telefono,
+      nombre_autoridad,
+      email_autoridad,
+      habilita,
+      id,
+    ];
+    
+    // Ejecutar la consulta SQL para actualizar la causal
+    await connection.execute(sql, values);
+    
+    res.status(200).json({ message: "Establecimiento actualizado con éxito", id: id, nombre_establecimiento: nombre_establecimiento });
+    
+    
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
+  }
 }
 // --------------------------------CAUSAL ABM---------------------------------------------
 const listarCausal =async(req,res)=>{
@@ -407,7 +420,7 @@ const listarCausal =async(req,res)=>{
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }  finally {
       if (connection) {
-        connection.release();
+        connection.end();
       }
     }
 }
@@ -423,12 +436,13 @@ const listarCausalTabla =async(req,res)=>{
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }  finally {
       if (connection) {
-        connection.release();
+        connection.end();
       }
     }
 }
 const agregarCausal = async (req, res) => {
   console.log(req.body)
+  let connection;
   try {
     const {
       nombre_causal,
@@ -436,7 +450,7 @@ const agregarCausal = async (req, res) => {
     } = req.body;
     
     // Obtener el último id_causal de la tabla
-    const connection = await conectar_BD_EDUCACION_MySql();
+    connection = await conectar_BD_EDUCACION_MySql();
     const [lastIdResult] = await connection.query("SELECT MAX(id_causal) AS max_id FROM causal");
     
     let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_causal
@@ -455,14 +469,15 @@ const agregarCausal = async (req, res) => {
     
     res.status(201).json({ message: "Causal creada con éxito", id: nextId, nombre_causal: nombre_causal });
     
-    connection.release();
     
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 }
 const editarCausal = async (req, res) => {
-  console.log(req.body)
+  let connection;
   try {
     const {
       id,
@@ -471,7 +486,7 @@ const editarCausal = async (req, res) => {
     } = req.body;
     
     // Obtener el último id_causal de la tabla
-    const connection = await conectar_BD_EDUCACION_MySql();
+    connection = await conectar_BD_EDUCACION_MySql();
     
     // Query para actualizar la causal
     const sql =
@@ -487,10 +502,10 @@ const editarCausal = async (req, res) => {
     
     res.status(200).json({ message: "Causal actualizada con éxito", id: id, nombre_causal: nombre_causal });
     
-    connection.release();
-    
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 }
 // ----------------------------------CARACTER ABM--------------------------------------------
@@ -506,7 +521,7 @@ const listarCaracter =async(req,res)=>{
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }  finally {
       if (connection) {
-        connection.release();
+        connection.end();
       }
     }
 }
@@ -522,11 +537,12 @@ const listarCaracterTabla =async(req,res)=>{
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   }  finally {
       if (connection) {
-        connection.release();
+        connection.end();
       }
     }
 }
 const agregarCaracter = async(req,res) =>{
+  let connection;
   try {
     const {
       nombre_caracter,
@@ -534,7 +550,7 @@ const agregarCaracter = async(req,res) =>{
     } = req.body;
     
     // Obtener el último id_causal de la tabla
-    const connection = await conectar_BD_EDUCACION_MySql();
+    connection = await conectar_BD_EDUCACION_MySql();
     const [lastIdResult] = await connection.query("SELECT MAX(id_caracter) AS max_id FROM caracter");
     
     let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_causal
@@ -553,13 +569,15 @@ const agregarCaracter = async(req,res) =>{
     
     res.status(201).json({ message: "Caracter creada con éxito", id: nextId, nombre_caracter: nombre_caracter });
     
-    connection.release();
     
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 }
 const editarCaracter = async(req,res) =>{
+  let connection;
   try {
     const {
       id,
@@ -568,7 +586,7 @@ const editarCaracter = async(req,res) =>{
     } = req.body;
     
     // Obtener el último id_causal de la tabla
-    const connection = await conectar_BD_EDUCACION_MySql();
+    connection = await conectar_BD_EDUCACION_MySql();
     
     // Query para actualizar la causal
     const sql =
@@ -584,10 +602,11 @@ const editarCaracter = async(req,res) =>{
     
     res.status(200).json({ message: "Caracter actualizada con éxito", id: id, nombre_caracter: nombre_caracter });
     
-    connection.release();
     
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 }
 
