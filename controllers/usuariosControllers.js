@@ -31,14 +31,14 @@ const transporter = nodemailer.createTransport({
 // });
 
 //funciones
-const enviarEmail = (codigo, email) => {
+const enviarEmail = (codigo, email, cuil) => {
 
   try {
     const mailOptions = {
       from: 'SMT-Ciudadano Digital <no-reply-cdigital@smt.gob.ar>',
       to: email,
       subject: 'Código de validación',
-      text: `Tu código de validación es: ${codigo}`
+      text: `Tu código de validación es: ${codigo}. Para visualizar su credencial de Ciudadano Digital ingrese al siguiente link: https://ciudaddigital.smt.gob.ar/#/credencialesCiudadano/${cuil}`
     };
 
     transporter.sendMail(mailOptions, (errorEmail, info) => {
@@ -105,9 +105,10 @@ function generarCodigoAfaNumerico() {
 
 //controladores
 const login = async (req, res) => {
+  let connection;
  
-  const connection = await conectarBDEstadisticasMySql();
-    try {
+  try {
+       connection = await conectarBDEstadisticasMySql();
         const { dni, password } = req.body;
         if (!dni || !password)
             throw new CustomError("Usuario y contraseña son requeridas", 400);
@@ -124,7 +125,7 @@ const login = async (req, res) => {
 
         const permiso_persona = await connection.execute('SELECT permiso_persona.*,proceso.nombre_proceso AS proceso,proceso.habilita AS habilitado FROM permiso_persona JOIN proceso ON permiso_persona.id_proceso=proceso.id_proceso WHERE permiso_persona.id_persona = ?',[result[0].id_persona]) 
     
-        await connection.end();
+        // await connection.end();
 
         const passOk = await bcrypt.compare(password, result[0].clave);
         if (!passOk) throw new CustomError("Contraseña incorrecta", 400);
@@ -150,8 +151,9 @@ const login = async (req, res) => {
 };
 
 const getAuthStatus = async (req, res) => {
-  const connection = await conectarBDEstadisticasMySql();
-    try {
+  let connection;
+  try {
+       connection = await conectarBDEstadisticasMySql();
         const id = req.id;
 
         const [user] = await connection.execute(
@@ -161,7 +163,7 @@ const getAuthStatus = async (req, res) => {
 
         if (user.length == 0) throw new CustomError("Autenticación fallida", 401);
         const { clave, ...usuarioSinContraseña } = user[0];
-        await connection.end();
+        // await connection.end();
         res.status(200).json({ usuarioSinContraseña });
     } catch (error) {
         res.status(error.code || 500).json({
@@ -177,8 +179,9 @@ const getAuthStatus = async (req, res) => {
 };
 
 const obtenerUsuarios = async (req, res) => {
+  let connection;
   try {
-    const connection = await conectarBDEstadisticasMySql();
+     connection = await conectarBDEstadisticasMySql();
 
     if (req.params.id) {
       const [user] = await connection.execute(
@@ -196,26 +199,43 @@ const obtenerUsuarios = async (req, res) => {
         const { clave, ...usuarioSinClave } = usuario;
         return usuarioSinClave;
       }); 
-      await connection.end();
+      // await connection.end();
       res.status(200).json({ usuariosSinClave });
     }
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
 const obtenerPermisos = async (req, res) => {
+  let connection;
   try {
-    const connection = await conectarBDEstadisticasMySql();
+     connection = await conectarBDEstadisticasMySql();
 
+    //CAMBIE EL CONTROLADOR PARA USAR SOLO LOS PERMISOS POR EL TIPO DE USUARIO YA QUE TIENE MENOS REGISTROS Y PUEDEN DARSE
+    // MAS FACIL LA BAJA Y EL ALTA DE ESTOS PERMISOS, SOLO QUEDA PROBARLOS Y DEJAR BIEN DEFINIDOS LOS TIPOS DE USUARIO QUE
+    // VAN A EXISTIR PARA QUE CADA UNO TENGA LOS PERMISOS NECESARIOS
+    // TAMBIEN HAY QUE VER SI ESTE DERIVADOR SERÁ SOLAMENTE EL BACK OFFICE Y DEJARLO SOLAMENTE CON LOS PANELES ADMIN
+    
     if (req.params.id) {
       const [user] = await connection.execute(
-        `SELECT pp.*, pro.descripcion, pro.nombre_proceso, o.id_opcion, o.nombre_opcion
-        FROM permiso_persona pp
-        LEFT JOIN proceso pro ON pp.id_proceso = pro.id_proceso 
+        // `SELECT pp.*, pro.descripcion, pro.nombre_proceso, o.id_opcion, o.nombre_opcion
+        // FROM permiso_persona pp
+        // LEFT JOIN proceso pro ON pp.id_proceso = pro.id_proceso 
+        // LEFT JOIN opcion o ON pro.id_opcion = o.id_opcion
+        // WHERE pp.id_persona = ?
+        // ORDER BY pro.id_proceso ASC`,
+        `SELECT pu.*, pro.descripcion, pro.nombre_proceso, o.id_opcion, o.nombre_opcion
+        FROM permiso_tusuario pu
+        LEFT JOIN proceso pro ON pu.id_proceso = pro.id_proceso 
         LEFT JOIN opcion o ON pro.id_opcion = o.id_opcion
-        WHERE pp.id_persona = ?
-        ORDER BY pro.id_proceso ASC`,
+        WHERE pu.id_tusuario = ?
+        ORDER BY o.id_opcion ASC`,
         [req.params.id]
       );
 
@@ -225,35 +245,47 @@ const obtenerPermisos = async (req, res) => {
       const [users] = await connection.execute(
         `SELECT persona.*, tipo_usuario.nombre_tusuario AS tipoDeUsuario FROM persona JOIN tipo_usuario ON persona.id_tusuario = tipo_usuario.id_tusuario`
       );
-      await connection.end();
+      // await connection.end();
       res.status(200).json({ usuarios: users });
     }
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
 const obtenerOpcionesHabilitadas = async (req, res) => {
+  let connection;
   try {
-    const connection = await conectarBDEstadisticasMySql();
+    connection = await conectarBDEstadisticasMySql();
     
     const [opciones] = await connection.execute(
-      `SELECT pp.*, pro.descripcion, pro.nombre_proceso, o.id_opcion, o.nombre_opcion
-      FROM permiso_persona pp
-      LEFT JOIN proceso pro ON pp.id_proceso = pro.id_proceso 
+      `SELECT pu.*, pro.descripcion, pro.nombre_proceso, o.id_opcion, o.nombre_opcion
+      FROM permiso_tusuario pu
+      LEFT JOIN proceso pro ON pu.id_proceso = pro.id_proceso 
       LEFT JOIN opcion o ON pro.id_opcion = o.id_opcion
-      WHERE pp.id_persona = 1
+      WHERE pu.id_tusuario = 1
       ORDER BY o.id_opcion ASC`
     );
-    await connection.end();
+    // await connection.end();
     res.status(200).json({ opciones });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
 
 const editarUsuario = async (req, res) => {//falta
+  let connection;
   try {
     const { nombreUsuario, tipoDeUsuario } = req.body;
     const userId = req.params.id;
@@ -262,14 +294,14 @@ const editarUsuario = async (req, res) => {//falta
       "UPDATE usuario SET nombreUsuario = ?,tipoDeUsuario_id=? WHERE id = ?";
     const values = [nombreUsuario, tipoDeUsuario, userId];
 
-    const connection = await conectarBDEstadisticasMySql();
+     connection = await conectarBDEstadisticasMySql();
     const [user] = await connection.execute(
       "SELECT * FROM usuario WHERE nombreUsuario = ?",
       [nombreUsuario]
     );
     if (user.length == 0 || user[0].id == userId) {
       const [result] = await connection.execute(sql, values); 
-      await connection.end();
+      // await connection.end();
       // El resultado puede contener información sobre la cantidad de filas afectadas, etc.
       console.log("Filas actualizadas:", result.affectedRows);
       res
@@ -285,6 +317,11 @@ const editarUsuario = async (req, res) => {//falta
     }
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
@@ -309,17 +346,22 @@ const editarUsuarioCompleto = async (req, res) => {
                     'UPDATE persona SET nombre_persona = ?, apellido_persona = ?, email_persona = ?, telefono_persona = ?, domicilio_persona = ?, localidad_persona = ? WHERE documento_persona = ?',
                     [nombre_persona.toUpperCase(), apellido_persona.toUpperCase(), email_persona, telefono_persona, domicilio_persona.toUpperCase(),localidad_persona.toUpperCase(), documento_persona]
                   ); 
-                  await connection.end();
+                  // await connection.end();
         return res.status(200).json({ message: "Usuario editado con éxito", ok: true });
           
       
       } else {
-        await connection.end();
+        // await connection.end();
           return res.status(404).json({ message: "Usuario no encontrado" });
       }
       
   } catch (error) {
       return res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
   } 
 };
 
@@ -328,11 +370,11 @@ const borrarUsuario = async (req, res) => {
 
   const sql = "DELETE FROM persona WHERE id_persona = ?";
   const values = [id];
-
+  let connection;
   try {
-    const connection = await conectarBDEstadisticasMySql();
+     connection = await conectarBDEstadisticasMySql();
     const [result] = await connection.execute(sql, values); 
-    await connection.end();
+    // await connection.end();
     if (result.affectedRows > 0) {
       res.status(200).json({ message: "persona eliminada con éxito" });
     } else {
@@ -341,6 +383,11 @@ const borrarUsuario = async (req, res) => {
   } catch (error) {
     console.error("Error al eliminar la persona:", error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
@@ -351,7 +398,7 @@ const obtenerCiudadanoPorDNIMYSQL = async (req, res) => {
 
       const userDNI = req.params.dni;
       const queryResult = await connection.query("SELECT * FROM persona WHERE documento_persona = ?", [userDNI]);
-      await connection.end();
+      // await connection.end();
       if (queryResult.length > 0) {
           const ciudadano = queryResult[0]; // Suponiendo que solo hay un usuario con ese DNI
           if (ciudadano.length > 0) {
@@ -364,7 +411,12 @@ const obtenerCiudadanoPorDNIMYSQL = async (req, res) => {
       }
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
-  } 
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
 };
 
 const obtenerCiudadanoPorEmailMYSQL = async (req, res) => { 
@@ -374,7 +426,7 @@ const obtenerCiudadanoPorEmailMYSQL = async (req, res) => {
 
       const userEmail = req.params.email;
       const queryResult = await connection.query("SELECT * FROM persona WHERE email_persona = ?", [userEmail]);
-      await connection.end();
+      // await connection.end();
       if (queryResult.length > 0) {
           const ciudadano = queryResult[0]; // Suponiendo que solo hay un usuario con ese DNI
           if (ciudadano.length > 0) {
@@ -387,7 +439,12 @@ const obtenerCiudadanoPorEmailMYSQL = async (req, res) => {
       }
   } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" }); 
-  } 
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
 };
 
 const validarUsuarioMYSQL = async (req, res) => {
@@ -545,7 +602,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
         );
       }
       // Enviar correo electrónico al usuario recién registrado
-       enviarEmail(codigoValidacion,email_persona);                 
+       enviarEmail(codigoValidacion,email_persona, documento_persona);                 
 
        await connection.end();
       res.status(200).json({ message: "Ciudadano creado con éxito" ,ok:true});
@@ -583,7 +640,7 @@ const enviarEmailValidacion = async (req, res) => {
 
       await connection.query("UPDATE persona SET email_persona=? WHERE documento_persona = ?", [email_persona, documento_persona]);
 
-      enviarEmail(codigoValidacion, email_persona);
+      enviarEmail(codigoValidacion, email_persona,documento_persona);
       return res.status(200).json({ mge: "Correo de validación enviado", ok: true });
 
     } else {

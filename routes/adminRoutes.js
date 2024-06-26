@@ -1,7 +1,7 @@
 const { Router } = require("express");
 const auth = require("../middlewares/auth");
 const verifyRole = require("../middlewares/verifyRole");
-const { agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacion, listarContratacionBack, borrarContratacion, editarContratacion, editarAnexo, listarContratacionPorId, listarPatrimonioBack, listarCategoriaPatrimonioBack, listarTipologiaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarAutorPatrimonioBack, listarUbicacionPatrimonioBack, agregarPatrimonio, deshabilitarPatrimonio, agregarAutorPatrimonio, agregarEstadoPatrimonio, agregarMaterialPatrimonio, agregarTipologiaPatrimonio, agregarCategoriaPatrimonio, agregarUbicacionPatrimonio, editarPatrimonio } = require("../controllers/adminControllers");
+const { agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacion, listarContratacionBack, borrarContratacion, editarContratacion, editarAnexo, listarContratacionPorId, listarPatrimonioBack, listarCategoriaPatrimonioBack, listarTipologiaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarAutorPatrimonioBack, listarUbicacionPatrimonioBack, agregarPatrimonio, deshabilitarPatrimonio, agregarAutorPatrimonio, agregarEstadoPatrimonio, agregarMaterialPatrimonio, agregarTipologiaPatrimonio, agregarCategoriaPatrimonio, agregarUbicacionPatrimonio, editarPatrimonio, agregarGenero, editarGenero, listarGenero, listarTiposDeUsuario, agregarTipoDeUsuario, editarTipoDeUsuario, listarTipoDoc, agregarTipoDoc, editarTipoDoc, listarReparticion, agregarReparticion, editarReparticion, listarProcesos, actualizarPermisosTUsuario, listarPermisosPorTUsuarios, actualizarPermisosPorTUsuario, listarEmpleados } = require("../controllers/adminControllers");
 const fs = require('fs');
 const router = Router();
 const multer  = require('multer');
@@ -55,6 +55,47 @@ const uploadPatrimonio = multer({ storage: storagePatrimonio });
 router.post("/altaOpcion", agregarOpcion);
 router.post("/altaProceso", agregarProceso);
 router.post("/borrarOpcion", borrarOpcion);
+router.post("/listarPermisosPorTUsuarios", listarPermisosPorTUsuarios);
+router.post("/editarPermisosPorTUsuarios", actualizarPermisosPorTUsuario);
+
+router.post("/altaGenero", agregarGenero);
+router.post("/editarGenero", editarGenero);
+router.get("/listarGenero", listarGenero);
+
+//-----------Usurios-------------
+
+router.get("/listarEmpleados", listarEmpleados);
+
+//-----------Usurios-------------
+
+
+//-----------Tipo de Usurios-------------
+
+router.get("/listarTUsuarios", listarTiposDeUsuario);
+router.post("/listarProcesos", listarProcesos);
+router.post("/altaTUsuarios", agregarTipoDeUsuario);
+router.post("/editarTUsuarios", editarTipoDeUsuario);
+router.post("/editarPermisosTUsuarios", actualizarPermisosTUsuario);
+
+
+//-----------Tipo de Usurios-------------
+
+//-----------Tipo de Documento-------------
+
+router.get("/listarTDocumentos", listarTipoDoc);
+router.post("/altaTDocumentos", agregarTipoDoc);
+router.post("/editarTDocumentos", editarTipoDoc);
+
+//-----------Tipo de Documento-------------
+
+
+//-----------Reparticiones-------------
+
+router.get("/listarReparticiones", listarReparticion);
+router.post("/altaReparticiones", agregarReparticion);
+router.post("/editarReparticiones", editarReparticion);
+
+//-----------Reparticiones-------------
 
 //--------Contrataciones-------------
 router.get("/listaTipoContratacion", listarTipoContratacion);
