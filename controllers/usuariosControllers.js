@@ -31,14 +31,14 @@ const transporter = nodemailer.createTransport({
 // });
 
 //funciones
-const enviarEmail = (codigo, email) => {
+const enviarEmail = (codigo, email, cuil) => {
 
   try {
     const mailOptions = {
       from: 'SMT-Ciudadano Digital <no-reply-cdigital@smt.gob.ar>',
       to: email,
       subject: 'Código de validación',
-      text: `Tu código de validación es: ${codigo}`
+      text: `Tu código de validación es: ${codigo}. Para visualizar su credencial de Ciudadano Digital ingrese al siguiente link: https://ciudaddigital.smt.gob.ar/#/credencialesCiudadano/${cuil}`
     };
 
     transporter.sendMail(mailOptions, (errorEmail, info) => {
@@ -591,7 +591,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
         );
       }
       // Enviar correo electrónico al usuario recién registrado
-       enviarEmail(codigoValidacion,email_persona);                 
+       enviarEmail(codigoValidacion,email_persona, documento_persona);                 
 
        await connection.end();
       res.status(200).json({ message: "Ciudadano creado con éxito" ,ok:true});
@@ -629,7 +629,7 @@ const enviarEmailValidacion = async (req, res) => {
 
       await connection.query("UPDATE persona SET email_persona=? WHERE documento_persona = ?", [email_persona, documento_persona]);
 
-      enviarEmail(codigoValidacion, email_persona);
+      enviarEmail(codigoValidacion, email_persona,documento_persona);
       return res.status(200).json({ mge: "Correo de validación enviado", ok: true });
 
     } else {
