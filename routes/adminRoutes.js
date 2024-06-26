@@ -1,7 +1,7 @@
 const { Router } = require("express");
 const auth = require("../middlewares/auth");
 const verifyRole = require("../middlewares/verifyRole");
-const { agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacion, listarContratacionBack, borrarContratacion, editarContratacion, editarAnexo, listarContratacionPorId, listarPatrimonioBack, listarCategoriaPatrimonioBack, listarTipologiaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarAutorPatrimonioBack, listarUbicacionPatrimonioBack, agregarPatrimonio, deshabilitarPatrimonio } = require("../controllers/adminControllers");
+const { agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacion, listarContratacionBack, borrarContratacion, editarContratacion, editarAnexo, listarContratacionPorId, listarPatrimonioBack, listarCategoriaPatrimonioBack, listarTipologiaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarAutorPatrimonioBack, listarUbicacionPatrimonioBack, agregarPatrimonio, deshabilitarPatrimonio, agregarAutorPatrimonio, agregarEstadoPatrimonio, agregarMaterialPatrimonio, agregarTipologiaPatrimonio, agregarCategoriaPatrimonio, agregarUbicacionPatrimonio, editarPatrimonio } = require("../controllers/adminControllers");
 const fs = require('fs');
 const router = Router();
 const multer  = require('multer');
@@ -36,13 +36,14 @@ const storageAnexo = multer.diskStorage({
 });
 const storagePatrimonio = multer.diskStorage({
     destination: function (req, file, cb) {
-        const uploadPath = `./img-patrimonios`; // Ruta de la carpeta de destino para los anexos
+        const uploadPath = `./pdf`; // Ruta de la carpeta de destino para los anexos
         fs.mkdirSync(uploadPath, { recursive: true }); // Crear carpeta si no existe
         cb(null, uploadPath);
     },
     filename: function (req, file, cb) {
         const { nombre_patrimonio } = req.body;
-        const nombreArchivo = `${nombre_patrimonio}.pdf`;
+        let finalName = nombre_patrimonio.replace(/\s+/g, '').trim();
+        const nombreArchivo = `${finalName}.jpg`;
         cb(null, nombreArchivo);
     }
 });
@@ -77,6 +78,13 @@ router.get("/listarEstados", listarEstadoPatrimonioBack);
 router.get("/listarAutores", listarAutorPatrimonioBack);
 router.get("/listarUbicaciones", listarUbicacionPatrimonioBack);
 router.post("/agregarPatrimonio", uploadPatrimonio.single('archivo'), agregarPatrimonio);
+router.post("/editarPatrimonio", uploadPatrimonio.single('archivo'), editarPatrimonio);
+router.post("/agregarAutor", agregarAutorPatrimonio);
+router.post("/agregarEstado", agregarEstadoPatrimonio);
+router.post("/agregarMaterial", agregarMaterialPatrimonio);
+router.post("/agregarTipologia", agregarTipologiaPatrimonio);
+router.post("/agregarCategoria", agregarCategoriaPatrimonio);
+router.post("/agregarUbicacion", agregarUbicacionPatrimonio);
 router.post("/deshabilitarPatrimonio", deshabilitarPatrimonio);
 
 //--------Patrimonio Municipal ----------

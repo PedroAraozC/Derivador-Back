@@ -7,32 +7,33 @@ const PermisoPersona = require("../models/Derivador/PermisoPersona");
 const fs = require('fs');
 const path = require('path');
 const { conectarFTPCiudadano } = require("../config/winscpCiudadano");
+const { conectarFTPLICITACIONES } = require("../config/winscpLicitaciones");
 
-const sobrescribirArchivo = (rutaArchivoAntiguo, rutaArchivoNuevo) => {
-  try {
-    // Leer el contenido del nuevo archivo
-    const contenidoNuevo = fs.readFileSync(rutaArchivoNuevo);
-    // Sobrescribir el archivo antiguo con el contenido del nuevo archivo
-    fs.writeFileSync(rutaArchivoAntiguo, contenidoNuevo);
-    console.log(`Archivo sobrescrito: ${rutaArchivoAntiguo}`);
-  } catch (error) {
-    console.error(`Error al sobrescribir el archivo: ${error}`);
-  }
-};
-// Función para obtener la ruta del archivo antiguo
-const obtenerRutaArchivoAntiguo = (oldName) => {
-  // Suponiendo que los archivos antiguos se guardan en una carpeta llamada 'pdfs' en el escritorio
-  const rutaArchivoAntiguo = path.join('./pdf', oldName);
-  console.log(rutaArchivoAntiguo)
-  return rutaArchivoAntiguo;
-};
+// const sobrescribirArchivo = (rutaArchivoAntiguo, rutaArchivoNuevo) => {
+//   try {
+//     // Leer el contenido del nuevo archivo
+//     const contenidoNuevo = fs.readFileSync(rutaArchivoNuevo);
+//     // Sobrescribir el archivo antiguo con el contenido del nuevo archivo
+//     fs.writeFileSync(rutaArchivoAntiguo, contenidoNuevo);
+//     console.log(`Archivo sobrescrito: ${rutaArchivoAntiguo}`);
+//   } catch (error) {
+//     console.error(`Error al sobrescribir el archivo: ${error}`);
+//   }
+// };
+// // Función para obtener la ruta del archivo antiguo
+// const obtenerRutaArchivoAntiguo = (oldName) => {
+//   // Suponiendo que los archivos antiguos se guardan en una carpeta llamada 'pdfs' en el escritorio
+//   const rutaArchivoAntiguo = path.join('./pdf', oldName);
+//   console.log(rutaArchivoAntiguo)
+//   return rutaArchivoAntiguo;
+// };
 
-// Función para obtener la ruta del nuevo archivo
-const obtenerRutaArchivoNuevo = (nombre_archivo) => {
-  // Suponiendo que los archivos nuevos también se guardan en una carpeta llamada 'pdfs' en el escritorio
-  const rutaArchivoNuevo = path.join('./pdf', nombre_archivo);
-  return rutaArchivoNuevo;
-};
+// // Función para obtener la ruta del nuevo archivo
+// const obtenerRutaArchivoNuevo = (nombre_archivo) => {
+//   // Suponiendo que los archivos nuevos también se guardan en una carpeta llamada 'pdfs' en el escritorio
+//   const rutaArchivoNuevo = path.join('./pdf', nombre_archivo);
+//   return rutaArchivoNuevo;
+// };
 
 const agregarOpcion = async (req, res) => {
     try {
@@ -318,8 +319,8 @@ const agregarContratacion = async (req, res) => {
     console.log(values)
     // Ejecutar la consulta SQL para insertar la nueva convocatoria
     await connection.execute(sql, values);
-    const ftpClient = await conectarFTPCiudadano();
-    const remoteFilePath = `/PDF-Convocatorias/${nombre_archivo}`;
+    const ftpClient = await conectarFTPLICITACIONES();
+    const remoteFilePath = `/httpdocs/PDF-Convocatorias/${nombre_archivo}`;
     const localFilePath = path.join("./pdf", nombre_archivo);
     // Subir la imagen al servidor FTP
     await ftpClient.uploadFrom(localFilePath, remoteFilePath);
@@ -358,8 +359,8 @@ const agregarAnexo = async (req, res) => {
     console.log(values)
     // Ejecutar la consulta SQL para insertar la nueva convocatoria
     await connection.execute(sql, values);
-    const ftpClient = await conectarFTPCiudadano();
-    const remoteFilePath = `/PDF-Convocatorias/${nombre_anexo}`;
+    const ftpClient = await conectarFTPLICITACIONES();
+    const remoteFilePath = `/httpdocs/PDF-Convocatorias/${nombre_anexo}`;
     const localFilePath = path.join("./pdf", nombre_anexo);
     // Subir la imagen al servidor FTP
     await ftpClient.uploadFrom(localFilePath, remoteFilePath);
@@ -387,10 +388,10 @@ const editarAnexo = async (req, res) => {
       // const rutaArchivoAntiguo = obtenerRutaArchivoAntiguo(oldName);
       // const rutaArchivoNuevo = obtenerRutaArchivoNuevo(nombre_anexo); 
       // sobrescribirArchivo(rutaArchivoAntiguo, rutaArchivoNuevo); 
-      const ftpClient = await conectarFTPCiudadano();
+      const ftpClient = await conectarFTPLICITACIONES();
       const localFilePath = path.join("./pdf", nombre_anexo);
-      const remoteFilePath = `/PDF-Convocatorias/${nombre_anexo}`;
-      await ftpClient.remove(`/PDF-Convocatorias/${nombreViejo}`)
+      const remoteFilePath = `/httpdocs/PDF-Convocatorias/${nombre_anexo}`;
+      await ftpClient.remove(`/httpdocs/PDF-Convocatorias/${nombreViejo}`)
       // Subir la imagen al servidor FTP
       await ftpClient.uploadFrom(localFilePath, remoteFilePath);
 
@@ -445,10 +446,10 @@ const editarContratacion = async (req, res) => {
       let nombreViejo = oldName.replace(/\//g, '-')
       let archivoViejo = nombre_archivo.replace(/\//g, '-')
       console.log(nombreViejo)
-      const ftpClient = await conectarFTPCiudadano();
+      const ftpClient = await conectarFTPLICITACIONES();
       const localFilePath = path.join("./pdf", archivoViejo);
-      const remoteFilePath = `/PDF-Convocatorias/${archivoViejo}`;
-      await ftpClient.remove(`/PDF-Convocatorias/${nombreViejo}`)
+      const remoteFilePath = `/httpdocs/PDF-Convocatorias/${archivoViejo}`;
+      await ftpClient.remove(`/httpdocs/PDF-Convocatorias/${nombreViejo}`)
       // Subir la imagen al servidor FTP
       await ftpClient.uploadFrom(localFilePath, remoteFilePath);
 
@@ -621,7 +622,7 @@ const agregarUbicacionPatrimonio = async (req, res) => {
     }
 
     // Query para insertar una nuevo estado
-    const sql = "INSERT INTO ubicacion (nombre_ubicacion, habilita) VALUES (?, ?, ?)";
+    const sql = "INSERT INTO ubicacion (nombre_ubicacion, habilita) VALUES (?, ?)";
     const values = [nombre_ubicacion, habilita];
 
     // Ejecutar la consulta SQL para insertar el nuevo autor
@@ -648,8 +649,7 @@ const agregarPatrimonio = async (req, res) => {
       id_estado,
       id_autor,
       id_ubicacion,
-      longitud,
-      latitud,
+      latylon,
       habilita
     } = req.body;
 
@@ -663,11 +663,11 @@ const agregarPatrimonio = async (req, res) => {
     const nombre_archivo = archivo.filename;
     // Obtener el último id_patrimonio de la tabla
     const connection = await conectarSMTPatrimonio();
-    const [lastIdResult] = await connection.query("SELECT MAX(id_patrimobio) AS max_id FROM patrimonio");
+    const [lastIdResult] = await connection.query("SELECT MAX(id_patrimonio) AS max_id FROM patrimonio");
     let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_patrimonio
     // Query para insertar una nuevo patrimonio
     const sql =
-      "INSERT INTO contratacion (id_patrimonio, nombre_patrimonio, anio_emplazamiento, descripcion, origen, id_categoria, id_tipologia, id_material, id_estado, id_autor, id_ubicacion, longitud, latitud, habilita, nombre_archivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO patrimonio (id_patrimonio, nombre_patrimonio, anio_emplazamiento, descripcion, origen, id_categoria, id_tipologia, id_material, id_estado, id_autor, id_ubicacion, latylon, habilita, nombre_archivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     const values = [
       nextId,
       nombre_patrimonio,
@@ -680,8 +680,7 @@ const agregarPatrimonio = async (req, res) => {
       id_estado,
       id_autor,
       id_ubicacion,
-      longitud,
-      latitud,
+      latylon,
       habilita,
       nombre_archivo,
     ];
@@ -689,7 +688,7 @@ const agregarPatrimonio = async (req, res) => {
     // Ejecutar la consulta SQL para insertar la nueva convocatoria
     await connection.execute(sql, values);
     const ftpClient = await conectarFTPCiudadano();
-    const remoteFilePath = `/PDF-Convocatorias/${nombre_archivo}`;
+    const remoteFilePath = `/Fotos-Patrimonio/${nombre_archivo}`;
     const localFilePath = path.join("./pdf", nombre_archivo);
     // Subir la imagen al servidor FTP
     await ftpClient.uploadFrom(localFilePath, remoteFilePath);
@@ -703,14 +702,64 @@ const agregarPatrimonio = async (req, res) => {
   }
 };
 
-const listarPatrimonioBack = async (req, res) => {
-  const connection = await conectarSMTContratacion();
+const editarPatrimonio = async (req, res) => {
   try {
-    const [patrimonios] = await connection.execute(
-      'SELECT * FROM patrimonio'
+    const { nombre_patrimonio, anio_emplazamiento, descripcion, origen, id_categoria, id_tipologia, id_material, id_estado, id_autor, id_ubicacion, latylon, habilita, id, oldName } = req.body;
+    // Verificar si hay un archivo adjunto
+    const archivo = req.file;
+    let nombre_archivo = null;
+    nombre_archivo = `${nombre_patrimonio.replace(/\s+/g, '').trim()}.jpg`;
+    if (archivo) {
+      let nombreViejo = `${oldName.replace(/\s+/g, '').trim()}.jpg`;
+      let archivoViejo = nombre_archivo.replace(/\//g, '-');
+      const ftpClient = await conectarFTPCiudadano();
+
+      try {
+        const localFilePath = path.join("./pdf", archivoViejo);
+        const remoteFilePath = `/Fotos-Patrimonio/${archivoViejo}`;
+
+        await ftpClient.remove(`/Fotos-Patrimonio/${nombreViejo}`);
+        await ftpClient.uploadFrom(localFilePath, remoteFilePath);
+        fs.unlinkSync(localFilePath);
+      } finally {
+        await ftpClient.close();
+      }
+    }
+    // Query para actualizar la patrimonio
+    const sql = "UPDATE patrimonio SET nombre_patrimonio = ?, anio_emplazamiento = ?, descripcion = ?, origen = ?, id_categoria = ?, id_tipologia = ?, id_material = ?, id_estado = ?, id_autor = ?, id_ubicacion = ?, latylon = ?, habilita = ?, nombre_archivo = ? WHERE id_patrimonio = ?";
+    const values = [nombre_patrimonio, anio_emplazamiento, descripcion, origen, id_categoria, id_tipologia, id_material, id_estado, id_autor, id_ubicacion, latylon, habilita, nombre_archivo, id];
+    // Verificar si la patrimonio ya existe con otra ID
+    const connection = await conectarSMTPatrimonio();
+    const [patrimonio] = await connection.execute(
+      "SELECT * FROM patrimonio WHERE (nombre_patrimonio = ? AND descripcion = ? AND id_categoria = ? AND id_tipologia = ? AND latylon = ? AND habilita = ?) AND id_patrimonio != ?",
+      [nombre_patrimonio, descripcion, id_categoria, id_tipologia, latylon, habilita, id ]
     );
 
-    contrataciones.reverse();
+    if (patrimonio.length === 0) {
+      // No existe otra patrimonio con los mismos datos, se puede proceder con la actualización
+      const [result] = await connection.execute(sql, values);
+      console.log("Filas actualizadas:", result.affectedRows);
+      res.status(200).json({ message: "Patrimonio modificado con éxito", result });
+    } else {
+      // Ya existe otra patrimonio con los mismos datos, devolver un error
+      res.status(400).json({
+        message: "Ya existe un Patrimonio con los mismos datos",
+        patrimonio: patrimonio[0],
+      });
+    }
+    connection.end();
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+};
+
+const listarPatrimonioBack = async (req, res) => {
+  const connection = await conectarSMTPatrimonio();
+  try {
+    const [patrimonios] = await connection.execute(
+      'SELECT patrimonio.*, ubicacion.nombre_ubicacion, tipologia.nombre_tipologia FROM patrimonio LEFT JOIN ubicacion ON patrimonio.id_ubicacion = ubicacion.id_ubicacion LEFT JOIN tipologia ON patrimonio.id_tipologia = tipologia.id_tipologia'
+    );
+    patrimonios.reverse();
     connection.end();
     res.status(200).json({ patrimonios })
 
@@ -827,4 +876,4 @@ const deshabilitarPatrimonio = async (req, res) => {
 
 
 
-module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, editarAnexo, listarContratacionPorId, agregarPatrimonio, agregarCategoriaPatrimonio, agregarEstadoPatrimonio, agregarAutorPatrimonio, agregarMaterialPatrimonio, agregarUbicacionPatrimonio, agregarTipologiaPatrimonio, listarPatrimonioBack, listarAutorPatrimonioBack, listarTipologiaPatrimonioBack, listarCategoriaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarUbicacionPatrimonioBack, deshabilitarPatrimonio}
+module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, editarAnexo, listarContratacionPorId, agregarPatrimonio, agregarCategoriaPatrimonio, agregarEstadoPatrimonio, agregarAutorPatrimonio, agregarMaterialPatrimonio, agregarUbicacionPatrimonio, agregarTipologiaPatrimonio, listarPatrimonioBack, listarAutorPatrimonioBack, listarTipologiaPatrimonioBack, listarCategoriaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarUbicacionPatrimonioBack, deshabilitarPatrimonio, editarPatrimonio}
