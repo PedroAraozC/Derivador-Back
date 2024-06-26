@@ -1,47 +1,53 @@
 const { conectarBDEstadisticasMySql } = require("../config/dbEstadisticasMYSQL");
 
 const listarOpciones =async(req,res)=>{
+    let connection;
     try {
     
-        const connection = await conectarBDEstadisticasMySql();
+        connection = await conectarBDEstadisticasMySql();
 
         const [opciones] = await connection.execute(
             'SELECT * FROM opcion WHERE habilita=1'
         );
-         await connection.end();
         res.status(200).json({opciones})
     } catch (error) {
         res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    } finally {
+        connection.end()
     }
 }
 
 const listarProcesos =async(req,res)=>{
+    let connection;
     try {
     
-        const connection = await conectarBDEstadisticasMySql();
+        connection = await conectarBDEstadisticasMySql();
 
         const [procesos] = await connection.execute(
             'SELECT proceso.*, opcion.nombre_opcion AS opcion FROM proceso JOIN opcion ON proceso.id_opcion = opcion.id_opcion'
         );
-         await connection.end();
         res.status(200).json({procesos})
     } catch (error) {
         res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    } finally {
+        connection.end()
     }
 }
 
 const listarTiposDeUsuarios =async(req,res)=>{
+    let connection;
     try {
     
-        const connection = await conectarBDEstadisticasMySql();
+        connection = await conectarBDEstadisticasMySql();
 
         const [procesos] = await connection.execute(
             'SELECT * FROM tipo_usuario WHERE habilita=1'
         );
-         await connection.end();
         res.status(200).json({procesos})
     } catch (error) {
         res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    } finally {
+        connection.end()
     }
 }
 

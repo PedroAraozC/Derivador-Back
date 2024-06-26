@@ -98,5 +98,24 @@ const listarPatrimonio = async (req, res) => {
     }
   }
 
+const listarPatrimonioPorId = async (req, res) => {
+  const { id } = req.params; 
+  const sql = "SELECT p.*, a.nombre_autor, a.descripcion_autor, u.nombre_ubicacion FROM patrimonio p LEFT JOIN autor a ON p.id_autor = a.id_autor LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion WHERE p.id_patrimonio = ?";
+  const values = [id];
+  try {
+    const connection = await conectarSMTPatrimonio();
+    const [patrimonio] = await connection.execute(sql, values); 
+    await connection.end();
+    if (patrimonio.length > 0) { 
+      res.status(200).json({ patrimonio });
+    } else {
+      res.status(400).json({ message: "No se encontró el patrimonio" });
+    }
 
-  module.exports={ listarTipologiaPatrimonio, listarCategoriaPatrimonio, listarAutorPatrimonio, listarEstadoPatrimonio, listarUbicacionPatrimonio, listarMaterialPatrimonio, listarPatrimonio }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }
+  }
+
+
+  module.exports={ listarTipologiaPatrimonio, listarPatrimonioPorId, listarCategoriaPatrimonio, listarAutorPatrimonio, listarEstadoPatrimonio, listarUbicacionPatrimonio, listarMaterialPatrimonio, listarPatrimonio }

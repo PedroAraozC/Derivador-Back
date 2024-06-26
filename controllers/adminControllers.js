@@ -8,33 +8,10 @@ const fs = require('fs');
 const path = require('path');
 const { conectarFTPCiudadano } = require("../config/winscpCiudadano");
 
-const sobrescribirArchivo = (rutaArchivoAntiguo, rutaArchivoNuevo) => {
-  try {
-    // Leer el contenido del nuevo archivo
-    const contenidoNuevo = fs.readFileSync(rutaArchivoNuevo);
-    // Sobrescribir el archivo antiguo con el contenido del nuevo archivo
-    fs.writeFileSync(rutaArchivoAntiguo, contenidoNuevo);
-    console.log(`Archivo sobrescrito: ${rutaArchivoAntiguo}`);
-  } catch (error) {
-    console.error(`Error al sobrescribir el archivo: ${error}`);
-  }
-};
-// Función para obtener la ruta del archivo antiguo
-const obtenerRutaArchivoAntiguo = (oldName) => {
-  // Suponiendo que los archivos antiguos se guardan en una carpeta llamada 'pdfs' en el escritorio
-  const rutaArchivoAntiguo = path.join('./pdf', oldName);
-  console.log(rutaArchivoAntiguo)
-  return rutaArchivoAntiguo;
-};
 
-// Función para obtener la ruta del nuevo archivo
-const obtenerRutaArchivoNuevo = (nombre_archivo) => {
-  // Suponiendo que los archivos nuevos también se guardan en una carpeta llamada 'pdfs' en el escritorio
-  const rutaArchivoNuevo = path.join('./pdf', nombre_archivo);
-  return rutaArchivoNuevo;
-};
 
 const agregarOpcion = async (req, res) => {
+  let connection;
     try {
       const { nombre_opcion, habilita } = req.body;
   
@@ -48,19 +25,21 @@ const agregarOpcion = async (req, res) => {
       const values = [nombre_opcion, habilita];
   
       // Ejecutar la consulta SQL para insertar la nueva opción
-      const connection = await conectarBDEstadisticasMySql();
+      connection = await conectarBDEstadisticasMySql();
       const [result] = await connection.execute(sql, values);
       const nuevoId = result.insertId; // Obtener el id generado por la base de datos
   
       res.status(201).json({ id: nuevoId, message: "Opción creada con éxito" });
     } catch (error) {
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    } finally{
+      connection.end()
     }
-  };
-
+};
+//PROCESO A CAMBIAR PARA MANEJAR PERMISOS POR TIPO DE USUARIO
 const agregarProceso = async (req, res) => {
     let transaction;
-    console.log(req.body)
+    let connection;
     try {
       const { nombre_proceso, habilita, descripcion, id_opcion } = req.body;
       // Verificar que los valores requeridos estén definidos
@@ -69,7 +48,7 @@ const agregarProceso = async (req, res) => {
       }
       // Iniciar una transacción
       transaction = await sequelize_ciu_digital_derivador.transaction();
-      const connection = await conectarBDEstadisticasMySql();
+      connection = await conectarBDEstadisticasMySql();
   
       // Obtener la lista de tipos de usuario
       const [tiposUsuario, fieldsTiposUsuario] = await connection.execute(
@@ -129,51 +108,20 @@ const agregarProceso = async (req, res) => {
   
       // Responder con un mensaje de error
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    }finally{
+      connection.end()
     }
-  };
-
-
-// const editarConvocatoria = async (req, res) => {
-//   try {
-//     const { id, nivel, cargo, establecimiento, causal, expte, caracter, fecha, hora, archivo, habilita } = req.body;
-
-//     // Query para actualizar la convocatoria
-//     const sql = "UPDATE convocatoria SET id_nivel = ?, cargo = ?, id_establecimiento = ?, id_causal = ?, expte = ?, id_caracter = ?, fecha_designa = ?, hora_designa = ?,nombre_archivo = ?, habilita = ? WHERE id_convoca = ?";
-//     const values = [nivel, cargo, establecimiento, causal, expte, caracter, fecha, hora, archivo, habilita, id];
-
-//     // Verificar si la convocatoria ya existe con otra ID
-//     const connection = await conectar_BD_EDUCACION_MySql();
-//     const [convocatoria] = await connection.execute(
-//       "SELECT * FROM convocatoria WHERE (cargo = ? AND id_establecimiento = ? AND id_causal = ? AND expte = ? AND id_caracter = ? AND fecha_designa = ? AND hora_designa = ? AND nombre_archivo = ? AND habilita = ?) AND id_convoca != ?",
-//       [cargo, establecimiento, causal, expte, caracter, fecha, hora, archivo, habilita, id]
-//     );
-
-//     if (convocatoria.length === 0) {
-//       // No existe otra convocatoria con los mismos datos, se puede proceder con la actualización
-//       const [result] = await connection.execute(sql, values);
-//       console.log("Filas actualizadas:", result.affectedRows);
-//       res.status(200).json({ message: "Convocatoria modificada con éxito", result });
-//     } else {
-//       // Ya existe otra convocatoria con los mismos datos, devolver un error
-//       res.status(400).json({
-//         message: "Ya existe una convocatoria con los mismos datos",
-//         convocatoria: convocatoria[0],
-//       });
-//     }
-//   } catch (error) {
-//     res.status(500).json({ message: error.message || "Algo salió mal :(" });
-//   }
-// };
+};
 
 const borrarOpcion = async (req, res) => {
   const { id } = req.body;
   const sql = "UPDATE opcion set habilita = 0 WHERE id_opcion = ?";
   const values = [id];
+  let connection;
 
   try {
-    const connection = await conectarBDEstadisticasMySql();
+    connection = await conectarBDEstadisticasMySql();
     const [result] = await connection.execute(sql, values); 
-    await connection.end();
     if (result.affectedRows > 0) {
       res.status(200).json({ message: "opción deshabilitada con éxito" });
     } else {
@@ -182,8 +130,413 @@ const borrarOpcion = async (req, res) => {
   } catch (error) {
     console.error("Error al eliminar la opción:", error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally{
+    connection.end()
   }
 };
+
+const listarPermisosPorTUsuarios = async (req, res) => {
+  const { id } = req.body;
+  const sql = "SELECT pt.id_permiso_tusuario, pt.id_proceso, pt.ver, p.nombre_proceso, tu.nombre_tusuario FROM permiso_tusuario pt LEFT JOIN proceso p  on pt.id_proceso = p.id_proceso  LEFT JOIN tipo_usuario tu ON pt.id_tusuario = tu.id_tusuario  WHERE pt.id_proceso = ? ORDER BY tu.nombre_tusuario ASC ";
+  const values = [id];
+  let connection;
+
+  try {
+    connection = await conectarBDEstadisticasMySql();
+    const [permisos] = await connection.execute(sql, values); 
+    res.status(200).json({ permisos })
+  } catch (error) {
+    console.error("Error al traer los permisos:", error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally{
+    connection.end()
+  }
+};
+
+const actualizarPermisosPorTUsuario = async (req, res) => {
+  let connection;
+  try {
+      const { id, permisos } = req.body;
+      if (!permisos || !Array.isArray(permisos)) {
+          throw new Error("Los parámetros de la solicitud son inválidos");
+      }
+      console.log("Permisos a actualizar:", permisos);
+      connection = await conectarBDEstadisticasMySql();
+      for (const permiso of permisos) {
+          const { id: procesoId, ver } = permiso;
+          console.log(`Actualizando permiso con id ${procesoId} a ver=${ver}`);
+          const updateSql = "UPDATE permiso_tusuario SET ver = ? WHERE  id_permiso_tusuario = ?;";
+          const updateValues = [ver, procesoId];
+          const [result] = await connection.execute(updateSql, updateValues);
+          if (result.affectedRows !== 1) {
+              throw new Error(`No se pudo actualizar el permiso con id ${procesoId}`);
+          }
+      }
+      res.status(200).json({ message: "Permisos actualizados correctamente" });
+  } catch (error) {
+      console.error("Error al actualizar permisos:", error);
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+      if (connection) {
+          connection.end();
+      }
+  }
+};
+
+// --------------------PANEL PARA USUARIOS ----------------------
+
+const listarEmpleados = async (req, res) => {
+  const connection = await conectarBDEstadisticasMySql();
+  try {
+    const [empleados] = await connection.execute(
+      'SELECT e.id_persona, e.afiliado, p.documento_persona, p.nombre_persona, p.apellido_persona, p.email_persona, r.nombre_reparticion FROM empleado e LEFT JOIN persona p ON e.id_persona = p.id_persona LEFT JOIN reparticion r ON e.id_reparticion = r.id_reparticion'
+    );
+    res.status(200).json({ empleados })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+};
+
+// --------------------PANEL PARA USUARIOS ----------------------
+
+
+// --------------------PANEL PARA GENERO DERIVADOR----------------------
+
+const agregarGenero = async (req, res) =>{
+  let connection;
+  try {
+    const { nombre_genero, habilita } = req.body;
+    
+    // Verificar que los valores requeridos estén definidos
+    if (nombre_genero === undefined || habilita === undefined) {
+      throw new Error("Los parámetros de la solicitud son inválidos");
+    }
+
+    // Query para insertar una nuevo genero
+    const sql = "INSERT INTO genero (nombre_genero, habilita) VALUES (?, ?)";
+    const values = [nombre_genero, habilita];
+
+    // Ejecutar la consulta SQL para insertar la nueva opción
+    connection = await conectarBDEstadisticasMySql();
+    const [result] = await connection.execute(sql, values);
+    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+
+    res.status(201).json({ id: nuevoId, message: "Tipología creada con éxito" });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+}
+
+const editarGenero = async (req, res) =>{
+  const { id, nombre_genero, habilita } = req.body;
+  const sql = "UPDATE genero set habilita = ?, nombre_genero = ? WHERE id_genero = ?";
+  const values = [habilita, nombre_genero, id];
+  let connection;
+
+  try {
+    connection = await conectarBDEstadisticasMySql();
+    const [result] = await connection.execute(sql, values); 
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Genero editado con éxito" });
+    } else {
+      res.status(400).json({ message: "Genero no encontrado" });
+    }
+  } catch (error) {
+    console.error("Error al editar el genero:", error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+}
+
+const listarGenero = async (req, res) => {
+  const connection = await conectarBDEstadisticasMySql();
+  try {
+    const [generos] = await connection.execute(
+      'SELECT * FROM genero'
+    );
+    res.status(200).json({ generos })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+}
+
+// --------------------PANEL PARA GENERO DERIVADOR----------------------
+
+
+
+// --------------------PANEL PARA TIPO DOCUMENTO DERIVADOR----------------------
+
+const agregarTipoDoc = async (req, res) =>{
+  let connection;
+  try {
+    const { nombre_tdocumento, habilita } = req.body;
+    
+    // Verificar que los valores requeridos estén definidos
+    if (nombre_tdocumento === undefined || habilita === undefined) {
+      throw new Error("Los parámetros de la solicitud son inválidos");
+    }
+
+    // Query para insertar una nuevo genero
+    const sql = "INSERT INTO tipo_documento (nombre_tdocumento, habilita) VALUES (?, ?)";
+    const values = [nombre_tdocumento, habilita];
+
+    // Ejecutar la consulta SQL para insertar la nueva opción
+    connection = await conectarBDEstadisticasMySql();
+    const [result] = await connection.execute(sql, values);
+    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+
+    res.status(201).json({ id: nuevoId, message: "Tipo Documento creado con éxito" });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+}
+const editarTipoDoc = async (req, res) =>{
+  const { id, nombre_tdocumento, habilita } = req.body;
+  const sql = "UPDATE genero set habilita = ?, nombre_tdocumento = ? WHERE id_tdocumento = ?";
+  const values = [habilita, nombre_tdocumento, id];
+  let connection;
+
+  try {
+    connection = await conectarBDEstadisticasMySql();
+    const [result] = await connection.execute(sql, values); 
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Tipo documento editado con éxito" });
+    } else {
+      res.status(400).json({ message: "Tipo documento no encontrado" });
+    }
+  } catch (error) {
+    console.error("Error al editar el Tipo documento:", error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+}
+const listarTipoDoc = async (req, res) => {
+  const connection = await conectarBDEstadisticasMySql();
+  try {
+    const [tdocumentos] = await connection.execute(
+      'SELECT * FROM tipo_documento'
+    );
+    res.status(200).json({ tdocumentos })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
+  }
+}
+
+// --------------------PANEL PARA TIPO DOCUMENTO DERIVADOR----------------------
+
+
+
+// --------------------PANEL PARA REPARTICIONES ----------------------
+
+const agregarReparticion = async (req, res) =>{
+  let connection;
+  try {
+    const { item, nombre_reparticion, depende, secretaria, vigente_desde, vigente_hasta, habilita } = req.body;
+    
+    // Verificar que los valores requeridos estén definidos
+    if (item === undefined || nombre_reparticion === undefined || depende === undefined || secretaria === undefined || vigente_desde === undefined || vigente_hasta === undefined ||habilita === undefined) {
+      throw new Error("Los parámetros de la solicitud son inválidos");
+    }
+
+    // Query para insertar una nuevo genero
+    const sql = "INSERT INTO reparticion (item, nombre_reparticion, depende, secretaria, vigente_desde, vigente_hasta, habilita) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    const values = [item, nombre_reparticion, depende, secretaria, vigente_desde, vigente_hasta, habilita];
+
+    // Ejecutar la consulta SQL para insertar la nueva opción
+    connection = await conectarBDEstadisticasMySql();
+    const [result] = await connection.execute(sql, values);
+    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+
+    res.status(201).json({ id: nuevoId, message: "Repartición creada con éxito" });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
+  }
+}
+const editarReparticion = async (req, res) =>{
+  const { id, item, nombre_reparticion, depende, secretaria, vigente_desde, vigente_hasta, habilita } = req.body;
+  const sql = "UPDATE reparticion set item = ?, nombre_reparticion = ?, depende = ?, secretaria = ?, vigente_desde = ?, vigente_hasta = ?, habilita = ? WHERE id_reparticion = ?";
+  const values = [item, nombre_reparticion, depende, secretaria, vigente_desde, vigente_hasta, habilita, id];
+  let connection;
+
+  try {
+    connection = await conectarBDEstadisticasMySql();
+    const [result] = await connection.execute(sql, values); 
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Repartición editada con éxito" });
+    } else {
+      res.status(400).json({ message: "Repartición no encontrada" });
+    }
+  } catch (error) {
+    console.error("Error al editar la Repartición:", error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
+  }
+}
+const listarReparticion = async (req, res) => {
+  const connection = await conectarBDEstadisticasMySql();
+  try {
+    const [reparticiones] = await connection.execute(
+      'SELECT * FROM reparticion'
+    );
+    res.status(200).json({ reparticiones })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
+  }
+}
+
+// --------------------PANEL PARA REPARTICIONES ----------------------
+
+
+
+// --------------------PANEL PARA TIPO DE USUARIO DERIVADOR----------------------
+
+const agregarTipoDeUsuario = async (req, res) =>{
+  let connection;
+  try {
+    const { nombre_tusuario, observacion, habilita } = req.body;
+    
+    // Verificar que los valores requeridos estén definidos
+    if (nombre_tusuario === undefined || observacion === undefined || habilita === undefined) {
+      throw new Error("Los parámetros de la solicitud son inválidos");
+    }
+
+    // Query para insertar una nuevo tipo de usuario
+    const sql = "INSERT INTO tipo_usuario (nombre_tusuario, observacion, habilita) VALUES (?, ?, ?)";
+    const values = [nombre_tusuario, observacion, habilita];
+
+    // Ejecutar la consulta SQL para insertar la nueva opción
+    connection = await conectarBDEstadisticasMySql();
+    const [result] = await connection.execute(sql, values);
+    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+
+    res.status(201).json({ id: nuevoId, message: "Tipo de usuario creado con éxito" });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
+  }
+}
+
+const listarTiposDeUsuario = async (req, res) => {
+  const connection = await conectarBDEstadisticasMySql();
+  try {
+    const [tusuarios] = await connection.execute(
+      'SELECT * FROM tipo_usuario'
+    );
+    res.status(200).json({ tusuarios })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
+  }
+}
+
+const editarTipoDeUsuario = async (req, res) =>{
+
+  const { id, nombre_tusuario, observacion, habilita } = req.body;
+  const sql = "UPDATE tipo_usuario set habilita = ?, nombre_tusuario = ? , observacion = ? WHERE id_tusuario = ?";
+  const values = [habilita, nombre_tusuario, observacion, id];
+  let connection;
+
+  try {
+    connection = await conectarBDEstadisticasMySql();
+    const [result] = await connection.execute(sql, values); 
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Tipo de usuario editado con éxito" });
+    } else {
+      res.status(400).json({ message: "Tipo de usuario no encontrado" });
+    }
+  } catch (error) {
+    console.error("Error al editar el Tipo de usuario:", error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
+  }
+}
+
+const listarProcesos = async (req, res) => {
+  let connection;
+  try {
+    const { id } = req.body;
+
+    // Verificar que los valores requeridos estén definidos
+    if (id === undefined) {
+      return res.status(400).json({ message: "Los parámetros de la solicitud son inválidos" });
+    }
+
+    const sql = "SELECT pt.*, p.nombre_proceso, p.descripcion FROM permiso_tusuario pt LEFT JOIN proceso p ON pt.id_proceso = p.id_proceso WHERE id_tusuario = ?";
+    const values = [id];
+
+    // Ejecutar la consulta SQL para obtener los procesos
+    connection = await conectarBDEstadisticasMySql();
+    const [result] = await connection.execute(sql, values);
+    
+    // Devolver los procesos obtenidos
+    res.status(200).json({ procesos: result });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+}
+
+const actualizarPermisosTUsuario = async (req, res) => {
+  let connection;
+  try {
+      const { id, permisos } = req.body;
+      if (!id || !permisos || !Array.isArray(permisos)) {
+          throw new Error("Los parámetros de la solicitud son inválidos");
+      }
+      console.log("ID de usuario:", id);
+      console.log("Permisos a actualizar:", permisos);
+      connection = await conectarBDEstadisticasMySql();
+      for (const permiso of permisos) {
+          const { id: procesoId, ver } = permiso;
+          console.log(`Actualizando permiso con id ${procesoId} a ver=${ver}`);
+          const updateSql = "UPDATE permiso_tusuario SET ver = ? WHERE id_permiso_tusuario = ?";
+          const updateValues = [ver, procesoId];
+          const [result] = await connection.execute(updateSql, updateValues);
+          if (result.affectedRows !== 1) {
+              throw new Error(`No se pudo actualizar el permiso con id ${procesoId}`);
+          }
+      }
+      res.status(200).json({ message: "Permisos actualizados correctamente" });
+  } catch (error) {
+      console.error("Error al actualizar permisos:", error);
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+      if (connection) {
+          connection.end();
+      }
+  }
+};
+
+// --------------------PANEL PARA TIPO DE USUARIO DERIVADOR----------------------
 
 
 //-----------CONTRATACIONES--------------
@@ -193,30 +546,31 @@ const listarTipoContratacion = async (req, res) => {
     const [contrataciones] = await connection.execute(
       'SELECT * FROM tipo_contratacion WHERE habilita = 1'
     );
-    connection.end();
     res.status(200).json({ contrataciones })
 
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 }
 const listarContratacionPorId = async (req, res) => {
   const { id } = req.params; 
-  console.log(id)
   const sql = "SELECT * FROM contratacion WHERE id_contratacion = ?";
   const values = [id];
+  let connection;
   try {
-    const connection = await conectarSMTContratacion();
+    connection = await conectarSMTContratacion();
     const [contratacion] = await connection.execute(sql, values); 
-    await connection.end();
     if (contratacion.length > 0) { 
       res.status(200).json({ contratacion });
     } else {
       res.status(400).json({ message: "No se encontró la contratación" });
     }
-
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 }
 const listarTipoInstrumento = async (req, res) => {
@@ -225,11 +579,12 @@ const listarTipoInstrumento = async (req, res) => {
     const [instrumentos] = await connection.execute(
       'SELECT * FROM tipo_instrumento WHERE habilita = 1'
     );
-    connection.end();
     res.status(200).json({ instrumentos })
 
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 }
 
@@ -241,11 +596,12 @@ const listarContratacionBack = async (req, res) => {
     );
 
     contrataciones.reverse();
-    connection.end();
     res.status(200).json({ contrataciones })
 
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 }
 
@@ -257,15 +613,17 @@ const listarContratacion = async (req, res) => {
     );
 
     contrataciones.reverse();
-    connection.end();
     res.status(200).json({ contrataciones })
 
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 }
 
 const agregarContratacion = async (req, res) => {
+  let connection;
   try {
     const {
       fecha_apertura,
@@ -293,7 +651,7 @@ const agregarContratacion = async (req, res) => {
     const detalleValorPorDefecto = ''; // Puedes cambiar esto por cualquier otro valor por defecto que desees
     const detalleFinal = detalle ?? detalleValorPorDefecto;
     // Obtener el último id_contratacion de la tabla
-    const connection = await conectarSMTContratacion();
+    connection = await conectarSMTContratacion();
     const [lastIdResult] = await connection.query("SELECT MAX(id_contratacion) AS max_id FROM contratacion");
     let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_contratacion
     // Query para insertar una nueva convocatoria
@@ -315,29 +673,51 @@ const agregarContratacion = async (req, res) => {
       nombre_archivo,
       detalleFinal
     ];
-    console.log(values)
+
     // Ejecutar la consulta SQL para insertar la nueva convocatoria
     await connection.execute(sql, values);
-    const ftpClient = await conectarFTPCiudadano();
-    const remoteFilePath = `/PDF-Convocatorias/${nombre_archivo}`;
-    const localFilePath = path.join("./pdf", nombre_archivo);
+    
+    // const ftpClient = await conectarFTPLICITACIONES();
+    // const remoteFilePath = `/var/www/vhosts/licitaciones.smt.gob.ar/PDF-Convocatorias/${nombre_archivo}`;
+    // const localFilePath = path.join("./pdf", nombre_archivo);
     // Subir la imagen al servidor FTP
-    await ftpClient.uploadFrom(localFilePath, remoteFilePath);
+    // await ftpClient.uploadFrom(localFilePath, remoteFilePath);
 
     // Eliminar la imagen local después de subirla
-    fs.unlinkSync(localFilePath);
-    await ftpClient.close();
+    // fs.unlinkSync(localFilePath);
+    // await ftpClient.close();
+
+    // Define las rutas de origen y destino
+    const archivoOrigen = path.join(__dirname, '..', 'pdf', nombre_archivo);
+    const archivoDestino = path.join(__dirname, '..', '..', 'httpdocs', 'PDF-Convocatorias', nombre_archivo);
+
+    // Verifica si la carpeta destino existe, de lo contrario, créala
+    const carpetaDestino = path.dirname(archivoDestino);
+    if (!fs.existsSync(carpetaDestino)) {
+      fs.mkdirSync(carpetaDestino, { recursive: true });
+    }
+
+    // Mueve el archivo
+    fs.rename(archivoOrigen, archivoDestino, (err) => {
+      if (err) {
+        console.error('Error al mover el archivo:', err);
+      } else {
+        console.log('Archivo movido exitosamente');
+      }
+    });
+
     res.status(201).json({ message: "Convocatoria creada con éxito", id: nextId, num_contratacion: nextId });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 };
 
 const agregarAnexo = async (req, res) => {
+  let connection;
   try {
-
     const archivo = req.file;
-
     if (!archivo) {
       return res.status(400).json({ message: "Por favor, adjunta un archivo" });
     }
@@ -346,7 +726,7 @@ const agregarAnexo = async (req, res) => {
     const nombre_anexo = archivo.filename;
     
     // Obtener el último id_contratacion de la tabla
-    const connection = await conectarSMTContratacion();
+    connection = await conectarSMTContratacion();
     const [lastIdResult] = await connection.query("SELECT MAX(id_contratacion) AS max_id FROM contratacion");
     let maxId = lastIdResult[0].max_id;
     // Query para insertar una nueva convocatoria
@@ -358,25 +738,46 @@ const agregarAnexo = async (req, res) => {
     console.log(values)
     // Ejecutar la consulta SQL para insertar la nueva convocatoria
     await connection.execute(sql, values);
-    const ftpClient = await conectarFTPCiudadano();
-    const remoteFilePath = `/PDF-Convocatorias/${nombre_anexo}`;
-    const localFilePath = path.join("./pdf", nombre_anexo);
+    // const ftpClient = await conectarFTPLICITACIONES();
+    // const remoteFilePath = `/var/www/vhosts/licitaciones.smt.gob.ar/PDF-Convocatorias/${nombre_anexo}`;
+    // const localFilePath = path.join("./pdf", nombre_anexo);
     // Subir la imagen al servidor FTP
-    await ftpClient.uploadFrom(localFilePath, remoteFilePath);
+    // await ftpClient.uploadFrom(localFilePath, remoteFilePath);
+
+    // Define las rutas de origen y destino
+    const archivoOrigen = path.join(__dirname, '..', 'pdf', nombre_anexo);
+    const archivoDestino = path.join(__dirname, '..', '..', 'httpdocs', 'PDF-Convocatorias', nombre_anexo);
+
+    // Verifica si la carpeta destino existe, de lo contrario, créala
+    const carpetaDestino = path.dirname(archivoDestino);
+    if (!fs.existsSync(carpetaDestino)) {
+      fs.mkdirSync(carpetaDestino, { recursive: true });
+    }
+
+    // Mueve el archivo
+    fs.rename(archivoOrigen, archivoDestino, (err) => {
+      if (err) {
+        console.error('Error al mover el archivo:', err);
+      } else {
+        console.log('Archivo movido exitosamente');
+      }
+    });
 
     // Eliminar la imagen local después de subirla
-    fs.unlinkSync(localFilePath);
-    await ftpClient.close();
+    // fs.unlinkSync(localFilePath);
+    // await ftpClient.close();
     res.status(201).json({ message: "Anexo agregado con éxito"});
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 };
 
 const editarAnexo = async (req, res) => {
+  let connection;
   try {
     const {id, oldName, num_instrumento, expte} = req.query
-    console.log(req.query)
     const archivo = req.file;
     let nombre_anexo = null;
     if (archivo) {
@@ -384,44 +785,52 @@ const editarAnexo = async (req, res) => {
       const expediente = expte.replace(/\//g, '-');
       let nombreViejo = oldName.replace(/\//g, '-')
       nombre_anexo = `CONTRATACION_${instrumento}_EXPTE_${expediente}_ANEXO.pdf`;
-      // const rutaArchivoAntiguo = obtenerRutaArchivoAntiguo(oldName);
-      // const rutaArchivoNuevo = obtenerRutaArchivoNuevo(nombre_anexo); 
-      // sobrescribirArchivo(rutaArchivoAntiguo, rutaArchivoNuevo); 
-      const ftpClient = await conectarFTPCiudadano();
-      const localFilePath = path.join("./pdf", nombre_anexo);
-      const remoteFilePath = `/PDF-Convocatorias/${nombre_anexo}`;
-      await ftpClient.remove(`/PDF-Convocatorias/${nombreViejo}`)
-      // Subir la imagen al servidor FTP
-      await ftpClient.uploadFrom(localFilePath, remoteFilePath);
 
-      // Eliminar la imagen local después de subirla
-      fs.unlinkSync(localFilePath);
-      await ftpClient.close();
+      // Define las rutas de origen y destino
+      const archivoOrigen = path.join(__dirname, '..', 'pdf', nombre_anexo);
+      const archivoDestino = path.join(__dirname, '..', '..', 'httpdocs', 'PDF-Convocatorias', nombreViejo);
+
+      // Verifica si la carpeta destino existe, de lo contrario, créala
+      const carpetaDestino = path.dirname(archivoDestino);
+      if (!fs.existsSync(carpetaDestino)) {
+        fs.mkdirSync(carpetaDestino, { recursive: true });
+      }
+
+      // Mueve el archivo
+      fs.rename(archivoOrigen, archivoDestino, (err) => {
+        if (err) {
+          console.error('Error al mover el archivo:', err);
+        } else {
+          console.log('Archivo movido exitosamente');
+        }
+      });
+
     }
     // Query para actualizar la contratacion
     const sql = "UPDATE contratacion SET `nombre_anexo`= ? WHERE `id_contratacion`= ?";
     const values = [nombre_anexo, id];
     // Verificar si la contratacion ya existe con otra ID
-    const connection = await conectarSMTContratacion();
+    connection = await conectarSMTContratacion();
     await connection.execute(sql, values);
     
     res.status(201).json({ message: "Anexo editado con éxito"});
-    connection.end();
+
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 };
 
 const borrarContratacion = async (req, res) => {
   const { id } = req.body;
-  console.log(req.body)
   const sql = "UPDATE contratacion set habilita = 0 WHERE id_contratacion = ?";
   const values = [id];
+  let connection;
 
   try {
-    const connection = await conectarSMTContratacion();
+    connection = await conectarSMTContratacion();
     const [result] = await connection.execute(sql, values); 
-    await connection.end();
     if (result.affectedRows > 0) {
       res.status(200).json({ message: "Contratación deshabilitada con éxito" });
     } else {
@@ -430,6 +839,8 @@ const borrarContratacion = async (req, res) => {
   } catch (error) {
     console.error("Error al eliminar la contratación:", error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 };
 
@@ -441,25 +852,47 @@ const editarContratacion = async (req, res) => {
     const archivo = req.file;
     let nombre_archivo = null;
     nombre_archivo = `CONTRATACION_${num_instrumento}_EXPTE_${expte}.pdf`;
-    if (archivo) {
-      let nombreViejo = oldName.replace(/\//g, '-')
-      let archivoViejo = nombre_archivo.replace(/\//g, '-')
-      console.log(nombreViejo)
-      const ftpClient = await conectarFTPCiudadano();
-      const localFilePath = path.join("./pdf", archivoViejo);
-      const remoteFilePath = `/PDF-Convocatorias/${archivoViejo}`;
-      await ftpClient.remove(`/PDF-Convocatorias/${nombreViejo}`)
-      // Subir la imagen al servidor FTP
-      await ftpClient.uploadFrom(localFilePath, remoteFilePath);
+    let nombreViejo = oldName.replace(/\//g, '-')
+    let archivoViejo = nombre_archivo.replace(/\//g, '-')
 
-      // Eliminar la imagen local después de subirla
-      fs.unlinkSync(localFilePath);
-      await ftpClient.close();
+    if (archivo) {
+      // Define las rutas de origen y destino
+      const archivoOrigen = path.join(__dirname, '..', 'pdf', archivoViejo);
+      const archivoDestino = path.join(__dirname, '..', '..', 'httpdocs', 'PDF-Convocatorias', nombreViejo);
+
+      // Verifica si la carpeta destino existe, de lo contrario, créala
+      const carpetaDestino = path.dirname(archivoDestino);
+      if (!fs.existsSync(carpetaDestino)) {
+        fs.mkdirSync(carpetaDestino, { recursive: true });
+      }
+
+      // Mueve el archivo
+      fs.rename(archivoOrigen, archivoDestino, (err) => {
+        if (err) {
+          console.error('Error al mover el archivo:', err);
+        } else {
+          console.log('Archivo movido exitosamente');
+        }
+      });
+    } else {
+      // Define las rutas de origen y destino
+      const archivoOrigen = path.join(__dirname, '..', 'pdf', archivoViejo);
+      const archivoDestino = path.join(__dirname, '..', '..', 'httpdocs', 'PDF-Convocatorias', nombreViejo);
+
+      fs.rename(archivoOrigen, archivoDestino, (err) => {
+        if (err) {
+          console.error('Error al mover el archivo:', err);
+        } else {
+          console.log('Archivo movido exitosamente');
+        }
+      });
     }
+
     // Query para actualizar la contratacion
     const sql = "UPDATE contratacion SET nombre_contratacion = ?, id_tcontratacion = ?, fecha_presentacion = ?, hora_presentacion = ?, num_instrumento = ?, valor_pliego = ?, expte = ?, id_tinstrumento = ?, fecha_apertura = ?, hora_apertura = ?, habilita = ?, nombre_archivo = ?, detalle = ? WHERE id_contratacion = ?";
-    const values = [nombre_contratacion, id_tcontratacion, fecha_presentacion, hora_presentacion, num_instrumento, valor_pliego, expte, id_tinstrumento, fecha_apertura, hora_apertura, habilita, nombre_archivo, detalle, id];
-    console.log(values)
+    const values = [nombre_contratacion, id_tcontratacion, fecha_presentacion, hora_presentacion, num_instrumento, valor_pliego, expte, id_tinstrumento, fecha_apertura, hora_apertura, habilita, archivoViejo, detalle, id];
+
+
     // Verificar si la contratacion ya existe con otra ID
     const connection = await conectarSMTContratacion();
     const [contratacion] = await connection.execute(
@@ -472,6 +905,7 @@ const editarContratacion = async (req, res) => {
       const [result] = await connection.execute(sql, values);
       console.log("Filas actualizadas:", result.affectedRows);
       res.status(200).json({ message: "Contratacion modificada con éxito", result });
+
     } else {
       // Ya existe otra contratacion con los mismos datos, devolver un error
       res.status(400).json({
@@ -479,9 +913,10 @@ const editarContratacion = async (req, res) => {
         contratacion: contratacion[0],
       });
     }
-    connection.end();
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally{
+    connection.end();
   }
 };
 //-----------CONTRATACIONES--------------
@@ -492,6 +927,7 @@ const editarContratacion = async (req, res) => {
 //-----------PATRIMOINIO MUNICIPAL--------------
 
 const agregarCategoriaPatrimonio = async (req, res) => {
+  let connection;
   try {
     const { nombre_categoria, habilita } = req.body;
 
@@ -505,17 +941,20 @@ const agregarCategoriaPatrimonio = async (req, res) => {
     const values = [nombre_categoria, habilita];
 
     // Ejecutar la consulta SQL para insertar la nueva opción
-    const connection = await conectarSMTPatrimonio();
+    connection = await conectarSMTPatrimonio();
     const [result] = await connection.execute(sql, values);
     const nuevoId = result.insertId; // Obtener el id generado por la base de datos
 
     res.status(201).json({ id: nuevoId, message: "Categoria creada con éxito" });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 };
 
 const agregarTipologiaPatrimonio = async (req, res) => {
+  let connection;
   try {
     const { nombre_tipologia, habilita } = req.body;
 
@@ -529,17 +968,20 @@ const agregarTipologiaPatrimonio = async (req, res) => {
     const values = [nombre_tipologia, habilita];
 
     // Ejecutar la consulta SQL para insertar la nueva opción
-    const connection = await conectarSMTPatrimonio();
+    connection = await conectarSMTPatrimonio();
     const [result] = await connection.execute(sql, values);
     const nuevoId = result.insertId; // Obtener el id generado por la base de datos
 
     res.status(201).json({ id: nuevoId, message: "Tipología creada con éxito" });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 };
 
 const agregarMaterialPatrimonio = async (req, res) => {
+  let connection;
   try {
     const { nombre_material, habilita } = req.body;
 
@@ -553,17 +995,20 @@ const agregarMaterialPatrimonio = async (req, res) => {
     const values = [nombre_material, habilita];
 
     // Ejecutar la consulta SQL para insertar la nueva opción
-    const connection = await conectarSMTPatrimonio();
+    connection = await conectarSMTPatrimonio();
     const [result] = await connection.execute(sql, values);
     const nuevoId = result.insertId; // Obtener el id generado por la base de datos
 
     res.status(201).json({ id: nuevoId, message: "Material creado con éxito" });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 };
 
 const agregarEstadoPatrimonio = async (req, res) => {
+  let connection;
   try {
     const { nombre_estado, habilita } = req.body;
 
@@ -577,22 +1022,25 @@ const agregarEstadoPatrimonio = async (req, res) => {
     const values = [nombre_estado, habilita];
 
     // Ejecutar la consulta SQL para insertar la nueva opción
-    const connection = await conectarSMTPatrimonio();
+    connection = await conectarSMTPatrimonio();
     const [result] = await connection.execute(sql, values);
     const nuevoId = result.insertId; // Obtener el id generado por la base de datos
 
     res.status(201).json({ id: nuevoId, message: "Estado creado con éxito" });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 };
 
 const agregarAutorPatrimonio = async (req, res) => {
+  let connection;
   try {
     const { nombre_autor, descripcion_autor, habilita } = req.body;
 
     // Verificar que los valores requeridos estén definidos
-    if (nombre_autor === undefined || descripcion_autor === undefined || habilita === undefined) {
+    if (nombre_autor === undefined || habilita === undefined) {
       throw new Error("Los parámetros de la solicitud son inválidos");
     }
 
@@ -601,17 +1049,20 @@ const agregarAutorPatrimonio = async (req, res) => {
     const values = [nombre_autor, descripcion_autor, habilita];
 
     // Ejecutar la consulta SQL para insertar el nuevo autor
-    const connection = await conectarSMTPatrimonio();
+    connection = await conectarSMTPatrimonio();
     const [result] = await connection.execute(sql, values);
     const nuevoId = result.insertId; // Obtener el id generado por la base de datos
 
     res.status(201).json({ id: nuevoId, message: "Autor creado con éxito" });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 };
 
 const agregarUbicacionPatrimonio = async (req, res) => {
+  let connection;
   try {
     const { nombre_ubicacion, habilita } = req.body;
 
@@ -621,21 +1072,24 @@ const agregarUbicacionPatrimonio = async (req, res) => {
     }
 
     // Query para insertar una nuevo estado
-    const sql = "INSERT INTO ubicacion (nombre_ubicacion, habilita) VALUES (?, ?, ?)";
+    const sql = "INSERT INTO ubicacion (nombre_ubicacion, habilita) VALUES (?, ?)";
     const values = [nombre_ubicacion, habilita];
 
     // Ejecutar la consulta SQL para insertar el nuevo autor
-    const connection = await conectarSMTPatrimonio();
+    connection = await conectarSMTPatrimonio();
     const [result] = await connection.execute(sql, values);
     const nuevoId = result.insertId; // Obtener el id generado por la base de datos
 
     res.status(201).json({ id: nuevoId, message: "Autor creado con éxito" });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 };
 
 const agregarPatrimonio = async (req, res) => {
+  let connection;
   try {
     const {
       nombre_patrimonio,
@@ -648,8 +1102,10 @@ const agregarPatrimonio = async (req, res) => {
       id_estado,
       id_autor,
       id_ubicacion,
-      longitud,
-      latitud,
+      latylon,
+      imagen_carrousel_1,
+      imagen_carrousel_2,
+      imagen_carrousel_3,
       habilita
     } = req.body;
 
@@ -662,12 +1118,12 @@ const agregarPatrimonio = async (req, res) => {
     // Obtener el nombre del archivo cargado
     const nombre_archivo = archivo.filename;
     // Obtener el último id_patrimonio de la tabla
-    const connection = await conectarSMTPatrimonio();
-    const [lastIdResult] = await connection.query("SELECT MAX(id_patrimobio) AS max_id FROM patrimonio");
+    connection = await conectarSMTPatrimonio();
+    const [lastIdResult] = await connection.query("SELECT MAX(id_patrimonio) AS max_id FROM patrimonio");
     let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_patrimonio
     // Query para insertar una nuevo patrimonio
     const sql =
-      "INSERT INTO contratacion (id_patrimonio, nombre_patrimonio, anio_emplazamiento, descripcion, origen, id_categoria, id_tipologia, id_material, id_estado, id_autor, id_ubicacion, longitud, latitud, habilita, nombre_archivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO patrimonio (id_patrimonio, nombre_patrimonio, anio_emplazamiento, descripcion, origen, id_categoria, id_tipologia, id_material, id_estado, id_autor, id_ubicacion, latylon, imagen_carrousel_1, imagen_carrousel_2, imagen_carrousel_3, habilita, nombre_archivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     const values = [
       nextId,
       nombre_patrimonio,
@@ -680,8 +1136,10 @@ const agregarPatrimonio = async (req, res) => {
       id_estado,
       id_autor,
       id_ubicacion,
-      longitud,
-      latitud,
+      latylon,
+      imagen_carrousel_1,
+      imagen_carrousel_2,
+      imagen_carrousel_3,
       habilita,
       nombre_archivo,
     ];
@@ -689,7 +1147,7 @@ const agregarPatrimonio = async (req, res) => {
     // Ejecutar la consulta SQL para insertar la nueva convocatoria
     await connection.execute(sql, values);
     const ftpClient = await conectarFTPCiudadano();
-    const remoteFilePath = `/PDF-Convocatorias/${nombre_archivo}`;
+    const remoteFilePath = `/Fotos-Patrimonio/${nombre_archivo}`;
     const localFilePath = path.join("./pdf", nombre_archivo);
     // Subir la imagen al servidor FTP
     await ftpClient.uploadFrom(localFilePath, remoteFilePath);
@@ -700,22 +1158,77 @@ const agregarPatrimonio = async (req, res) => {
     res.status(201).json({ message: "Patrimonio creado con éxito", id: nextId, num_patrimonio: nextId });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
+  }
+};
+
+const editarPatrimonio = async (req, res) => {
+  let connection;
+  try {
+    const { nombre_patrimonio, anio_emplazamiento, descripcion, origen, id_categoria, id_tipologia, id_material, id_estado, id_autor, id_ubicacion, latylon, imagen_carrousel_1, imagen_carrousel_2, imagen_carrousel_3, habilita, id, oldName } = req.body;
+    // Verificar si hay un archivo adjunto
+    const archivo = req.file;
+    let nombre_archivo = null;
+    nombre_archivo = `${nombre_patrimonio.replace(/\s+/g, '').trim()}.jpg`;
+    if (archivo) {
+      let nombreViejo = `${oldName.replace(/\s+/g, '').trim()}.jpg`;
+      let archivoViejo = nombre_archivo.replace(/\//g, '-');
+      const ftpClient = await conectarFTPCiudadano();
+
+      try {
+        const localFilePath = path.join("./pdf", archivoViejo);
+        const remoteFilePath = `/Fotos-Patrimonio/${archivoViejo}`;
+
+        await ftpClient.remove(`/Fotos-Patrimonio/${nombreViejo}`);
+        await ftpClient.uploadFrom(localFilePath, remoteFilePath);
+        fs.unlinkSync(localFilePath);
+      } finally {
+        await ftpClient.close();
+      }
+    }
+    // Query para actualizar la patrimonio
+    const sql = "UPDATE patrimonio SET nombre_patrimonio = ?, anio_emplazamiento = ?, descripcion = ?, origen = ?, id_categoria = ?, id_tipologia = ?, id_material = ?, id_estado = ?, id_autor = ?, id_ubicacion = ?, latylon = ?, imagen_carrousel_1 = ?, imagen_carrousel_2 = ?, imagen_carrousel_3 = ?, habilita = ?, nombre_archivo = ? WHERE id_patrimonio = ?";
+    const values = [nombre_patrimonio, anio_emplazamiento, descripcion, origen, id_categoria, id_tipologia, id_material, id_estado, id_autor, id_ubicacion, latylon, imagen_carrousel_1, imagen_carrousel_2, imagen_carrousel_3, habilita, nombre_archivo, id];
+    // Verificar si la patrimonio ya existe con otra ID
+    connection = await conectarSMTPatrimonio();
+    const [patrimonio] = await connection.execute(
+      "SELECT * FROM patrimonio WHERE (nombre_patrimonio = ? AND descripcion = ? AND id_categoria = ? AND id_tipologia = ? AND latylon = ? AND habilita = ?) AND id_patrimonio != ?",
+      [nombre_patrimonio, descripcion, id_categoria, id_tipologia, latylon, habilita, id ]
+    );
+
+    if (patrimonio.length === 0) {
+      // No existe otra patrimonio con los mismos datos, se puede proceder con la actualización
+      const [result] = await connection.execute(sql, values);
+      console.log("Filas actualizadas:", result.affectedRows);
+      res.status(200).json({ message: "Patrimonio modificado con éxito", result });
+    } else {
+      // Ya existe otra patrimonio con los mismos datos, devolver un error
+      res.status(400).json({
+        message: "Ya existe un Patrimonio con los mismos datos",
+        patrimonio: patrimonio[0],
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 };
 
 const listarPatrimonioBack = async (req, res) => {
-  const connection = await conectarSMTContratacion();
+  const connection = await conectarSMTPatrimonio();
   try {
     const [patrimonios] = await connection.execute(
-      'SELECT * FROM patrimonio'
+      'SELECT patrimonio.*, ubicacion.nombre_ubicacion, tipologia.nombre_tipologia FROM patrimonio LEFT JOIN ubicacion ON patrimonio.id_ubicacion = ubicacion.id_ubicacion LEFT JOIN tipologia ON patrimonio.id_tipologia = tipologia.id_tipologia'
     );
-
-    contrataciones.reverse();
-    connection.end();
+    patrimonios.reverse();
     res.status(200).json({ patrimonios })
 
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 }
 
@@ -725,11 +1238,12 @@ const listarAutorPatrimonioBack = async (req, res) => {
     const [autores] = await connection.execute(
       'SELECT * FROM autor'
     );
-    connection.end();
     res.status(200).json({ autores })
 
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 }
 
@@ -739,11 +1253,12 @@ const listarUbicacionPatrimonioBack = async (req, res) => {
     const [ubicaciones] = await connection.execute(
       'SELECT * FROM ubicacion'
     );
-    connection.end();
     res.status(200).json({ ubicaciones })
 
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 }
 
@@ -753,11 +1268,12 @@ const listarEstadoPatrimonioBack = async (req, res) => {
     const [estados] = await connection.execute(
       'SELECT * FROM estado'
     );
-    connection.end();
     res.status(200).json({ estados })
 
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 }
 
@@ -767,11 +1283,12 @@ const listarMaterialPatrimonioBack = async (req, res) => {
     const [materiales] = await connection.execute(
       'SELECT * FROM material'
     );
-    connection.end();
     res.status(200).json({ materiales })
 
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 }
 
@@ -781,11 +1298,12 @@ const listarCategoriaPatrimonioBack = async (req, res) => {
     const [categorias] = await connection.execute(
       'SELECT * FROM categoria'
     );
-    connection.end();
     res.status(200).json({ categorias })
 
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 }
 
@@ -795,11 +1313,12 @@ const listarTipologiaPatrimonioBack = async (req, res) => {
     const [tipologias] = await connection.execute(
       'SELECT * FROM tipologia'
     );
-    connection.end();
     res.status(200).json({ tipologias })
 
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 }
 
@@ -808,11 +1327,10 @@ const deshabilitarPatrimonio = async (req, res) => {
   console.log(req.body)
   const sql = "UPDATE patrimonio set habilita = 0 WHERE id_patrimonio = ?";
   const values = [id];
-
+  let connection;
   try {
-    const connection = await conectarSMTPatrimonio();
+    connection = await conectarSMTPatrimonio();
     const [result] = await connection.execute(sql, values); 
-    await connection.end();
     if (result.affectedRows > 0) {
       res.status(200).json({ message: "patrimonio deshabilitado con éxito" });
     } else {
@@ -821,10 +1339,12 @@ const deshabilitarPatrimonio = async (req, res) => {
   } catch (error) {
     console.error("Error al eliminar el patrimonio:", error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end()
   }
 };
 //-----------PATRIMOINIO MUNICIPAL--------------
 
 
 
-module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, editarAnexo, listarContratacionPorId, agregarPatrimonio, agregarCategoriaPatrimonio, agregarEstadoPatrimonio, agregarAutorPatrimonio, agregarMaterialPatrimonio, agregarUbicacionPatrimonio, agregarTipologiaPatrimonio, listarPatrimonioBack, listarAutorPatrimonioBack, listarTipologiaPatrimonioBack, listarCategoriaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarUbicacionPatrimonioBack, deshabilitarPatrimonio}
+module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, editarAnexo, listarContratacionPorId, agregarPatrimonio, agregarCategoriaPatrimonio, agregarEstadoPatrimonio, agregarAutorPatrimonio, agregarMaterialPatrimonio, agregarUbicacionPatrimonio, agregarTipologiaPatrimonio, listarPatrimonioBack, listarAutorPatrimonioBack, listarTipologiaPatrimonioBack, listarCategoriaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarUbicacionPatrimonioBack, deshabilitarPatrimonio, editarPatrimonio, listarGenero, editarGenero, agregarGenero, agregarTipoDeUsuario, listarTiposDeUsuario, editarTipoDeUsuario, agregarTipoDoc, editarTipoDoc, listarTipoDoc, agregarReparticion, editarReparticion, listarReparticion, listarProcesos, actualizarPermisosTUsuario, listarPermisosPorTUsuarios, actualizarPermisosPorTUsuario, listarEmpleados}
