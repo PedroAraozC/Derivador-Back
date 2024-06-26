@@ -135,6 +135,74 @@ const borrarOpcion = async (req, res) => {
   }
 };
 
+const listarPermisosPorTUsuarios = async (req, res) => {
+  const { id } = req.body;
+  const sql = "SELECT pt.id_permiso_tusuario, pt.id_proceso, pt.ver, p.nombre_proceso, tu.nombre_tusuario FROM permiso_tusuario pt LEFT JOIN proceso p  on pt.id_proceso = p.id_proceso  LEFT JOIN tipo_usuario tu ON pt.id_tusuario = tu.id_tusuario  WHERE pt.id_proceso = ? ORDER BY tu.nombre_tusuario ASC ";
+  const values = [id];
+  let connection;
+
+  try {
+    connection = await conectarBDEstadisticasMySql();
+    const [permisos] = await connection.execute(sql, values); 
+    res.status(200).json({ permisos })
+  } catch (error) {
+    console.error("Error al traer los permisos:", error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally{
+    connection.end()
+  }
+};
+
+const actualizarPermisosPorTUsuario = async (req, res) => {
+  let connection;
+  try {
+      const { id, permisos } = req.body;
+      if (!permisos || !Array.isArray(permisos)) {
+          throw new Error("Los parámetros de la solicitud son inválidos");
+      }
+      console.log("Permisos a actualizar:", permisos);
+      connection = await conectarBDEstadisticasMySql();
+      for (const permiso of permisos) {
+          const { id: procesoId, ver } = permiso;
+          console.log(`Actualizando permiso con id ${procesoId} a ver=${ver}`);
+          const updateSql = "UPDATE permiso_tusuario SET ver = ? WHERE  id_permiso_tusuario = ?;";
+          const updateValues = [ver, procesoId];
+          const [result] = await connection.execute(updateSql, updateValues);
+          if (result.affectedRows !== 1) {
+              throw new Error(`No se pudo actualizar el permiso con id ${procesoId}`);
+          }
+      }
+      res.status(200).json({ message: "Permisos actualizados correctamente" });
+  } catch (error) {
+      console.error("Error al actualizar permisos:", error);
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+      if (connection) {
+          connection.end();
+      }
+  }
+};
+
+// --------------------PANEL PARA USUARIOS ----------------------
+
+const listarEmpleados = async (req, res) => {
+  const connection = await conectarBDEstadisticasMySql();
+  try {
+    const [empleados] = await connection.execute(
+      'SELECT e.id_persona, e.afiliado, p.documento_persona, p.nombre_persona, p.apellido_persona, p.email_persona, r.nombre_reparticion FROM empleado e LEFT JOIN persona p ON e.id_persona = p.id_persona LEFT JOIN reparticion r ON e.id_reparticion = r.id_reparticion'
+    );
+    res.status(200).json({ empleados })
+
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+};
+
+// --------------------PANEL PARA USUARIOS ----------------------
+
+
 // --------------------PANEL PARA GENERO DERIVADOR----------------------
 
 const agregarGenero = async (req, res) =>{
@@ -1279,4 +1347,4 @@ const deshabilitarPatrimonio = async (req, res) => {
 
 
 
-module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, editarAnexo, listarContratacionPorId, agregarPatrimonio, agregarCategoriaPatrimonio, agregarEstadoPatrimonio, agregarAutorPatrimonio, agregarMaterialPatrimonio, agregarUbicacionPatrimonio, agregarTipologiaPatrimonio, listarPatrimonioBack, listarAutorPatrimonioBack, listarTipologiaPatrimonioBack, listarCategoriaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarUbicacionPatrimonioBack, deshabilitarPatrimonio, editarPatrimonio, listarGenero, editarGenero, agregarGenero, agregarTipoDeUsuario, listarTiposDeUsuario, editarTipoDeUsuario, agregarTipoDoc, editarTipoDoc, listarTipoDoc, agregarReparticion, editarReparticion, listarReparticion, listarProcesos, actualizarPermisosTUsuario}
+module.exports={ agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, editarAnexo, listarContratacionPorId, agregarPatrimonio, agregarCategoriaPatrimonio, agregarEstadoPatrimonio, agregarAutorPatrimonio, agregarMaterialPatrimonio, agregarUbicacionPatrimonio, agregarTipologiaPatrimonio, listarPatrimonioBack, listarAutorPatrimonioBack, listarTipologiaPatrimonioBack, listarCategoriaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarUbicacionPatrimonioBack, deshabilitarPatrimonio, editarPatrimonio, listarGenero, editarGenero, agregarGenero, agregarTipoDeUsuario, listarTiposDeUsuario, editarTipoDeUsuario, agregarTipoDoc, editarTipoDoc, listarTipoDoc, agregarReparticion, editarReparticion, listarReparticion, listarProcesos, actualizarPermisosTUsuario, listarPermisosPorTUsuarios, actualizarPermisosPorTUsuario, listarEmpleados}

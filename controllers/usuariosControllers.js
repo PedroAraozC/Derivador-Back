@@ -261,14 +261,14 @@ const obtenerPermisos = async (req, res) => {
 const obtenerOpcionesHabilitadas = async (req, res) => {
   let connection;
   try {
-     connection = await conectarBDEstadisticasMySql();
+    connection = await conectarBDEstadisticasMySql();
     
     const [opciones] = await connection.execute(
       `SELECT pu.*, pro.descripcion, pro.nombre_proceso, o.id_opcion, o.nombre_opcion
       FROM permiso_tusuario pu
       LEFT JOIN proceso pro ON pu.id_proceso = pro.id_proceso 
       LEFT JOIN opcion o ON pro.id_opcion = o.id_opcion
-      WHERE pu.id_tusuario = 5
+      WHERE pu.id_tusuario = 1
       ORDER BY o.id_opcion ASC`
     );
     // await connection.end();
