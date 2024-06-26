@@ -31,14 +31,14 @@ const transporter = nodemailer.createTransport({
 // });
 
 //funciones
-const enviarEmail = (codigo, email) => {
+const enviarEmail = (codigo, email, cuil) => {
 
   try {
     const mailOptions = {
       from: 'SMT-Ciudadano Digital <no-reply-cdigital@smt.gob.ar>',
       to: email,
       subject: 'Código de validación',
-      text: `Tu código de validación es: ${codigo}`
+      text: `Tu código de validación es: ${codigo}. Para visualizar su credencial de Ciudadano Digital ingrese al siguiente link: https://ciudaddigital.smt.gob.ar/#/credencialesCiudadano/${cuil}`
     };
 
     transporter.sendMail(mailOptions, (errorEmail, info) => {
@@ -261,14 +261,14 @@ const obtenerPermisos = async (req, res) => {
 const obtenerOpcionesHabilitadas = async (req, res) => {
   let connection;
   try {
-     connection = await conectarBDEstadisticasMySql();
+    connection = await conectarBDEstadisticasMySql();
     
     const [opciones] = await connection.execute(
       `SELECT pu.*, pro.descripcion, pro.nombre_proceso, o.id_opcion, o.nombre_opcion
       FROM permiso_tusuario pu
       LEFT JOIN proceso pro ON pu.id_proceso = pro.id_proceso 
       LEFT JOIN opcion o ON pro.id_opcion = o.id_opcion
-      WHERE pu.id_tusuario = 5
+      WHERE pu.id_tusuario = 1
       ORDER BY o.id_opcion ASC`
     );
     // await connection.end();
@@ -602,7 +602,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
         );
       }
       // Enviar correo electrónico al usuario recién registrado
-       enviarEmail(codigoValidacion,email_persona);                 
+       enviarEmail(codigoValidacion,email_persona, documento_persona);                 
 
        await connection.end();
       res.status(200).json({ message: "Ciudadano creado con éxito" ,ok:true});
@@ -640,7 +640,7 @@ const enviarEmailValidacion = async (req, res) => {
 
       await connection.query("UPDATE persona SET email_persona=? WHERE documento_persona = ?", [email_persona, documento_persona]);
 
-      enviarEmail(codigoValidacion, email_persona);
+      enviarEmail(codigoValidacion, email_persona,documento_persona);
       return res.status(200).json({ mge: "Correo de validación enviado", ok: true });
 
     } else {
