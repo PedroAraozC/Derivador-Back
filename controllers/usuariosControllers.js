@@ -569,7 +569,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
           localidad_persona: localidad_persona?.toUpperCase(),
           fecha_nacimiento_persona: fechaFormateada,
           id_genero,
-          id_tdocumento:null,
+          id_tdocumento:1,
           id_tusuario: usuarioEmpleado,
         },
         { transaction }
