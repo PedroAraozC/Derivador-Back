@@ -348,8 +348,10 @@ const editarUsuarioCompleto = async (req, res) => {
       telefono_persona,
       domicilio_persona,
       localidad_persona,
+      fecha_nacimiento_persona,
     } = req.body;
-
+    const fechaStr = fecha_nacimiento_persona;
+    const fechaFormateada = moment(fechaStr).format("YYYY-MM-DD");
     //const hashedPassword = await bcrypt.hash(clave, 10);
 
     // Establecer la conexión a la base de datos MySQL
@@ -620,8 +622,8 @@ const agregarUsuarioMYSQL = async (req, res) => {
           clave: hashedPassword,
           telefono_persona,
           domicilio_persona: domicilio_persona?.toUpperCase(),
-          id_provincia,
-          id_pais,
+          id_provincia: 1,
+          id_pais: 1,
           localidad_persona: localidad_persona?.toUpperCase(),
           fecha_nacimiento_persona: fechaFormateada,
           id_genero,
