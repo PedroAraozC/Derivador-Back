@@ -26,6 +26,18 @@ const Movimiento = sequelize.define('Movimiento', {
   movimiento_id2 :{
     type: DataTypes.INTEGER,
     allowNull: true
+  },
+  tipoinstrumento_id :{
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  presupuesto_id :{
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  instrumento_nro :{
+    type: DataTypes.STRING,
+    allowNull: true
   }
 },{
     tableName: 'movimiento',
