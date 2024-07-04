@@ -370,9 +370,9 @@ const editarUsuarioCompleto = async (req, res) => {
       await connection.query(
         "UPDATE persona SET nombre_persona = ?, apellido_persona = ?, email_persona = ?, telefono_persona = ?, domicilio_persona = ?, localidad_persona = ? WHERE documento_persona = ?",
         [
-          nombre_persona.toUpperCase(),
-          apellido_persona.toUpperCase(),
-          email_persona,
+          nombre_persona.toUpperCase().trim(),
+          apellido_persona.toUpperCase().trim(),
+          email_persona.trim(),
           telefono_persona,
           domicilio_persona.toUpperCase(),
           localidad_persona.toUpperCase(),
@@ -866,11 +866,6 @@ const desactivarUsuario = async (req, res) => {
   try {
     const { documento_persona } = req.body.data;
     connection = await conectarBDEstadisticasMySql();
-    console.log(req.body.data);
-    // const [result] = await connection.query(
-    //   "SELECT * FROM persona WHERE documento_persona = ?",
-    //   [documento_persona]
-    // );
 
     await connection.query(
       "UPDATE persona SET habilita = 3, validado = 0 WHERE documento_persona= ?",
