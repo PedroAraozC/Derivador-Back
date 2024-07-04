@@ -761,11 +761,12 @@ const agregarPartida = async (req, res) => {
       partidapadre_id,
       gasto,
       credito,
+      creditoanteproyecto
     } = req.body;
      connection = await conectar_BD_GAF_MySql();
 
     const [result] = await connection.execute(
-      "SELECT sp_insertpartidas(?,?,?,?,?,?,?,?,?)",
+      "SELECT sp_insertpartidas(?,?,?,?,?,?,?,?,?,?)",
       [
         seccion,
         sector,
@@ -776,11 +777,12 @@ const agregarPartida = async (req, res) => {
         partidapadre_id,
         gasto,
         credito,
+        creditoanteproyecto
       ]
     );
     console.log(result);
     // await connection.end();
-    if (result[0]["sp_insertpartidas(?,?,?,?,?,?,?,?,?)"] === 0) {
+    if (result[0]["sp_insertpartidas(?,?,?,?,?,?,?,?,?,?)"] === 0) {
       res.status(400).json({
         message: "partida ya existente",
         Item: result[0].partida_det,
@@ -801,18 +803,18 @@ const agregarPartida = async (req, res) => {
   const editarPartida = async (req, res) => {
     let connection;
     try {
-      const { id, seccion, sector, principal, parcial, subparcial, codigo, descripcion, partidapadre_id, gasto, credito } = req.body;
+      const { id, seccion, sector, principal, parcial, subparcial, codigo, descripcion, partidapadre_id, gasto, credito ,creditoanteproyecto} = req.body;
       const partidaId = req.params.id;
 
       connection = await conectar_BD_GAF_MySql();
 
 
       const [result] = await connection.execute(
-        'SELECT sp_updatepartidas(?,?,?,?,?,?,?,?,?,?)',
-        [partidaId, seccion, sector, principal, parcial, subparcial, descripcion, partidapadre_id, gasto, credito]
+        'SELECT sp_updatepartidas(?,?,?,?,?,?,?,?,?,?,?)',
+        [partidaId, seccion, sector, principal, parcial, subparcial, descripcion, partidapadre_id, gasto, credito,creditoanteproyecto]
       );
       //  await connection.end();
-      if (result[0]['sp_updatepartidas(?,?,?,?,?,?,?,?,?,?)'] === 0) {
+      if (result[0]['sp_updatepartidas(?,?,?,?,?,?,?,?,?,?,?)'] === 0) {
         res
           .status(400)
           .json({
@@ -1339,7 +1341,7 @@ const listarAnteproyecto= async (req, res) => {
   let connection;
   try {
      connection = await conectar_BD_GAF_MySql();
-    let sqlQuery = `SELECT a.detpresupuesto_id,a.partida_id,b.partida_credito,b.partida_codigo,b.partida_det,a.presupuesto_credito,a.presupuesto_anteproyecto,a.presupuesto_aprobado
+    let sqlQuery = `SELECT a.detpresupuesto_id,a.partida_id,b.partida_credito,b.partida_creditoanteproyecto,b.partida_codigo,b.partida_det,a.presupuesto_credito,a.presupuesto_anteproyecto,a.presupuesto_aprobado
     FROM detpresupuesto a inner JOIN partidas b
     ON a.partida_id=b.partida_id WHERE a.presupuesto_id=? AND a.item_id=?
     order by b.partida_codigo`;
