@@ -1057,7 +1057,7 @@ const partidaExistente = async (req, res) => {
 const agregarMovimiento = async (req, res) => {
   let transaction;
   try {
-    const { movimiento, detMovimiento,expediente } = req.body;
+    const { movimiento, detMovimiento,expediente, presupuesto } = req.body;
 
     transaction = await sequelize.transaction();
 
@@ -1078,6 +1078,9 @@ const agregarMovimiento = async (req, res) => {
       movimiento_fecha: movimiento.fecha,
       expediente_id: nuevoExpediente.expediente_id,
       tipomovimiento_id: movimiento.tipomovimiento_id,
+      tipoinstrumento_id: expediente.tipoDeInstrumento,
+      instrumento_nro: expediente.numeroInstrumento,
+      presupuesto_id: presupuesto
     };
 
     const nuevoMovimiento = await Movimiento.create(movimientoObj, {
@@ -1114,7 +1117,7 @@ const agregarMovimiento = async (req, res) => {
 const agregarMovimientoDefinitivaPreventiva = async (req, res) => {
   let transaction;
   try {
-    const { movimiento, detMovimiento,expediente } = req.body;
+    const { movimiento, detMovimiento,expediente, presupuesto } = req.body;
 
     transaction = await sequelize.transaction();
 
@@ -1122,7 +1125,8 @@ const agregarMovimientoDefinitivaPreventiva = async (req, res) => {
       movimiento_fecha: movimiento.fecha,
       expediente_id: expediente.id,
       tipomovimiento_id: movimiento.tipomovimiento_id,
-      movimiento_id2: movimiento.id
+      movimiento_id2: movimiento.id,
+      presupuesto_id: presupuesto
     };
 
     const nuevoMovimiento = await Movimiento.create(movimientoObj, {
@@ -1228,11 +1232,11 @@ const buscarExpediente = async (req, res) => {
     AND m.tipomovimiento_id = ? 
     AND e.expediente_anio = ? 
 `;
-    const [result1] = await connection.execute(query1, [numero, tipomovimiento_id == 5 ? tipomovimiento_id - 1 : tipomovimiento_id, anio]);
-
+    const [result1] = await connection.execute(query1, [numero, tipomovimiento_id == 5 ? 4 : tipomovimiento_id == 4 ? 1 : tipomovimiento_id, anio]);
+console.log(result1);
     // Obtener los `movimiento_id` para la segunda consulta
     const movimientoIds = result1.map(row => row.movimiento_id);
-    console.log(movimientoIds);
+    // console.log(movimientoIds);
 
     if (movimientoIds.length > 0) {
       // Segunda consulta: Obtener los `movimiento_id` a excluir
@@ -1255,9 +1259,11 @@ const buscarExpediente = async (req, res) => {
 
       // Enviar la respuesta al cliente
       console.log(response);
-      if (response.primeraConsulta.length > 0 && response.segundaConsulta.length > 0) {
+      if (response.primeraConsulta.length > 0 && response.segundaConsulta.length > 0 && tipomovimiento_id == 5) {
         throw new Error("Ya tiene preventiva")
-      } else if (response.primeraConsulta.length > 0 && response.segundaConsulta.length == 0) {
+      } else if(response.primeraConsulta.length > 0 && response.segundaConsulta.length > 0 && tipomovimiento_id == 4){
+        throw new Error("Ya tiene reserva")
+      }else if (response.primeraConsulta.length > 0 && response.segundaConsulta.length == 0) {
         res.status(200).json(response.primeraConsulta);
       }
 
@@ -1297,7 +1303,7 @@ const buscarExpedienteParaModificarDefinitiva = async (req,res)=>{
     const anio = req.query.anio;
 
 
-    const query = `SELECT * FROM expediente AS e LEFT JOIN movimiento AS m ON e.expediente_id = m.expediente_id LEFT JOIN detmovimiento AS d ON m.movimiento_id = d.movimiento_id LEFT JOIN detpresupuesto AS dp ON d.detpresupuesto_id = dp.detpresupuesto_id LEFT JOIN item AS i ON dp.item_id = i.item_id LEFT JOIN partidas AS pda ON dp.partida_id=pda.partida_id WHERE e.expediente_numero = ? AND m.tipomovimiento_id = ? AND e.expediente_anio = ?
+    const query = `SELECT * FROM expediente AS e LEFT JOIN movimiento AS m ON e.expediente_id = m.expediente_id LEFT JOIN tipoinstrumento AS ti ON m.tipoinstrumento_id = ti.tipoinstrumento_id LEFT JOIN detmovimiento AS d ON m.movimiento_id = d.movimiento_id LEFT JOIN detpresupuesto AS dp ON d.detpresupuesto_id = dp.detpresupuesto_id LEFT JOIN item AS i ON dp.item_id = i.item_id LEFT JOIN partidas AS pda ON dp.partida_id=pda.partida_id WHERE e.expediente_numero = ? AND m.tipomovimiento_id = ? AND e.expediente_anio = ?
     `;
     const [result] = await connection.execute(query, [numero,tipomovimiento_id ,anio]);
 
@@ -1659,9 +1665,31 @@ const obtenerPerfilPorCuil = async (req, res) => {
   }
 };
 
+const obtenerTiposDeInstrumentos = async (req,res) =>{
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql();
+
+    let sqlQuery = `SELECT *  FROM tipoinstrumento`;
+    const [tiposDeInstrumentos] = await connection.execute(sqlQuery);
+
+    res.status(200).json({ tiposDeInstrumentos });
+
+  } catch (error) {
+
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+}
+
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida,
   agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,buscarExpediente,
-  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado, modificarMovimiento,obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular,buscarExpedienteParaModificarDefinitiva, agregarMovimientoDefinitivaPreventiva, obtenerPresupuestosParaMovimientoPresupuestario,obtenerPerfilPorCuil,actualizarCreditoCompleto,actualizarPresupuestoAprobadoCompleto,listarItemsFiltrado}
+  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado, modificarMovimiento,obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular,buscarExpedienteParaModificarDefinitiva, agregarMovimientoDefinitivaPreventiva, obtenerPresupuestosParaMovimientoPresupuestario,obtenerPerfilPorCuil,actualizarCreditoCompleto,actualizarPresupuestoAprobadoCompleto,listarItemsFiltrado, obtenerTiposDeInstrumentos}
 
 
 
