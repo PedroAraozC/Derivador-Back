@@ -610,9 +610,10 @@ const agregarUsuarioMYSQL = async (req, res) => {
         "SELECT * FROM reparticion WHERE reparticion.habilita = 1 AND reparticion.item = ?",
         [empleadoValidado.legajo[0].codi_17]
       );
-      let id_rep = resultReparticion[0].id_reparticion;
-      let usuarioEmpleado = 4;
-      // Insertar el nuevo usuario con legajo
+   
+        let id_rep = resultReparticion[0]?.id_reparticion;
+        let usuarioEmpleado = 4;
+        // Insertar el nuevo usuario con legajo
       const nuevaPersona = await Persona.create(
         {
           documento_persona,
@@ -642,7 +643,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
         {
           id_persona: id_per,
           afiliado: afil,
-          id_reparticion: id_rep,
+          id_reparticion: id_rep? id_rep : 1,
         },
         { transaction }
       );
