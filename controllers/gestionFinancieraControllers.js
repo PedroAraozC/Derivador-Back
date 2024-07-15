@@ -1387,15 +1387,20 @@ const actualizarPresupuestoAnteproyecto=async(req, res)=> {
       // Verificar si se realizó la actualización correctamente
       if (result.affectedRows === 1) {
         console.log(`Se actualizó correctamente el presupuesto_anteproyecto para el detpresupuesto_id ${detpresupuesto_id}.`);
-      } else {
-        res.status(200).send({mge:`No se encontró ningún registro con el detpresupuesto_id ${detpresupuesto_id}.`,ok:false});
+        res.status(200).send({mge:'Anteproyecto actualizado',ok:true});
+      } 
+     else if (result.affectedRows > 1) {
+    
+        res.status(404).send({mge:`problema en la base de datos . Hay mas de una fila con el mismo id`,ok:false});
+      }else {
+        res.status(404).send({mge:`No se encontró ningún registro con el detpresupuesto_id ${detpresupuesto_id}.`,ok:false});
       }
     
 
     // Cerrar la conexión a la base de datos
     // await connection.end();
 
-    res.status(200).send({mge:'Anteproyecto actualizado',ok:true});
+    
   } catch (error) {
     console.error('Error al actualizar el presupuesto_anteproyecto:', error);
     res.status(500).send('Error en el servidor');
