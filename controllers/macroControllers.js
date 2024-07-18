@@ -95,84 +95,98 @@ const ingresarReclamo = async (req, res) => {
     );
 
     if (tipoDeReclamoPerteneceACategoria[0].existe_tipo_reclamo == "true") {
-      const transaction = await sequelize_ciu_digital.transaction();
+      if (
+        coorde1 < -26.78530077380037 &&
+        coorde1 > -26.892519689424365 &&
+        coorde2 < -65.16780850068358 &&
+        coorde2 > -65.26702877656248
+      ) {
+        console.log("---Coordenadas válidas---");
 
-      const [tipoDeReclamo, fieldsTipoDeReclamo] = await connection.execute(
-        "SELECT tipo_reclamo.id_prioridad FROM tipo_reclamo WHERE tipo_reclamo.id_treclamo = ? AND tipo_reclamo.habilita = ?",
-        [id_treclamo, 1]
-      );
+        const transaction = await sequelize_ciu_digital.transaction();
 
-      const [derivacionReclamo, fieldsDerivacionReclamo] =
-        await connection.execute(
-          "SELECT derivacion_reclamo.* FROM derivacion_reclamo WHERE derivacion_reclamo.id_treclamo = ? AND derivacion_reclamo.habilita = ?",
+        const [tipoDeReclamo, fieldsTipoDeReclamo] = await connection.execute(
+          "SELECT tipo_reclamo.id_prioridad FROM tipo_reclamo WHERE tipo_reclamo.id_treclamo = ? AND tipo_reclamo.habilita = ?",
           [id_treclamo, 1]
         );
 
-      const reclamoObj = {
-        id_categoria,
-        id_oreclamo: 15,
-        id_estado: 1,
-        id_treclamo,
-        asunto,
-        detalle,
-        direccion,
-        descripcion_lugar,
-        coorde1,
-        coorde2,
-        apellido_nombre,
-        telefono,
-        email,
-        cuit,
-        id_prioridad: tipoDeReclamo[0].id_prioridad,
-        foto: foto?.length > 0 ? 1 : 0,
-      };
+        const [derivacionReclamo, fieldsDerivacionReclamo] =
+          await connection.execute(
+            "SELECT derivacion_reclamo.* FROM derivacion_reclamo WHERE derivacion_reclamo.id_treclamo = ? AND derivacion_reclamo.habilita = ?",
+            [id_treclamo, 1]
+          );
 
-      const nuevoReclamo = await Reclamo.create(reclamoObj, {
-        transaction,
-      });
-
-      const reclamoId = nuevoReclamo.id_reclamo;
-
-      await MovimientoReclamo.create(
-        {
-          id_reclamo: reclamoId,
-          id_derivacion: derivacionReclamo[0].id_derivacion,
-          id_oficina: derivacionReclamo[0].id_oficina_deriva,
+        const reclamoObj = {
+          id_categoria,
+          id_oreclamo: 15,
           id_estado: 1,
-          id_motivo: 1,
-          detalle_movi: "Inicio del trámite",
-          fecha_ingreso: "0000-00-00 00:00:00",
-          fecha_egreso: "0000-00-00 00:00:00",
-          oficina_graba: 5000,
-        },
-        { transaction }
-      );
+          id_treclamo,
+          asunto,
+          detalle,
+          direccion,
+          descripcion_lugar,
+          coorde1,
+          coorde2,
+          apellido_nombre,
+          telefono,
+          email,
+          cuit,
+          id_prioridad: tipoDeReclamo[0].id_prioridad,
+          foto: foto?.length > 0 ? 1 : 0,
+        };
 
-      const [oficinaYReparticion, fieldsOficinaYReparticion] =
-        await connection.execute(
-          "SELECT oficina_reparti.nombre_oficina,reparti.nombre_reparti FROM oficina_reparti JOIN reparti ON oficina_reparti.id_reparti = reparti.id_reparti WHERE oficina_reparti.id_oficina = ?",
-          [derivacionReclamo[0].id_oficina_deriva]
+        const nuevoReclamo = await Reclamo.create(reclamoObj, {
+          transaction,
+        });
+
+        const reclamoId = nuevoReclamo.id_reclamo;
+
+        await MovimientoReclamo.create(
+          {
+            id_reclamo: reclamoId,
+            id_derivacion: derivacionReclamo[0].id_derivacion,
+            id_oficina: derivacionReclamo[0].id_oficina_deriva,
+            id_estado: 1,
+            id_motivo: 1,
+            detalle_movi: "Inicio del trámite",
+            fecha_ingreso: "0000-00-00 00:00:00",
+            fecha_egreso: "0000-00-00 00:00:00",
+            oficina_graba: 5000,
+          },
+          { transaction }
         );
 
-      await transaction.commit();
+        const [oficinaYReparticion, fieldsOficinaYReparticion] =
+          await connection.execute(
+            "SELECT oficina_reparti.nombre_oficina,reparti.nombre_reparti FROM oficina_reparti JOIN reparti ON oficina_reparti.id_reparti = reparti.id_reparti WHERE oficina_reparti.id_oficina = ?",
+            [derivacionReclamo[0].id_oficina_deriva]
+          );
 
-      if (req.body.foto?.length > 0) {
-        try {
-          const resUpdateImage = await guardarImagen(req.body, reclamoId);
-          console.log(resUpdateImage);
-        } catch (error) {
-          console.error("Error:", error);
-          res.status(500).json({ error: "Error de servidor imagenes" });
+        await transaction.commit();
+
+        if (req.body.foto?.length > 0) {
+          try {
+            const resUpdateImage = await guardarImagen(req.body, reclamoId);
+            console.log(resUpdateImage);
+          } catch (error) {
+            console.error("Error:", error);
+            res.status(500).json({ error: "Error de servidor imagenes" });
+          }
         }
-      }
 
-      res.status(200).json({
-        message: "Reclamo generado con éxito",
-        Numero_Reclamo: reclamoId,
-        Estado: "Iniciado",
-        Repartición_Derivada: oficinaYReparticion[0].nombre_reparti,
-        Oficina_Receptora: oficinaYReparticion[0].nombre_oficina,
-      });
+        res.status(200).json({
+          message: "Reclamo generado con éxito",
+          Numero_Reclamo: reclamoId,
+          Estado: "Iniciado",
+          Repartición_Derivada: oficinaYReparticion[0].nombre_reparti,
+          Oficina_Receptora: oficinaYReparticion[0].nombre_oficina,
+        });
+      } else {
+        res.status(400).json({
+          message:
+            "Las coordenadas proporcionadas están fuera del rango permitido",
+        });
+      }
     } else {
       res.status(400).json({
         message: "El tipo de reclamo y la categoría no se corresponden",
