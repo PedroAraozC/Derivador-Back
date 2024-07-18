@@ -350,10 +350,12 @@ const editarUsuarioCompleto = async (req, res) => {
       localidad_persona,
       fecha_nacimiento_persona,
     } = req.body;
+
     const fechaStr = fecha_nacimiento_persona;
+
     const fechaFormateada = moment(fechaStr).format("YYYY-MM-DD");
     //const hashedPassword = await bcrypt.hash(clave, 10);
-
+// console.log(fechaFormateada)
     // Establecer la conexión a la base de datos MySQL
     connection = await conectarBDEstadisticasMySql();
 
@@ -368,7 +370,7 @@ const editarUsuarioCompleto = async (req, res) => {
       const usuario = result[0];
       // Actualizar el usuario
       await connection.query(
-        "UPDATE persona SET nombre_persona = ?, apellido_persona = ?, email_persona = ?, telefono_persona = ?, domicilio_persona = ?, localidad_persona = ? WHERE documento_persona = ?",
+        "UPDATE persona SET nombre_persona = ?, apellido_persona = ?, email_persona = ?, telefono_persona = ?, domicilio_persona = ?, localidad_persona = ? , fecha_nacimiento_persona = ? WHERE documento_persona = ?",
         [
           nombre_persona.toUpperCase().trim(),
           apellido_persona.toUpperCase().trim(),
@@ -376,6 +378,7 @@ const editarUsuarioCompleto = async (req, res) => {
           telefono_persona,
           domicilio_persona.toUpperCase(),
           localidad_persona.toUpperCase(),
+          fechaFormateada.trim(),
           documento_persona,
         ]
       );
@@ -610,10 +613,10 @@ const agregarUsuarioMYSQL = async (req, res) => {
         "SELECT * FROM reparticion WHERE reparticion.habilita = 1 AND reparticion.item = ?",
         [empleadoValidado.legajo[0].codi_17]
       );
-   
-        let id_rep = resultReparticion[0]?.id_reparticion;
-        let usuarioEmpleado = 4;
-        // Insertar el nuevo usuario con legajo
+
+      let id_rep = resultReparticion[0]?.id_reparticion;
+      let usuarioEmpleado = 4;
+      // Insertar el nuevo usuario con legajo
       const nuevaPersona = await Persona.create(
         {
           documento_persona,
@@ -643,7 +646,7 @@ const agregarUsuarioMYSQL = async (req, res) => {
         {
           id_persona: id_per,
           afiliado: afil,
-          id_reparticion: id_rep? id_rep : 1,
+          id_reparticion: id_rep ? id_rep : 1,
         },
         { transaction }
       );
