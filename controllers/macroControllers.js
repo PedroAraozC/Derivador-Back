@@ -491,7 +491,7 @@ const tipoUsuario = async (req, res) => {
   const connection = await conectarBDEstadisticasMySql();
   try {
     const { cuit_persona } = req.query;
-
+ 
     const [resultCuit] = await connection.query(
       "SELECT id_tusuario FROM persona WHERE documento_persona = ?",
       [cuit_persona]
