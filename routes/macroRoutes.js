@@ -1,5 +1,6 @@
 const { Router } = require("express");
 const auth = require("../middlewares/auth");
+const verifyIngresoToken = require("../middlewares/verifyIngresoToken");
 const verifyRole = require("../middlewares/verifyRole");
 const {
   obtenerCategorias,
@@ -15,6 +16,8 @@ const {
   usuarioExistente,
   tipoUsuario,
   guardarImagen,
+  existeLoginApp,
+  obtenerTokenAutorizacion,
 } = require("../controllers/macroControllers");
 
 const router = Router();
@@ -29,13 +32,27 @@ router.post("/pruebaImagen", guardarImagen); //RECONSTRUIR IMAGEN Y GUARDADO LIS
 
 router.get("/listarReclamosCiudadano", listarReclamosCiudadano); //REVISADO Y AGREGADO DE ESTADO_TRAMITE
 router.get("/buscarReclamoPorId", buscarReclamoPorId); //REVISADO Y AGREGADO DE ESTADO_TRAMITE
-router.get("/buscarTurnosDisponiblesPorDia", obtenerTurnosDisponiblesPorDia);
-router.get("/buscarTurnosDisponiblesPorHora", obtenerTurnosDisponiblesPorHora);
-router.get("/existeTurno", existeTurno);
-router.get("/confirmarTurno", confirmarTurno);
-router.get("/anularTurno", anularTurno);
+router.get(
+  "/buscarTurnosDisponiblesPorDia",
+  auth,
+  obtenerTurnosDisponiblesPorDia
+);
+router.get(
+  "/buscarTurnosDisponiblesPorHora",
+  auth,
+  obtenerTurnosDisponiblesPorHora
+);
+router.get("/existeTurno", auth, existeTurno);
+router.get("/confirmarTurno", auth, confirmarTurno);
+router.get("/anularTurno", auth, anularTurno);
 
 router.get("/existe", usuarioExistente); // USUARIO EXISTE EN BD_MUNI POR CUIT Y/O EMAIL
 router.get("/tipoUsuario", tipoUsuario); // TIPO DE USUARIO EN BD_MUNI
 
+router.get("/existeLoginApp/:dni/:password", existeLoginApp); // VERIFICA EXISTENCIA DE USUARIO PARA DAR TOKEN DE INGRESO Y DATOS
+router.post(
+  "/obtenerTokenAutorizacion",
+  verifyIngresoToken,
+  obtenerTokenAutorizacion
+);
 module.exports = router;
