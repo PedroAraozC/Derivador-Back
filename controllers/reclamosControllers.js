@@ -31,7 +31,7 @@ const obtenerProcedimientos = async (req, res) => {
 
     } catch (error) {
         console.error('Error:', error);
-        res.status(500).json({ error: 'Error de servidor' });
+        res.status(500).json({ error: error });
     }
 };
 
