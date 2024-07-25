@@ -761,11 +761,12 @@ const agregarPartida = async (req, res) => {
       partidapadre_id,
       gasto,
       credito,
+      creditoanteproyecto
     } = req.body;
      connection = await conectar_BD_GAF_MySql();
 
     const [result] = await connection.execute(
-      "SELECT sp_insertpartidas(?,?,?,?,?,?,?,?,?)",
+      "SELECT sp_insertpartidas(?,?,?,?,?,?,?,?,?,?)",
       [
         seccion,
         sector,
@@ -776,11 +777,12 @@ const agregarPartida = async (req, res) => {
         partidapadre_id,
         gasto,
         credito,
+        creditoanteproyecto
       ]
     );
     console.log(result);
     // await connection.end();
-    if (result[0]["sp_insertpartidas(?,?,?,?,?,?,?,?,?)"] === 0) {
+    if (result[0]["sp_insertpartidas(?,?,?,?,?,?,?,?,?,?)"] === 0) {
       res.status(400).json({
         message: "partida ya existente",
         Item: result[0].partida_det,
@@ -801,18 +803,18 @@ const agregarPartida = async (req, res) => {
   const editarPartida = async (req, res) => {
     let connection;
     try {
-      const { id, seccion, sector, principal, parcial, subparcial, codigo, descripcion, partidapadre_id, gasto, credito } = req.body;
+      const { id, seccion, sector, principal, parcial, subparcial, codigo, descripcion, partidapadre_id, gasto, credito ,creditoanteproyecto} = req.body;
       const partidaId = req.params.id;
 
       connection = await conectar_BD_GAF_MySql();
 
 
       const [result] = await connection.execute(
-        'SELECT sp_updatepartidas(?,?,?,?,?,?,?,?,?,?)',
-        [partidaId, seccion, sector, principal, parcial, subparcial, descripcion, partidapadre_id, gasto, credito]
+        'SELECT sp_updatepartidas(?,?,?,?,?,?,?,?,?,?,?)',
+        [partidaId, seccion, sector, principal, parcial, subparcial, descripcion, partidapadre_id, gasto, credito,creditoanteproyecto]
       );
       //  await connection.end();
-      if (result[0]['sp_updatepartidas(?,?,?,?,?,?,?,?,?,?)'] === 0) {
+      if (result[0]['sp_updatepartidas(?,?,?,?,?,?,?,?,?,?,?)'] === 0) {
         res
           .status(400)
           .json({
@@ -1055,7 +1057,7 @@ const partidaExistente = async (req, res) => {
 const agregarMovimiento = async (req, res) => {
   let transaction;
   try {
-    const { movimiento, detMovimiento,expediente } = req.body;
+    const { movimiento, detMovimiento,expediente, presupuesto } = req.body;
 
     transaction = await sequelize.transaction();
 
@@ -1076,6 +1078,9 @@ const agregarMovimiento = async (req, res) => {
       movimiento_fecha: movimiento.fecha,
       expediente_id: nuevoExpediente.expediente_id,
       tipomovimiento_id: movimiento.tipomovimiento_id,
+      tipoinstrumento_id: expediente.tipoDeInstrumento,
+      instrumento_nro: expediente.numeroInstrumento,
+      presupuesto_id: presupuesto
     };
 
     const nuevoMovimiento = await Movimiento.create(movimientoObj, {
@@ -1112,7 +1117,7 @@ const agregarMovimiento = async (req, res) => {
 const agregarMovimientoDefinitivaPreventiva = async (req, res) => {
   let transaction;
   try {
-    const { movimiento, detMovimiento,expediente } = req.body;
+    const { movimiento, detMovimiento,expediente, presupuesto } = req.body;
 
     transaction = await sequelize.transaction();
 
@@ -1120,7 +1125,8 @@ const agregarMovimientoDefinitivaPreventiva = async (req, res) => {
       movimiento_fecha: movimiento.fecha,
       expediente_id: expediente.id,
       tipomovimiento_id: movimiento.tipomovimiento_id,
-      movimiento_id2: movimiento.id
+      movimiento_id2: movimiento.id,
+      presupuesto_id: presupuesto
     };
 
     const nuevoMovimiento = await Movimiento.create(movimientoObj, {
@@ -1226,11 +1232,11 @@ const buscarExpediente = async (req, res) => {
     AND m.tipomovimiento_id = ? 
     AND e.expediente_anio = ? 
 `;
-    const [result1] = await connection.execute(query1, [numero, tipomovimiento_id == 5 ? tipomovimiento_id - 1 : tipomovimiento_id, anio]);
-
+    const [result1] = await connection.execute(query1, [numero, tipomovimiento_id == 5 ? 4 : tipomovimiento_id == 4 ? 1 : tipomovimiento_id, anio]);
+console.log(result1);
     // Obtener los `movimiento_id` para la segunda consulta
     const movimientoIds = result1.map(row => row.movimiento_id);
-    console.log(movimientoIds);
+    // console.log(movimientoIds);
 
     if (movimientoIds.length > 0) {
       // Segunda consulta: Obtener los `movimiento_id` a excluir
@@ -1253,9 +1259,11 @@ const buscarExpediente = async (req, res) => {
 
       // Enviar la respuesta al cliente
       console.log(response);
-      if (response.primeraConsulta.length > 0 && response.segundaConsulta.length > 0) {
+      if (response.primeraConsulta.length > 0 && response.segundaConsulta.length > 0 && tipomovimiento_id == 5) {
         throw new Error("Ya tiene preventiva")
-      } else if (response.primeraConsulta.length > 0 && response.segundaConsulta.length == 0) {
+      } else if(response.primeraConsulta.length > 0 && response.segundaConsulta.length > 0 && tipomovimiento_id == 4){
+        throw new Error("Ya tiene reserva")
+      }else if (response.primeraConsulta.length > 0 && response.segundaConsulta.length == 0) {
         res.status(200).json(response.primeraConsulta);
       }
 
@@ -1295,7 +1303,7 @@ const buscarExpedienteParaModificarDefinitiva = async (req,res)=>{
     const anio = req.query.anio;
 
 
-    const query = `SELECT * FROM expediente AS e LEFT JOIN movimiento AS m ON e.expediente_id = m.expediente_id LEFT JOIN detmovimiento AS d ON m.movimiento_id = d.movimiento_id LEFT JOIN detpresupuesto AS dp ON d.detpresupuesto_id = dp.detpresupuesto_id LEFT JOIN item AS i ON dp.item_id = i.item_id LEFT JOIN partidas AS pda ON dp.partida_id=pda.partida_id WHERE e.expediente_numero = ? AND m.tipomovimiento_id = ? AND e.expediente_anio = ?
+    const query = `SELECT * FROM expediente AS e LEFT JOIN movimiento AS m ON e.expediente_id = m.expediente_id LEFT JOIN tipoinstrumento AS ti ON m.tipoinstrumento_id = ti.tipoinstrumento_id LEFT JOIN detmovimiento AS d ON m.movimiento_id = d.movimiento_id LEFT JOIN detpresupuesto AS dp ON d.detpresupuesto_id = dp.detpresupuesto_id LEFT JOIN item AS i ON dp.item_id = i.item_id LEFT JOIN partidas AS pda ON dp.partida_id=pda.partida_id WHERE e.expediente_numero = ? AND m.tipomovimiento_id = ? AND e.expediente_anio = ?
     `;
     const [result] = await connection.execute(query, [numero,tipomovimiento_id ,anio]);
 
@@ -1339,7 +1347,7 @@ const listarAnteproyecto= async (req, res) => {
   let connection;
   try {
      connection = await conectar_BD_GAF_MySql();
-    let sqlQuery = `SELECT a.detpresupuesto_id,a.partida_id,b.partida_credito,b.partida_codigo,b.partida_det,a.presupuesto_credito,a.presupuesto_anteproyecto,a.presupuesto_aprobado
+    let sqlQuery = `SELECT a.detpresupuesto_id,a.partida_id,b.partida_credito,b.partida_creditoanteproyecto,b.partida_codigo,b.partida_det,a.presupuesto_credito,a.presupuesto_anteproyecto,a.presupuesto_aprobado
     FROM detpresupuesto a inner JOIN partidas b
     ON a.partida_id=b.partida_id WHERE a.presupuesto_id=? AND a.item_id=?
     order by b.partida_codigo`;
@@ -1379,15 +1387,20 @@ const actualizarPresupuestoAnteproyecto=async(req, res)=> {
       // Verificar si se realizó la actualización correctamente
       if (result.affectedRows === 1) {
         console.log(`Se actualizó correctamente el presupuesto_anteproyecto para el detpresupuesto_id ${detpresupuesto_id}.`);
-      } else {
-        res.status(200).send({mge:`No se encontró ningún registro con el detpresupuesto_id ${detpresupuesto_id}.`,ok:false});
+        res.status(200).send({mge:'Anteproyecto actualizado',ok:true});
+      } 
+     else if (result.affectedRows > 1) {
+    
+        res.status(404).send({mge:`problema en la base de datos . Hay mas de una fila con el mismo id`,ok:false});
+      }else {
+        res.status(404).send({mge:`No se encontró ningún registro con el detpresupuesto_id ${detpresupuesto_id}.`,ok:false});
       }
     
 
     // Cerrar la conexión a la base de datos
     // await connection.end();
 
-    res.status(200).send({mge:'Anteproyecto actualizado',ok:true});
+    
   } catch (error) {
     console.error('Error al actualizar el presupuesto_anteproyecto:', error);
     res.status(500).send('Error en el servidor');
@@ -1657,9 +1670,31 @@ const obtenerPerfilPorCuil = async (req, res) => {
   }
 };
 
+const obtenerTiposDeInstrumentos = async (req,res) =>{
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql();
+
+    let sqlQuery = `SELECT *  FROM tipoinstrumento`;
+    const [tiposDeInstrumentos] = await connection.execute(sqlQuery);
+
+    res.status(200).json({ tiposDeInstrumentos });
+
+  } catch (error) {
+
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+}
+
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida,
   agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,buscarExpediente,
-  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado, modificarMovimiento,obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular,buscarExpedienteParaModificarDefinitiva, agregarMovimientoDefinitivaPreventiva, obtenerPresupuestosParaMovimientoPresupuestario,obtenerPerfilPorCuil,actualizarCreditoCompleto,actualizarPresupuestoAprobadoCompleto,listarItemsFiltrado}
+  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado, modificarMovimiento,obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular,buscarExpedienteParaModificarDefinitiva, agregarMovimientoDefinitivaPreventiva, obtenerPresupuestosParaMovimientoPresupuestario,obtenerPerfilPorCuil,actualizarCreditoCompleto,actualizarPresupuestoAprobadoCompleto,listarItemsFiltrado, obtenerTiposDeInstrumentos}
 
 
 
