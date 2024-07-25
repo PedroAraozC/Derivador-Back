@@ -585,9 +585,16 @@ const existeLoginApp = async (req, res) => {
       "SELECT * FROM persona WHERE documento_persona = ?  ",
       [userDNI]
     );
-
-    const passOk = await bcrypt.compare(userPassword, queryResult[0][0].clave);
-    if (!passOk) throw new CustomError("Contraseña incorrecta", 400);
+    // console.log("QueryResult",queryResult)
+    if (queryResult[0] == "") {
+      throw new CustomError("Usuario no encontrado", 400);
+    } else {
+      const passOk = await bcrypt.compare(
+        userPassword,
+        queryResult[0][0].clave
+      );
+      if (!passOk) throw new CustomError("Contraseña incorrecta", 400);
+    }
 
     const tokenIngreso = jwt.sign(
       { id: queryResult[0][0].id_persona },

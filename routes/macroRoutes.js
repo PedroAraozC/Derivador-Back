@@ -23,11 +23,8 @@ const {
 const router = Router();
 
 router.get("/listarCategorias", obtenerCategorias);
-router.get(
-  "/listarTiposDeReclamosPorCategoria",
-  obtenerTiposDeReclamoPorCategoria
-);
-router.post("/ingresarReclamo", ingresarReclamo); //HACER VALIDACIONES CON CHECK
+router.get("/listarTiposDeReclamosPorCategoria", obtenerTiposDeReclamoPorCategoria);
+router.post("/ingresarReclamo",Oauth ,ingresarReclamo); //HACER VALIDACIONES CON CHECK
 router.post("/pruebaImagen", guardarImagen); //RECONSTRUIR IMAGEN Y GUARDADO LISTO -- FALTA CONFIRMAR LUGAR Y FORMATO PARA ARMAR RUTA DE GUARDADO
 
 router.get("/listarReclamosCiudadano", listarReclamosCiudadano); //REVISADO Y AGREGADO DE ESTADO_TRAMITE
@@ -42,5 +39,6 @@ router.get("/existe", usuarioExistente); // USUARIO EXISTE EN BD_MUNI POR CUIT Y
 router.get("/tipoUsuario", tipoUsuario); // TIPO DE USUARIO EN BD_MUNI
 
 router.get("/existeLoginApp/:dni/:password", existeLoginApp); // VERIFICA EXISTENCIA DE USUARIO PARA DAR TOKEN DE INGRESO Y DATOS
-router.post("/obtenerTokenAutorizacion", verifyIngresoToken, obtenerTokenAutorizacion);
+router.post("/obtenerTokenAutorizacion", verifyIngresoToken, obtenerTokenAutorizacion);  //OROTGA EL TOKEN DE AUTORIZACION PARA HACER PETICIONES
+
 module.exports = router;
