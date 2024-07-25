@@ -18,11 +18,7 @@ const conectarSMTContratacion = async () => {
     try {
         const connection = await mysql.createConnection({
             host: process.env.HOST_CIU_DIGITAL,
-<<<<<<< HEAD
             port: process.env.PORT_CIU_DIGITAL,
-=======
-             port: process.env.PORT_CIU_DIGITAL,
->>>>>>> c20f3ab5b31b97c1c78b8666a50afedc3f288db7
             user: process.env.USER_CIU_DIGITAL,
             password: process.env.PASSWORD_CIU_DIGITAL,
             database: process.env.DB_CIU_CONTRATACION,

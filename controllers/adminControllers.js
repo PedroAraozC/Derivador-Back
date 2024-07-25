@@ -1110,6 +1110,7 @@ const agregarPatrimonio = async (req, res) => {
     } = req.body;
 
     const archivo = req.file;
+    console.log('Archivo:', archivo);
 
     if (!archivo) {
       return res.status(400).json({ message: "Por favor, adjunta un archivo" });
@@ -1117,13 +1118,16 @@ const agregarPatrimonio = async (req, res) => {
 
     // Obtener el nombre del archivo cargado
     const nombre_archivo = archivo.filename;
+    console.log('Nombre archivo:', nombre_archivo);
     // Obtener el último id_patrimonio de la tabla
     connection = await conectarSMTPatrimonio();
     const [lastIdResult] = await connection.query("SELECT MAX(id_patrimonio) AS max_id FROM patrimonio");
+    console.log('Last ID result:', lastIdResult);
     let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_patrimonio
+    console.log('Next ID:', nextId);
     // Query para insertar una nuevo patrimonio
     const sql =
-      "INSERT INTO patrimonio (id_patrimonio, nombre_patrimonio, anio_emplazamiento, descripcion, origen, id_categoria, id_tipologia, id_material, id_estado, id_autor, id_ubicacion, latylon, imagen_carrousel_1, imagen_carrousel_2, imagen_carrousel_3, habilita, nombre_archivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO patrimonio (id_patrimonio, nombre_patrimonio, anio_emplazamiento, descripcion, origen, id_categoria, id_tipologia, id_material, id_estado, id_autor, id_ubicacion, latylon, imagen_carrousel_1, imagen_carrousel_2, imagen_carrousel_3, habilita, nombre_archivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     const values = [
       nextId,
       nombre_patrimonio,
@@ -1149,6 +1153,8 @@ const agregarPatrimonio = async (req, res) => {
     const ftpClient = await conectarFTPCiudadano();
     const remoteFilePath = `/Fotos-Patrimonio/${nombre_archivo}`;
     const localFilePath = path.join("./pdf", nombre_archivo);
+    console.log('Remote file path:', remoteFilePath);
+    console.log('Local file path:', localFilePath);
     // Subir la imagen al servidor FTP
     await ftpClient.uploadFrom(localFilePath, remoteFilePath);
 
@@ -1156,7 +1162,7 @@ const agregarPatrimonio = async (req, res) => {
     fs.unlinkSync(localFilePath);
     await ftpClient.close();
     res.status(201).json({ message: "Patrimonio creado con éxito", id: nextId, num_patrimonio: nextId });
-  } catch (error) {
+  } catch (error) { console.error('Error:', error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()

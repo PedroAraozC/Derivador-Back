@@ -100,7 +100,7 @@ const listarPatrimonio = async (req, res) => {
 
 const listarPatrimonioPorId = async (req, res) => {
   const { id } = req.params; 
-  const sql = "SELECT p.*, a.nombre_autor, a.descripcion_autor, u.nombre_ubicacion FROM patrimonio p LEFT JOIN autor a ON p.id_autor = a.id_autor LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion WHERE p.id_patrimonio = ?";
+  const sql = "SELECT p.*, a.nombre_autor, a.descripcion_autor, u.nombre_ubicacion, p.latylon FROM patrimonio p LEFT JOIN autor a ON p.id_autor = a.id_autor LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion WHERE p.id_patrimonio = ?";
   const values = [id];
   try {
     const connection = await conectarSMTPatrimonio();
