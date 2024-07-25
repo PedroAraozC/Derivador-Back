@@ -1,10 +1,10 @@
 const jwt = require("jsonwebtoken");
-const { conectarBDEstadisticasMySql } = require("../config/dbEstadisticasMYSQL");
+// const { conectarBDEstadisticasMySql } = require("../config/dbEstadisticasMYSQL");
 
-const auth = async (req, res, next) => {
+const Oauth = async (req, res, next) => {
   try {
     const token = req.query.tokenAutorizacion;
-    console.log(req.query)
+    console.log("OAuth req.query",req.query)
     const { id } = jwt.verify(token, process.env.JWT_SECRET_KEY);
     req.id = id;
 
@@ -22,4 +22,4 @@ const auth = async (req, res, next) => {
   }
 };
 
-module.exports = auth;
+module.exports = Oauth;

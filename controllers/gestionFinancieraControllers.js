@@ -1592,6 +1592,29 @@ const obtenerPartidasPorItemYMovimiento = async (req,res)=>{
   }
 }
 
+const obtenerSaldoPorDetPresupuestoID = async (req,res)=>{
+  let connection;
+  try {
+    const detPresupuestoId = req.query.detPresupuestoId;
+
+    connection = await conectar_BD_GAF_MySql();
+    let sqlQuery = `SELECT sp_saldopartida(?)`;
+    const [results, fields] = await connection.execute(sqlQuery, [detPresupuestoId]);
+    // console.log(results[0]['sp_saldopartida(?)']);
+    const saldo = results[0]['sp_saldopartida(?)'];
+    res.status(200).send({mge:'saldo:',saldo});
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).send('Error en el servidor');
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+}
+
 
 const acumular = async (req, res) => {
   let connection;
@@ -1694,7 +1717,7 @@ const obtenerTiposDeInstrumentos = async (req,res) =>{
 
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida,
   agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,buscarExpediente,
-  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado, modificarMovimiento,obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular,buscarExpedienteParaModificarDefinitiva, agregarMovimientoDefinitivaPreventiva, obtenerPresupuestosParaMovimientoPresupuestario,obtenerPerfilPorCuil,actualizarCreditoCompleto,actualizarPresupuestoAprobadoCompleto,listarItemsFiltrado, obtenerTiposDeInstrumentos}
+  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado, modificarMovimiento,obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular,buscarExpedienteParaModificarDefinitiva, agregarMovimientoDefinitivaPreventiva, obtenerPresupuestosParaMovimientoPresupuestario,obtenerPerfilPorCuil,actualizarCreditoCompleto,actualizarPresupuestoAprobadoCompleto,listarItemsFiltrado, obtenerTiposDeInstrumentos,obtenerSaldoPorDetPresupuestoID}
 
 
 

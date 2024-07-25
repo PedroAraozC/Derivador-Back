@@ -4,10 +4,16 @@ const conectarMySql = async () => {
     try {
         const connection = await mysql.createConnection({
             // host: process.env.HOST,
-            host: process.env.HOST_TELEMATICA,
-            user: process.env.USER,
-            password: process.env.PASSWORD,
-            database: process.env.DATABASE_CIU,
+            // // host: "localhost",
+            // port: 3306,
+            // user: process.env.USER,
+            // password: process.env.PASSWORD,
+            // database: process.env.DATABASE_CIU,
+            host: '192.96.215.86',
+            port: 3306,
+            user: "siac",
+            password: 'jo180401',
+            database: 'ciudadano',
         });
         return connection;
     } catch (error) {
