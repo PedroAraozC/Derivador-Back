@@ -3,21 +3,19 @@ const jwt = require("jsonwebtoken");
 
 const Oauth = async (req, res, next) => {
   try {
-    const token = req.query.tokenAutorizacion;
-    console.log("OAuth req.query",req.query)
+    let token = req.query.tokenAutorizacion || req.body.tokenAutorizacion;
+
+    if (!token) {
+      throw new Error("Token not provided");
+    }
+
+    console.log("OAuth req.query", req.query);
     const { id } = jwt.verify(token, process.env.JWT_SECRET_KEY);
     req.id = id;
 
-    // const connection = await conectarBDEstadisticasMySql();
-    // const [result] = await connection.execute(
-    //   'SELECT * FROM usuario WHERE id = ?',
-    //   [id]
-    // );
-
-    // req.user = result[0];
-    // await connection.end();
     next();
   } catch (error) {
+    console.error("Token verification error:", error);
     res.status(401).json({ message: "Invalid token" });
   }
 };

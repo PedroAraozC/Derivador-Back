@@ -88,8 +88,8 @@ const ingresarReclamo = async (req, res) => {
       cuit,
       foto,
     } = req.body;
-
-    console.log(foto?.length);
+// console.log("req.body", req.body)
+    // console.log("foto", foto?.length);
     console.log("Conectado a MySQL");
 
     const [tipoDeReclamoPerteneceACategoria] = await connection.execute(
@@ -280,7 +280,7 @@ const buscarReclamoPorId = async (req, res) => {
   const id_reclamo = req.query.id_reclamo;
   const connection = await conectarMySql();
   console.log("Conectado a MySQL");
-
+console.log(req.query.id_reclamo)
   try {
     let sqlQuery =
       "SELECT r.id_reclamo, tr.nombre_treclamo, r.asunto, r.direccion, r.apellido_nombre, r.fecha_hora_inicio, cr.nombre_categoria FROM reclamo_prueba r  JOIN categoria_reclamo cr ON r.id_categoria = cr.id_categoria JOIN tipo_reclamo tr ON r.id_treclamo = tr.id_treclamo WHERE r.id_reclamo = ? ";

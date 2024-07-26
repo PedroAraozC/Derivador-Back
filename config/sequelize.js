@@ -30,7 +30,7 @@ const sequelize_ciu_digital_derivador = new Sequelize(process.env.DB_CIU_DIGITAL
 
 const sequelize_ciu_digital = new Sequelize(process.env.DATABASE_CIU , process.env.USER, process.env.PASSWORD, {
   host: process.env.HOST,
-  port: process.env.PORT_CIU_DIGITAL,
+  // port: process.env.PORT_CIU_DIGITAL,
   dialect: 'mysql',
     pool: {
     max: 30,
