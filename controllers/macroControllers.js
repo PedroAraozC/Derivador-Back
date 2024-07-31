@@ -11,6 +11,9 @@ const MovimientoReclamo = require("../models/Macro/MovimientoReclamo");
 const Reclamo = require("../models/Macro/Reclamo");
 const { conectarFTPCiudadano } = require("../config/winscpCiudadano");
 const streamifier = require("streamifier");
+const bcrypt = require("bcryptjs");
+const CustomError = require("../utils/customError");
+const jwt = require("jsonwebtoken");
 
 const obtenerCategorias = async (req, res) => {
   const connection = await conectarMySql();
@@ -85,8 +88,8 @@ const ingresarReclamo = async (req, res) => {
       cuit,
       foto,
     } = req.body;
-
-    console.log(foto?.length);
+// console.log("req.body", req.body)
+    // console.log("foto", foto?.length);
     console.log("Conectado a MySQL");
 
     const [tipoDeReclamoPerteneceACategoria] = await connection.execute(
@@ -277,7 +280,7 @@ const buscarReclamoPorId = async (req, res) => {
   const id_reclamo = req.query.id_reclamo;
   const connection = await conectarMySql();
   console.log("Conectado a MySQL");
-
+console.log(req.query.id_reclamo)
   try {
     let sqlQuery =
       "SELECT r.id_reclamo, tr.nombre_treclamo, r.asunto, r.direccion, r.apellido_nombre, r.fecha_hora_inicio, cr.nombre_categoria FROM reclamo_prueba r  JOIN categoria_reclamo cr ON r.id_categoria = cr.id_categoria JOIN tipo_reclamo tr ON r.id_treclamo = tr.id_treclamo WHERE r.id_reclamo = ? ";
@@ -570,6 +573,114 @@ async function getImageExtension(fileType, base64String) {
   }
 }
 
+const existeLoginApp = async (req, res) => {
+  let connection;
+  console.log(req.params);
+  try {
+    connection = await conectarBDEstadisticasMySql();
+    const userDNI = req.params.dni;
+    const userPassword = req.params.password;
+
+    const queryResult = await connection.query(
+      "SELECT * FROM persona WHERE documento_persona = ?  ",
+      [userDNI]
+    );
+    // console.log("QueryResult",queryResult)
+    if (queryResult[0] == "") {
+      throw new CustomError("Usuario no encontrado", 400);
+    } else {
+      const passOk = await bcrypt.compare(
+        userPassword,
+        queryResult[0][0].clave
+      );
+      if (!passOk) throw new CustomError("Contraseña incorrecta", 400);
+    }
+
+    const tokenIngreso = jwt.sign(
+      { id: queryResult[0][0].id_persona },
+      process.env.JWT_SECRET_KEY_INGRESO,
+      {
+        expiresIn: "1h",
+      }
+    );
+    console.log("querryResult", queryResult[0]);
+    // await connection.end();
+    if (queryResult.length > 0) {
+      const {
+        documento_persona,
+        apellido_persona,
+        nombre_persona,
+        id_genero,
+        fecha_nacimiento_persona,
+        telefono_persona,
+        email_persona,
+      } = queryResult[0][0];
+
+      const ciudadano = [
+        {
+          cuit: documento_persona,
+          apellido_persona,
+          nombre_persona,
+          id_genero,
+          fecha_nacimiento_persona,
+          telefono: telefono_persona,
+          email: email_persona,
+        },
+      ]; // Suponiendo que solo hay un usuario con ese DNI
+      console.log("ciudadano", ciudadano);
+
+      if (ciudadano.length > 0) {
+        res.status(200).json({
+          message: "Ingreso correcto",
+          ok: true,
+          ciudadano,
+          tokenIngreso,
+        });
+      } else {
+        res.status(200).json({ message: "Usuario no encontrado" });
+      }
+    } else {
+      res.status(200).json({ message: "Usuario no encontrado" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+const obtenerTokenAutorizacion = async (req, res) => {
+  try {
+    // console.log(req.query);
+    const tokenIngreso = req.query.tokenIngreso;
+    if (!tokenIngreso) {
+      return res
+        .status(400)
+        .json({ message: "Token de ingreso no proporcionado" });
+    }
+
+    const decoded = jwt.verify(
+      tokenIngreso,
+      process.env.JWT_SECRET_KEY_INGRESO
+    );
+
+    const tokenAutorizacion = jwt.sign(
+      { id: decoded.id },
+      process.env.JWT_SECRET_KEY,
+      {
+        expiresIn: "1h",
+      }
+    );
+    res.status(200).json({ tokenAutorizacion });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error al generar el token de autorización" });
+  }
+};
+
 module.exports = {
   obtenerCategorias,
   obtenerTiposDeReclamoPorCategoria,
@@ -584,4 +695,6 @@ module.exports = {
   usuarioExistente,
   tipoUsuario,
   guardarImagen,
+  existeLoginApp,
+  obtenerTokenAutorizacion,
 };
