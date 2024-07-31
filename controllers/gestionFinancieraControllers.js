@@ -1126,7 +1126,9 @@ const agregarMovimientoDefinitivaPreventiva = async (req, res) => {
       expediente_id: expediente.id,
       tipomovimiento_id: movimiento.tipomovimiento_id,
       movimiento_id2: movimiento.id,
-      presupuesto_id: presupuesto
+      presupuesto_id: presupuesto,
+      tipoinstrumento_id: expediente.tipoDeInstrumento,
+      instrumento_nro: expediente.numeroInstrumento,
     };
 
     const nuevoMovimiento = await Movimiento.create(movimientoObj, {
