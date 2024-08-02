@@ -628,13 +628,13 @@ console.log(req.body);
 const editarItem = async (req,res) =>{
   let connection;
   try {
-      const { codigo, descripcion,anexo_id,finalidad_id,funcion_id,fechaInicio,fechaFin, organismo_id } = req.body;
+      const { codigo, descripcion,anexo_id,finalidad_id,funcion_id,fechaInicio,fechaFin, organismo_id ,item_observaciones} = req.body;
       const itemId = req.params.id;
 console.log(req.body);
       const sql =
-        "UPDATE item SET item_codigo = ?, item_det = ?, anexo_id = ?, finalidad_id = ?, funcion_id = ?, organismo_id = ? WHERE item_id = ?";
+        "UPDATE item SET item_codigo = ?, item_det = ?, anexo_id = ?, finalidad_id = ?, funcion_id = ?, organismo_id = ?,item_observaciones = ? WHERE item_id = ?";
       // const values = [codigo, descripcion,anexo_id,finalidad_id,funcion_id,fechaInicio.includes("T")? obtenerFechaEnFormatoDate(fechaInicio): fechaInicio,fechaFin.includes("T")? obtenerFechaEnFormatoDate(fechaFin): fechaFin, itemId];
-      const values = [codigo, descripcion,anexo_id,finalidad_id,funcion_id,organismo_id, itemId];
+      const values = [codigo, descripcion,anexo_id,finalidad_id,funcion_id,organismo_id,item_observaciones, itemId];
   
        connection = await conectar_BD_GAF_MySql();
       const [item] = await connection.execute(
