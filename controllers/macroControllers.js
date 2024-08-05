@@ -696,17 +696,16 @@ const credencial = async (req, res) => {
       "SELECT nombre_persona, apellido_persona, documento_persona, id_genero, fecha_nacimiento_persona FROM persona WHERE documento_persona = ? AND habilita = 1",
       [userCuil]
     );
-    console.log(queryResult[0][0]);
-
-    const {
-      nombre_persona,
-      apellido_persona,
-      documento_persona,
-      id_genero,
-      fecha_nacimiento_persona,
-    } = queryResult[0][0];
 
     if (queryResult[0].length > 0) {
+      const {
+        nombre_persona,
+        apellido_persona,
+        documento_persona,
+        id_genero,
+        fecha_nacimiento_persona,
+      } = queryResult[0][0];
+
       let ciudadano = queryResult[0];
 
       ciudadano[0] = {
@@ -721,18 +720,19 @@ const credencial = async (req, res) => {
       if (ciudadano.length > 0) {
         console.log(ciudadano[0].documento_persona);
         const qrCodeDataUrl = await QRCode.toDataURL(
-          JSON.stringify(ciudadano[0])
+          `https://ciudaddigital.smt.gob.ar/#/verificacion/${userCuil}`
         );
-        console.log(qrCodeDataUrl);
+        // console.log(qrCodeDataUrl);
         ciudadano[0].imagen = imagen;
         ciudadano[0].qr = qrCodeDataUrl;
 
         res.status(200).json({ ciudadano });
+        // res.status(200)();
       } else {
-        res.status(200).json({ message: "Usuario no encontrado" });
+        res.status(404).json({ message: "Usuario no encontrado" });
       }
     } else {
-      res.status(200).json({ message: "Usuario no encontrado" });
+      res.status(404).json({ message: "Usuario no encontrado" });
     }
   } catch (error) {
     console.error("Error:", error);
