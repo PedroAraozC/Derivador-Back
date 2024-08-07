@@ -1729,9 +1729,140 @@ const obtenerTiposDeInstrumentos = async (req,res) =>{
   }
 }
 
+
+/////////////////////// PROVEDORES ////////////////////////////////
+
+const obtenerProveedores = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql(); // Asegúrate de que esta función esté definida y se conecte correctamente a tu base de datos.
+
+    // Consulta para obtener todos los proveedores
+    const sqlQuery = `SELECT * FROM proveedores`;
+    const [proveedores] = await connection.execute(sqlQuery);
+
+    // Enviar los resultados como respuesta
+    res.status(200).json({ proveedores });
+  } catch (error) {
+    // Manejo de errores
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
+const editarProveedor = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql();
+
+    // Datos recibidos desde el request
+    const { proveedor_id, proveedor_razsocial, proveedor_cuit, proveedor_domicilio, proveedor_email, proveedor_iva } = req.body;
+
+    // Consulta para actualizar el proveedor
+    const sqlQuery = `
+      UPDATE proveedores
+      SET proveedor_razsocial = ?, proveedor_cuit = ?, proveedor_domicilio = ?, proveedor_email = ?, proveedor_iva = ?
+      WHERE proveedor_id = ?
+    `;
+
+    // Ejecución de la consulta con los valores actualizados
+    const [result] = await connection.execute(sqlQuery, [proveedor_razsocial.toUpperCase(), proveedor_cuit, proveedor_domicilio.toUpperCase(), proveedor_email, proveedor_iva, proveedor_id]);
+
+    // Verificar si alguna fila fue afectada (es decir, si el proveedor fue actualizado)
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Proveedor no encontrado", ok: false });
+    }
+
+    res.status(200).json({ message: "Proveedor actualizado correctamente", ok: true });
+  } catch (error) {
+    console.error('Error al actualizar el proveedor:', error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
+const agregarProveedor = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql();
+
+    // Datos recibidos desde el request
+    const { razonSocial, cuit, domicilio, email, iva } = req.body;
+
+    // Consulta para insertar un nuevo proveedor
+    const sqlQuery = `
+      INSERT INTO proveedores (proveedor_razsocial, proveedor_cuit, proveedor_domicilio, proveedor_email, proveedor_iva)
+      VALUES (?, ?, ?, ?, ?)
+    `;
+
+    // Ejecución de la consulta con los valores a insertar
+    const [result] = await connection.execute(sqlQuery, [razonSocial.toUpperCase(), cuit, domicilio.toUpperCase(), email, iva]);
+    // Verificar si alguna fila fue afectada (es decir, si el proveedor fue insertado)
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ message: "No se pudo agregar el proveedor", ok: false });
+    }
+
+    res.status(201).json({ message: "Proveedor agregado correctamente", ok: true, id: result.insertId });
+  } catch (error) {
+    console.error('Error al agregar el proveedor:', error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
+const eliminarProveedor = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql(); // Conectar a la base de datos
+
+    // Obtener el ID del proveedor a eliminar desde el request
+    const  proveedor_id  = req.params.idEliminar;
+
+    // Consulta para eliminar el proveedor
+    const sqlQuery = `
+      DELETE FROM proveedores
+      WHERE proveedor_id = ?
+    `;
+
+    // Ejecución de la consulta con el ID del proveedor
+    const [result] = await connection.execute(sqlQuery, [proveedor_id]);
+
+    // Verificar si alguna fila fue afectada (es decir, si el proveedor fue eliminado)
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Proveedor no encontrado", ok: false });
+    }
+
+    res.status(200).json({ message: "Proveedor eliminado correctamente", ok: true });
+  } catch (error) {
+    console.error('Error al eliminar el proveedor:', error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
+
+
+
+
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida,
   agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,buscarExpediente,
-  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado, modificarMovimiento,obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular,buscarExpedienteParaModificarDefinitiva, agregarMovimientoDefinitivaPreventiva, obtenerPresupuestosParaMovimientoPresupuestario,obtenerPerfilPorCuil,actualizarCreditoCompleto,actualizarPresupuestoAprobadoCompleto,listarItemsFiltrado, obtenerTiposDeInstrumentos,obtenerSaldoPorDetPresupuestoID}
+  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado, modificarMovimiento,obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular,buscarExpedienteParaModificarDefinitiva, agregarMovimientoDefinitivaPreventiva, obtenerPresupuestosParaMovimientoPresupuestario,obtenerPerfilPorCuil,actualizarCreditoCompleto,actualizarPresupuestoAprobadoCompleto,listarItemsFiltrado, obtenerTiposDeInstrumentos,obtenerSaldoPorDetPresupuestoID,obtenerProveedores,editarProveedor,agregarProveedor,eliminarProveedor}
 
 
 
