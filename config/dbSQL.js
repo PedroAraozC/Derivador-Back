@@ -5,7 +5,7 @@ const config = {
   password: process.env.PASSWORD_SQL_SERVER,
   // server: process.env.SERVIDOR_SQL_SERVER,
   server: process.env.HOST_CIU_DIGITAL,
-  port: "1435",
+  port: 1435,
   database: process.env.DATABASE_SQL_SERVER,
   options: {
     encrypt: false,

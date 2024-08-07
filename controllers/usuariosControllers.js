@@ -38,7 +38,8 @@ const enviarEmail = (codigo, email, cuil) => {
       from: "SMT-Ciudadano Digital <no-reply-cdigital@smt.gob.ar>",
       to: email,
       subject: "Código de validación",
-      text: `Tu código de validación es: ${codigo}. Para visualizar su credencial de Ciudadano Digital ingrese al siguiente link: https://ciudaddigital.smt.gob.ar/#/credencialesCiudadano/${cuil}`,
+      // text: `Tu código de validación es: ${codigo}. Para visualizar su credencial de Ciudadano Digital ingrese al siguiente link: https://ciudaddigital.smt.gob.ar/#/credencialesCiudadano/${cuil}`,
+      html: `<p>Tu código de validación es: <strong style="font-size: 24px;">${codigo}</strong></p>`,
     };
 
     transporter.sendMail(mailOptions, (errorEmail, info) => {
