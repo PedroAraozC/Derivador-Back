@@ -264,14 +264,11 @@ const obtenerOpcionesHabilitadas = async (req, res) => {
     connection = await conectarBDEstadisticasMySql();
     
     const [opciones] = await connection.execute(
-      `SELECT pu.*, pro.descripcion, pro.nombre_proceso, o.id_opcion, o.nombre_opcion
-      FROM permiso_tusuario pu
-      LEFT JOIN proceso pro ON pu.id_proceso = pro.id_proceso 
-      LEFT JOIN opcion o ON pro.id_opcion = o.id_opcion
-      WHERE pu.id_tusuario = 1
-      ORDER BY o.id_opcion ASC`
+        `SELECT o.*, p.nombre_proceso, p.id_proceso 
+        FROM opcion o
+        LEFT JOIN proceso p ON o.id_opcion = p.id_opcion
+        ORDER BY o.nombre_opcion, p.nombre_proceso`
     );
-    // await connection.end();
     res.status(200).json({ opciones });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -294,7 +291,7 @@ const editarUsuario = async (req, res) => {//falta
       "UPDATE usuario SET nombreUsuario = ?,tipoDeUsuario_id=? WHERE id = ?";
     const values = [nombreUsuario, tipoDeUsuario, userId];
 
-     connection = await conectarBDEstadisticasMySql();
+    connection = await conectarBDEstadisticasMySql();
     const [user] = await connection.execute(
       "SELECT * FROM usuario WHERE nombreUsuario = ?",
       [nombreUsuario]
