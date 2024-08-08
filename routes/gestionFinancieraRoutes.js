@@ -4,7 +4,7 @@ const verifyRole = require("../middlewares/verifyRole");
 
 
 
-const { listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas, agregarPartida, editarPartida, borrarPartida, agregarEjercicio, editarEjercicio, borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente, listarPartidasConCodigo, obtenerDetPresupuestoPorItemYpartida, agregarMovimiento, listarPartidasCONCAT,partidaExistente, buscarExpediente,listarAnteproyecto, actualizarPresupuestoAnteproyecto, listarEjercicio, actualizarCredito, actualizarPresupuestoAprobado, modificarMovimiento, obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular, buscarExpedienteParaModificarDefinitiva, agregarMovimientoDefinitivaPreventiva, obtenerPresupuestosParaMovimientoPresupuestario, listarItemsFiltrado, obtenerPerfilPorCuil, actualizarCreditoCompleto, actualizarPresupuestoAprobadoCompleto, obtenerTiposDeInstrumentos, obtenerSaldoPorDetPresupuestoID, obtenerProveedor } = require("../controllers/gestionFinancieraControllers");
+const { listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas, agregarPartida, editarPartida, borrarPartida, agregarEjercicio, editarEjercicio, borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente, listarPartidasConCodigo, obtenerDetPresupuestoPorItemYpartida, agregarMovimiento, listarPartidasCONCAT,partidaExistente, buscarExpediente,listarAnteproyecto, actualizarPresupuestoAnteproyecto, listarEjercicio, actualizarCredito, actualizarPresupuestoAprobado, modificarMovimiento, obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular, buscarExpedienteParaModificarDefinitiva, agregarMovimientoDefinitivaPreventiva, obtenerPresupuestosParaMovimientoPresupuestario, listarItemsFiltrado, obtenerPerfilPorCuil, actualizarCreditoCompleto, actualizarPresupuestoAprobadoCompleto, obtenerTiposDeInstrumentos, obtenerSaldoPorDetPresupuestoID, obtenerProveedores, editarProveedor, agregarProveedor, eliminarProveedor } = require("../controllers/gestionFinancieraControllers");
 
 
 const router = Router();
@@ -80,6 +80,10 @@ router.put("/acumular", acumular);
 
 router.post('/perfil/:cuil', obtenerPerfilPorCuil);
 
-router.get("/proveedor/listar", obtenerProveedor)
+
+router.get("/proveedores/listar", obtenerProveedores);
+router.put("/proveedores/editar", editarProveedor);
+router.post("/proveedores/agregar", agregarProveedor);
+router.delete("/proveedores/eliminar/:idEliminar", eliminarProveedor);
 
 module.exports = router;
