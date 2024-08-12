@@ -1307,6 +1307,32 @@ console.log(result1);
   }
 };
 
+const obtenerProveedor = async (req,res) => {
+  let connection;
+  try {
+    const cuit = req.query.cuit;
+    connection = await conectar_BD_GAF_MySql();
+    let sqlQuery = `SELECT *  FROM proveedores WHERE proveedores.proveedor_cuit = ?`;
+    const [proveedores] = await connection.execute(sqlQuery,[cuit]);
+
+    if (proveedores.length === 0) {
+      return res.status(404).json({ message: 'Proveedor no encontrado' });
+  }
+
+  res.status(200).json(proveedores[0]);
+
+  } catch (error) {
+
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+}
+
 
 const buscarExpedienteParaModificarDefinitiva = async (req, res) => {
   let connection;
@@ -1867,9 +1893,11 @@ const eliminarProveedor = async (req, res) => {
 
 
 
-module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida,
-  agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,buscarExpediente,
-  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado, modificarMovimiento,obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular,buscarExpedienteParaModificarDefinitiva, agregarMovimientoDefinitivaPreventiva, obtenerPresupuestosParaMovimientoPresupuestario,obtenerPerfilPorCuil,actualizarCreditoCompleto,actualizarPresupuestoAprobadoCompleto,listarItemsFiltrado, obtenerTiposDeInstrumentos,obtenerSaldoPorDetPresupuestoID,obtenerProveedores,editarProveedor,agregarProveedor,eliminarProveedor}
+module.exports = {
+  listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas, listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida,
+  agregarEjercicio, editarEjercicio, borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente, buscarExpediente,
+  obtenerDetPresupuestoPorItemYpartida, agregarMovimiento, listarPartidasCONCAT, partidaExistente, listarEjercicio, listarAnteproyecto, actualizarPresupuestoAnteproyecto, actualizarCredito, actualizarPresupuestoAprobado, modificarMovimiento, obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento, acumular, buscarExpedienteParaModificarDefinitiva, agregarMovimientoDefinitivaPreventiva, obtenerPresupuestosParaMovimientoPresupuestario, obtenerPerfilPorCuil, actualizarCreditoCompleto, actualizarPresupuestoAprobadoCompleto, listarItemsFiltrado, obtenerTiposDeInstrumentos, obtenerSaldoPorDetPresupuestoID, obtenerProveedores, editarProveedor, agregarProveedor, eliminarProveedor, obtenerProveedor
+}
 
 
 
