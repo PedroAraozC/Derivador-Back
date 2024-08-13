@@ -3,7 +3,7 @@ const path = require("path");
 const {
   conectarBDEstadisticasMySql,
 } = require("../config/dbEstadisticasMYSQL");
-const { conectarMySql } = require("../config/dbMYSQL");
+const { conectarMySql, conectarMacroMySql } = require("../config/dbMYSQL");
 const { conectarBaseDeDatos } = require("../config/dbSQL");
 const { conectarDBTurnos } = require("../config/dbTurnosMYSQL");
 const { sequelize_ciu_digital } = require("../config/sequelize");
@@ -72,7 +72,7 @@ const obtenerTiposDeReclamoPorCategoria = async (req, res) => {
 };
 
 const ingresarReclamo = async (req, res) => {
-  const connection = await conectarMySql();
+  const connection = await conectarMacroMySql();
   try {
     const {
       id_categoria,
@@ -89,7 +89,7 @@ const ingresarReclamo = async (req, res) => {
       cuit,
       foto,
     } = req.body;
-    // console.log("req.body", req.body)
+    console.log("req.body", req.body);
     // console.log("foto", foto?.length);
     console.log("Conectado a MySQL");
 
@@ -200,7 +200,6 @@ const ingresarReclamo = async (req, res) => {
     await connection.end();
     console.log("Conexión cerrada");
   } catch (error) {
-    console.log(error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     // Cerrar la conexión a la base de datos
