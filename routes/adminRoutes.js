@@ -1,7 +1,7 @@
 const { Router } = require("express");
 const auth = require("../middlewares/auth");
 const verifyRole = require("../middlewares/verifyRole");
-const { agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacion, listarContratacionBack, borrarContratacion, editarContratacion, editarAnexo, listarContratacionPorId, listarPatrimonioBack, listarCategoriaPatrimonioBack, listarTipologiaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarAutorPatrimonioBack, listarUbicacionPatrimonioBack, agregarPatrimonio, deshabilitarPatrimonio, agregarAutorPatrimonio, agregarEstadoPatrimonio, agregarMaterialPatrimonio, agregarTipologiaPatrimonio, agregarCategoriaPatrimonio, agregarUbicacionPatrimonio, editarPatrimonio, agregarGenero, editarGenero, listarGenero, listarTiposDeUsuario, agregarTipoDeUsuario, editarTipoDeUsuario, listarTipoDoc, agregarTipoDoc, editarTipoDoc, listarReparticion, agregarReparticion, editarReparticion, listarProcesos, actualizarPermisosTUsuario, listarPermisosPorTUsuarios, actualizarPermisosPorTUsuario, listarEmpleados } = require("../controllers/adminControllers");
+const { agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacion, listarContratacionBack, borrarContratacion, editarContratacion, editarAnexo, listarContratacionPorId, listarPatrimonioBack, listarCategoriaPatrimonioBack, listarTipologiaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarAutorPatrimonioBack, listarUbicacionPatrimonioBack, agregarPatrimonio, deshabilitarPatrimonio, agregarAutorPatrimonio, agregarEstadoPatrimonio, agregarMaterialPatrimonio, agregarTipologiaPatrimonio, agregarCategoriaPatrimonio, agregarUbicacionPatrimonio, editarPatrimonio, agregarGenero, editarGenero, listarGenero, listarTiposDeUsuario, agregarTipoDeUsuario, editarTipoDeUsuario, listarTipoDoc, agregarTipoDoc, editarTipoDoc, listarReparticion, agregarReparticion, editarReparticion, listarProcesos, actualizarPermisosTUsuario, listarPermisosPorTUsuarios, actualizarPermisosPorTUsuario, listarEmpleados, obtenerImagenes } = require("../controllers/adminControllers");
 const fs = require('fs');
 const router = Router();
 const multer  = require('multer');
@@ -118,6 +118,7 @@ router.get("/listarMateriales", listarMaterialPatrimonioBack);
 router.get("/listarEstados", listarEstadoPatrimonioBack);
 router.get("/listarAutores", listarAutorPatrimonioBack);
 router.get("/listarUbicaciones", listarUbicacionPatrimonioBack);
+router.get("/obtenerImagenes", obtenerImagenes);
 router.post("/agregarPatrimonio", uploadPatrimonio.single('archivo'), agregarPatrimonio);
 router.post("/editarPatrimonio", uploadPatrimonio.single('archivo'), editarPatrimonio);
 router.post("/agregarAutor", agregarAutorPatrimonio);
