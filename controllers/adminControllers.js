@@ -1320,7 +1320,7 @@ const agregarPatrimonio = async (req, res) => {
 };
 
 const obtenerImagenes = (req, res) => {
-  const imageDirectory = path.join(__dirname, "../tempUploads");
+  const imageDirectory = path.join(__dirname, "/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio");
   const { image } = req.query;
 
   if (!image) {
