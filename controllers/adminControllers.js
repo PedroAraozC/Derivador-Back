@@ -7,6 +7,7 @@ const PermisoTUsuario = require("../models/Derivador/PermisoTUsuario");
 const fs = require('fs');
 const path = require('path');
 const { conectarFTPCiudadano } = require("../config/winscpCiudadano");
+const logger = require("../middlewares/logger");
 
 
 
@@ -119,10 +120,13 @@ const borrarOpcion = async (req, res) => {
 
 const listarPermisosPorTUsuarios = async (req, res) => {
   const { id } = req.body;
+  if( id == undefined){
+    res.status(500).json("algo salio mal")
+    return
+  }
   const sql = "SELECT pt.id_permiso_tusuario, pt.id_proceso, pt.ver, p.nombre_proceso, tu.nombre_tusuario FROM permiso_tusuario pt LEFT JOIN proceso p  on pt.id_proceso = p.id_proceso  LEFT JOIN tipo_usuario tu ON pt.id_tusuario = tu.id_tusuario  WHERE pt.id_proceso = ? ORDER BY tu.nombre_tusuario ASC ";
   const values = [id];
   let connection;
-
   try {
     connection = await conectarBDEstadisticasMySql();
     const [permisos] = await connection.execute(sql, values); 
@@ -746,8 +750,9 @@ const agregarContratacion = async (req, res) => {
 
     const archivo = req.file;
 
-    if (!archivo) {
-      return res.status(400).json({ message: "Por favor, adjunta un archivo" });
+    if (archivo == undefined) {
+      // logger.error('Por favor, adjunta un archivo');
+      return res.status(500).json({ message: "Por favor, adjunta un archivo" });
     }
 
     // Obtener el nombre del archivo cargado
@@ -802,9 +807,10 @@ const agregarContratacion = async (req, res) => {
 
     res.status(201).json({ message: "Convocatoria creada con éxito", id: nextId, num_contratacion: nextId });
   } catch (error) {
+    logger.error('Error en agregarConvocatoria: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
-    connection.end()
+    connection?.end()
   }
 };
 
@@ -833,11 +839,6 @@ const agregarAnexo = async (req, res) => {
     console.log(values)
     // Ejecutar la consulta SQL para insertar la nueva convocatoria
     await connection.execute(sql, values);
-    // const ftpClient = await conectarFTPLICITACIONES();
-    // const remoteFilePath = `/var/www/vhosts/licitaciones.smt.gob.ar/PDF-Convocatorias/${nombre_anexo}`;
-    // const localFilePath = path.join("./pdf", nombre_anexo);
-    // Subir la imagen al servidor FTP
-    // await ftpClient.uploadFrom(localFilePath, remoteFilePath);
 
     // Define las rutas de origen y destino
     const archivoOrigen = path.join(__dirname, '..', 'pdf', nombre_anexo);
@@ -857,15 +858,11 @@ const agregarAnexo = async (req, res) => {
         console.log('Archivo movido exitosamente');
       }
     });
-
-    // Eliminar la imagen local después de subirla
-    // fs.unlinkSync(localFilePath);
-    // await ftpClient.close();
     res.status(201).json({ message: "Anexo agregado con éxito"});
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
-    connection.end()
+    connection?.end()
   }
 };
 
@@ -1011,7 +1008,7 @@ const editarContratacion = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally{
-    connection.end();
+    connection?.end();
   }
 };
 //-----------CONTRATACIONES--------------

@@ -1,0 +1,20 @@
+{
+  level: 'error',
+  message: 'Por favor, adjunta un archivo',
+  metadata: { timestamp: '2024-08-12T15:15:35.992Z' }
+}
+{
+  level: 'error',
+  message: "Error en agregarConvocatoria: TypeError: Cannot read properties of undefined (reading 'filename')",
+  metadata: { timestamp: '2024-08-12T15:15:35.994Z' }
+}
+{
+  level: 'error',
+  message: 'Por favor, adjunta un archivo',
+  metadata: { timestamp: '2024-08-12T15:17:19.073Z' }
+}
+{
+  level: 'error',
+  message: "Error en agregarConvocatoria: TypeError: Cannot read properties of undefined (reading 'filename')",
+  metadata: { timestamp: '2024-08-12T15:17:19.075Z' }
+}
