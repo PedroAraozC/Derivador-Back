@@ -8,12 +8,6 @@ const https = require('https');
 const fs = require('fs');
 const app = express();
 
-// //logger
-// const expressWinston = require('express-winston')
-// const { format } = require("winston");
-// const logger = require('./middlewares/logger')
-
-
 app.use(cors());
 dotenv.config();
 // connectDB();
@@ -49,32 +43,19 @@ app.use('/admin', adminRoutes)
 app.use("/macro",macroRoutes)
 app.use("/turnos", turnosRoutes);
 app.use("/patrimonio", patrimonioRoutes);
-// app.use('/logger', (req, res) =>{
-//   throw new Error('This is a custom error')
-//   // res.status(500).json({ message: "Algo salió mal :(" });
-// })
-
-// app.use(expressWinston.errorLogger({
-//   winstonInstance: logger,
-//   format: format.combine(
-//     format.json(),
-//     format.timestamp(),
-//     format.metadata(),
-//     format.prettyPrint()
-//   ),
-// }));
-
-// const options = {
-//   key: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),
-//   cert: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),
-//   // ca: fs.readFileSync('/opt/psa/var/certificates/scfqdiDyQ') // si tienes un archivo CA bundle
-// };
-
-// https.createServer(options, app).listen(PORT, () => {
-//   console.log(`server listening on port ${PORT}`);
-// });
 
 
-app.listen(3000, () => {
-  console.log(`server listening on port 3000`);
+const options = {
+  key: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),
+  cert: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),
+  // ca: fs.readFileSync('/opt/psa/var/certificates/scfqdiDyQ') // si tienes un archivo CA bundle
+};
+
+https.createServer(options, app).listen(PORT, () => {
+  console.log(`server listening on port ${PORT}`);
 });
+
+
+// app.listen(3000, () => {
+//   console.log(`server listening on port 3000`);
+// });
