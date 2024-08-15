@@ -19,7 +19,6 @@
     "dotenv": "^16.0.3",
     "express": "^4.19.2",
     "express-validator": "^6.15.0",
-    "express-winston": "^4.2.0",
     "file-type": "^19.0.0",
     "ftp": "^0.3.10",
     "ftp-client": "^0.2.0",
@@ -35,8 +34,7 @@
     "nodemailer": "^6.9.9",
     "qrcode": "^1.5.3",
     "sequelize": "^6.37.1",
-    "streamifier": "^0.1.1",
-    "winston": "^3.14.1"
+    "streamifier": "^0.1.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

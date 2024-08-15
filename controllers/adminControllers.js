@@ -1,4 +1,3 @@
-//borra aqui despues el conectar test
 const { conectarBDEstadisticasMySql, conectarSMTPatrimonio } = require("../config/dbEstadisticasMYSQL");
 const { conectarSMTContratacion } = require("../config/dbEstadisticasMYSQL");
 const { sequelize_ciu_digital_derivador } = require("../config/sequelize");
@@ -7,7 +6,6 @@ const PermisoTUsuario = require("../models/Derivador/PermisoTUsuario");
 const fs = require('fs');
 const path = require('path');
 const { conectarFTPCiudadano } = require("../config/winscpCiudadano");
-const logger = require("../middlewares/logger");
 
 
 
@@ -32,7 +30,6 @@ const agregarOpcion = async (req, res) => {
   
       res.status(201).json({ id: nuevoId, message: "Opción creada con éxito" });
     } catch (error) {
-      logger.error('Error en agregarOpcion: ' + error);
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
     } finally{
       connection.end()
@@ -91,7 +88,6 @@ const agregarProceso = async (req, res) => {
       if (transaction) await transaction.rollback();
   
       // Responder con un mensaje de error
-      logger.error('Error en agregarProceso: ' + error);
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
     }finally{
       connection.end()
@@ -114,7 +110,6 @@ const borrarOpcion = async (req, res) => {
     }
   } catch (error) {
     console.error("Error al eliminar la opción:", error);
-    logger.error('Error en borrarOpcion: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally{
     connection.end()
@@ -136,7 +131,6 @@ const listarPermisosPorTUsuarios = async (req, res) => {
     res.status(200).json({ permisos })
   } catch (error) {
     console.error("Error al traer los permisos:", error);
-    logger.error('Error en listarPermisosPorTUsuarios: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally{
     connection.end()
@@ -165,7 +159,6 @@ const actualizarPermisosPorTUsuario = async (req, res) => {
       res.status(200).json({ message: "Permisos actualizados correctamente" });
   } catch (error) {
       console.error("Error al actualizar permisos:", error);
-      logger.error('Error en actualizarPermisosPorTUsuario: ' + error);
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
       if (connection) {
@@ -184,7 +177,6 @@ const listarEmpleados = async (req, res) => {
     );
     res.status(200).json({ empleados })
   } catch (error) {
-    logger.error('Error en listarEmpleados: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end();
@@ -198,7 +190,6 @@ const listarProcesosSinId = async (req, res) => {
     );
     res.status(200).json({ procesos })
   } catch (error) {
-    logger.error('Error en listarProcesosSinId: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end();
@@ -282,7 +273,6 @@ const actualizarPermisosEspecificos = async (req, res) => {
     res.status(200).json({ message: "Permisos actualizados correctamente" });
   } catch (error) {
     console.error("Error al actualizar permisos:", error);
-    logger.error('Error en actualizarPermisosEspecificos: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     if (connection) {
@@ -309,7 +299,6 @@ const existeEnPermisosPersona = async (req, res) => {
     }
   } catch (error) {
     console.error("Error al verificar los permisos de la persona:", error);
-    logger.error('Error en existePermisosPersona: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     if (connection) {
@@ -346,7 +335,6 @@ const agregarGenero = async (req, res) =>{
 
     res.status(201).json({ id: nuevoId, message: "Tipología creada con éxito" });
   } catch (error) {
-    logger.error('Error en agregarGenero: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end();
@@ -369,7 +357,6 @@ const editarGenero = async (req, res) =>{
     }
   } catch (error) {
     logger.error('Error en editarGenero: ' + error);
-    console.error("Error al editar el genero:", error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end();
@@ -385,7 +372,6 @@ const listarGenero = async (req, res) => {
     res.status(200).json({ generos })
 
   } catch (error) {
-    logger.error('Error en listarGenero: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end();
@@ -419,7 +405,6 @@ const agregarTipoDoc = async (req, res) =>{
 
     res.status(201).json({ id: nuevoId, message: "Tipo Documento creado con éxito" });
   } catch (error) {
-    logger.error('Error en agregaTipoDoc: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end();
@@ -441,7 +426,6 @@ const editarTipoDoc = async (req, res) =>{
     }
   } catch (error) {
     console.error("Error al editar el Tipo documento:", error);
-    logger.error('Error en editarTipoDoc: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end();
@@ -456,7 +440,6 @@ const listarTipoDoc = async (req, res) => {
     res.status(200).json({ tdocumentos })
 
   } catch (error) {
-    logger.error('Error en listarTipoDoc: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -490,7 +473,6 @@ const agregarReparticion = async (req, res) =>{
 
     res.status(201).json({ id: nuevoId, message: "Repartición creada con éxito" });
   } catch (error) {
-    logger.error('Error en agregarReparticion: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -512,7 +494,6 @@ const editarReparticion = async (req, res) =>{
     }
   } catch (error) {
     console.error("Error al editar la Repartición:", error);
-    logger.error('Error en editarReparticion: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -527,7 +508,6 @@ const listarReparticion = async (req, res) => {
     res.status(200).json({ reparticiones })
 
   } catch (error) {
-    logger.error('Error en listarReparticion: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -561,7 +541,6 @@ const agregarTipoDeUsuario = async (req, res) =>{
 
     res.status(201).json({ id: nuevoId, message: "Tipo de usuario creado con éxito" });
   } catch (error) {
-    logger.error('Error en agregarTipoDeUsuario: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -577,7 +556,6 @@ const listarTiposDeUsuario = async (req, res) => {
     res.status(200).json({ tusuarios })
 
   } catch (error) {
-    logger.error('Error en listarTiposDeUsuario: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -601,7 +579,6 @@ const editarTipoDeUsuario = async (req, res) =>{
     }
   } catch (error) {
     console.error("Error al editar el Tipo de usuario:", error);
-    logger.error('Error en editarTipoDeUsuario: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -660,7 +637,6 @@ const actualizarPermisosTUsuario = async (req, res) => {
       res.status(200).json({ message: "Permisos actualizados correctamente" });
   } catch (error) {
       console.error("Error al actualizar permisos:", error);
-      logger.error('Error en actualizarPermisosTUsuario: ' + error);
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
       if (connection) {
@@ -682,7 +658,6 @@ const listarTipoContratacion = async (req, res) => {
     res.status(200).json({ contrataciones })
 
   } catch (error) {
-    logger.error('Error en listarTipoContratacion: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -702,7 +677,6 @@ const listarContratacionPorId = async (req, res) => {
       res.status(400).json({ message: "No se encontró la contratación" });
     }
   } catch (error) {
-    logger.error('Error en listarContratacionPorId: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -717,7 +691,6 @@ const listarTipoInstrumento = async (req, res) => {
     res.status(200).json({ instrumentos })
 
   } catch (error) {
-    logger.error('Error en listarTipoInstrumento: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -735,7 +708,6 @@ const listarContratacionBack = async (req, res) => {
     res.status(200).json({ contrataciones })
 
   } catch (error) {
-    logger.error('Error en listarContratacionBack: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -753,7 +725,6 @@ const listarContratacion = async (req, res) => {
     res.status(200).json({ contrataciones })
 
   } catch (error) {
-    logger.error('Error en listarContratacion: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -762,6 +733,7 @@ const listarContratacion = async (req, res) => {
 
 const agregarContratacion = async (req, res) => {
   let connection;
+  connection = await conectarSMTContratacion();
   try {
     const {
       fecha_apertura,
@@ -790,7 +762,6 @@ const agregarContratacion = async (req, res) => {
     const detalleValorPorDefecto = '';
     const detalleFinal = detalle ?? detalleValorPorDefecto;
     // Obtener el último id_contratacion de la tabla
-    connection = await conectarSMTContratacion();
     const [lastIdResult] = await connection.query("SELECT MAX(id_contratacion) AS max_id FROM contratacion");
     let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_contratacion
     // Query para insertar una nueva convocatoria
@@ -837,7 +808,6 @@ const agregarContratacion = async (req, res) => {
 
     res.status(201).json({ message: "Convocatoria creada con éxito", id: nextId, num_contratacion: nextId });
   } catch (error) {
-    logger.error('Error en agregarConvocatoria: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection?.end()
@@ -847,6 +817,7 @@ const agregarContratacion = async (req, res) => {
 
 const agregarAnexo = async (req, res) => {
   let connection;
+  connection = await conectarSMTContratacion();
   try {
     const archivo = req.file;
     if (!archivo) {
@@ -857,7 +828,6 @@ const agregarAnexo = async (req, res) => {
     const nombre_anexo = archivo.filename;
     
     // Obtener el último id_contratacion de la tabla
-    connection = await conectarSMTContratacion();
     const [lastIdResult] = await connection.query("SELECT MAX(id_contratacion) AS max_id FROM contratacion");
     let maxId = lastIdResult[0].max_id;
     // Query para insertar una nueva convocatoria
@@ -890,7 +860,6 @@ const agregarAnexo = async (req, res) => {
     });
     res.status(201).json({ message: "Anexo agregado con éxito"});
   } catch (error) {
-    logger.error('Error en agregarAnexo: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection?.end()
@@ -899,6 +868,7 @@ const agregarAnexo = async (req, res) => {
 
 const editarAnexo = async (req, res) => {
   let connection;
+  connection = await conectarSMTContratacion();
   try {
     const {id, oldName, num_instrumento, expte} = req.query
     const archivo = req.file;
@@ -933,13 +903,12 @@ const editarAnexo = async (req, res) => {
     const sql = "UPDATE contratacion SET `nombre_anexo`= ? WHERE `id_contratacion`= ?";
     const values = [nombre_anexo, id];
     // Verificar si la contratacion ya existe con otra ID
-    connection = await conectarSMTContratacion();
+    
     await connection.execute(sql, values);
     
     res.status(201).json({ message: "Anexo editado con éxito"});
 
   } catch (error) {
-    logger.error('Error en editarAnexo: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -951,7 +920,7 @@ const borrarContratacion = async (req, res) => {
   const sql = "UPDATE contratacion set habilita = 0 WHERE id_contratacion = ?";
   const values = [id];
   let connection;
-
+  
   try {
     connection = await conectarSMTContratacion();
     const [result] = await connection.execute(sql, values); 
@@ -962,7 +931,6 @@ const borrarContratacion = async (req, res) => {
     }
   } catch (error) {
     console.error("Error al eliminar la contratación:", error);
-    logger.error('Error en borrarContratacion: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -970,6 +938,8 @@ const borrarContratacion = async (req, res) => {
 };
 
 const editarContratacion = async (req, res) => {
+  let connection;
+  connection = await conectarSMTContratacion();
   try {
     const { id, nombre_contratacion, id_tcontratacion, fecha_presentacion, hora_presentacion, num_instrumento, valor_pliego, expte, id_tinstrumento, fecha_apertura, hora_apertura, habilita, oldName, detalle } = req.body;
     // Verificar si hay un archivo adjunto
@@ -1019,7 +989,6 @@ const editarContratacion = async (req, res) => {
 
 
     // Verificar si la contratacion ya existe con otra ID
-    const connection = await conectarSMTContratacion();
     const [contratacion] = await connection.execute(
       "SELECT * FROM contratacion WHERE (nombre_contratacion = ? AND id_tcontratacion = ? AND num_instrumento = ? AND valor_pliego = ? AND expte = ? AND habilita = ?) AND id_contratacion != ?",
       [nombre_contratacion,id_tcontratacion, num_instrumento, valor_pliego, expte, habilita, id ]
@@ -1039,7 +1008,6 @@ const editarContratacion = async (req, res) => {
       });
     }
   } catch (error) {
-    logger.error('Error en editarContratacion: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally{
     connection?.end();
@@ -1073,7 +1041,6 @@ const agregarCategoriaPatrimonio = async (req, res) => {
 
     res.status(201).json({ id: nuevoId, message: "Categoria creada con éxito" });
   } catch (error) {
-    logger.error('Error en agregarCategoriaPatrimonio: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -1101,7 +1068,6 @@ const agregarTipologiaPatrimonio = async (req, res) => {
 
     res.status(201).json({ id: nuevoId, message: "Tipología creada con éxito" });
   } catch (error) {
-    logger.error('Error en agregarTipologiaPatrimonio: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -1129,7 +1095,6 @@ const agregarMaterialPatrimonio = async (req, res) => {
 
     res.status(201).json({ id: nuevoId, message: "Material creado con éxito" });
   } catch (error) {
-    logger.error('Error en agregarMaterialPatrimonio: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -1157,7 +1122,6 @@ const agregarEstadoPatrimonio = async (req, res) => {
 
     res.status(201).json({ id: nuevoId, message: "Estado creado con éxito" });
   } catch (error) {
-    logger.error('Error en agregarEstadoPatrimonio: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -1185,7 +1149,6 @@ const agregarAutorPatrimonio = async (req, res) => {
 
     res.status(201).json({ id: nuevoId, message: "Autor creado con éxito" });
   } catch (error) {
-    logger.error('Error en agregarAutorPatrimonio: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -1213,7 +1176,6 @@ const agregarUbicacionPatrimonio = async (req, res) => {
 
     res.status(201).json({ id: nuevoId, message: "Autor creado con éxito" });
   } catch (error) {
-    logger.error('Error en agregarUbicacionPatrimonio: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -1289,7 +1251,6 @@ const agregarPatrimonio = async (req, res) => {
     await ftpClient.close();
     res.status(201).json({ message: "Patrimonio creado con éxito", id: nextId, num_patrimonio: nextId });
   } catch (error) {
-    logger.error('Error en agregarPatrimonio: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -1343,7 +1304,6 @@ const editarPatrimonio = async (req, res) => {
       });
     }
   } catch (error) {
-    logger.error('Error en editarPatrimonio: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -1360,7 +1320,6 @@ const listarPatrimonioBack = async (req, res) => {
     res.status(200).json({ patrimonios })
 
   } catch (error) {
-    logger.error('Error en listarPatrimonioBack: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -1376,7 +1335,6 @@ const listarAutorPatrimonioBack = async (req, res) => {
     res.status(200).json({ autores })
 
   } catch (error) {
-    logger.error('Error en listarAutorPatrimonioBack: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -1392,7 +1350,6 @@ const listarUbicacionPatrimonioBack = async (req, res) => {
     res.status(200).json({ ubicaciones })
 
   } catch (error) {
-    logger.error('Error en listarUbicacionPatrimonioBack: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -1408,7 +1365,6 @@ const listarEstadoPatrimonioBack = async (req, res) => {
     res.status(200).json({ estados })
 
   } catch (error) {
-    logger.error('Error en listarEstadoPatrimonioBack: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -1424,7 +1380,6 @@ const listarMaterialPatrimonioBack = async (req, res) => {
     res.status(200).json({ materiales })
 
   } catch (error) {
-    logger.error('Error en listarMaterialPatrimonioBack: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -1440,7 +1395,6 @@ const listarCategoriaPatrimonioBack = async (req, res) => {
     res.status(200).json({ categorias })
 
   } catch (error) {
-    logger.error('Error en listarCategoriaPatrimonioBack: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -1456,7 +1410,6 @@ const listarTipologiaPatrimonioBack = async (req, res) => {
     res.status(200).json({ tipologias })
 
   } catch (error) {
-    logger.error('Error en listarTipologiaPatrimonioBack: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
@@ -1469,8 +1422,8 @@ const deshabilitarPatrimonio = async (req, res) => {
   const sql = "UPDATE patrimonio set habilita = 0 WHERE id_patrimonio = ?";
   const values = [id];
   let connection;
+  connection = await conectarSMTPatrimonio();
   try {
-    connection = await conectarSMTPatrimonio();
     const [result] = await connection.execute(sql, values); 
     if (result.affectedRows > 0) {
       res.status(200).json({ message: "patrimonio deshabilitado con éxito" });
@@ -1479,7 +1432,6 @@ const deshabilitarPatrimonio = async (req, res) => {
     }
   } catch (error) {
     console.error("Error al eliminar el patrimonio:", error);
-    logger.error('Error en deshabilitarPatrimonio: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end()
