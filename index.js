@@ -6,8 +6,8 @@ const connectDB = require("./config/dbUsuariosMongoDB");
 const bodyParser = require('body-parser');
 const https = require('https');
 const fs = require('fs');
-
 const app = express();
+
 app.use(cors());
 dotenv.config();
 // connectDB();
@@ -43,6 +43,7 @@ app.use('/admin', adminRoutes)
 app.use("/macro",macroRoutes)
 app.use("/turnos", turnosRoutes);
 app.use("/patrimonio", patrimonioRoutes);
+
 
 // const options = {
 //   key: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),

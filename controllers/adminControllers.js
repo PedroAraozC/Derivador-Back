@@ -6,11 +6,11 @@ const { conectarSMTContratacion } = require("../config/dbEstadisticasMYSQL");
 const { sequelize_ciu_digital_derivador } = require("../config/sequelize");
 const Proceso = require("../models/Derivador/Proceso");
 const PermisoTUsuario = require("../models/Derivador/PermisoTUsuario");
-const PermisoPersona = require("../models/Derivador/PermisoPersona");
-const fs = require("fs");
-const path = require("path");
-// const { conectarFTPCiudadano } = require("../config/winscpCiudadano");
-const { conectarSFTPCondor } = require("../config/winscpCondor");
+const fs = require('fs');
+const path = require('path');
+const { conectarFTPCiudadano } = require("../config/winscpCiudadano");
+
+
 
 const agregarOpcion = async (req, res) => {
   let connection;
@@ -38,19 +38,13 @@ const agregarOpcion = async (req, res) => {
     connection.end();
   }
 };
-//PROCESO A CAMBIAR PARA MANEJAR PERMISOS POR TIPO DE USUARIO
 const agregarProceso = async (req, res) => {
   let transaction;
   let connection;
   try {
     const { nombre_proceso, habilita, descripcion, id_opcion } = req.body;
     // Verificar que los valores requeridos estén definidos
-    if (
-      nombre_proceso === undefined ||
-      habilita === undefined ||
-      descripcion === undefined ||
-      id_opcion === undefined
-    ) {
+    if (nombre_proceso === undefined || habilita === undefined || descripcion === undefined || id_opcion === undefined) {
       throw new Error("Los parámetros de la solicitud son inválidos");
     }
     // Iniciar una transacción
@@ -61,17 +55,13 @@ const agregarProceso = async (req, res) => {
     const [tiposUsuario, fieldsTiposUsuario] = await connection.execute(
       "SELECT id_tusuario FROM tipo_usuario"
     );
-    // Obtener la lista de tipos de usuario
-    const [cantidadPersonas, fieldsCantidadPersonas] = await connection.execute(
-      "SELECT id_persona FROM persona"
-    );
     // Crear el nuevo proceso en la base de datos dentro de la transacción
     const nuevoProceso = await Proceso.create(
       {
         nombre_proceso,
         descripcion,
         id_opcion,
-        habilita,
+        habilita
       },
       { transaction }
     );
@@ -81,7 +71,7 @@ const agregarProceso = async (req, res) => {
     // Iterar sobre cada tipo de usuario y realizar el insert
     for (const tipoUsuario of tiposUsuario) {
       const id_tusuario = tipoUsuario.id_tusuario;
-
+      
       const nuevoPermisoTUsuario = await PermisoTUsuario.create(
         {
           id_proceso: id_procesoNuevo,
@@ -90,37 +80,23 @@ const agregarProceso = async (req, res) => {
         { transaction }
       );
     }
-
-    // Iterar sobre cada tipo de usuario y realizar el insert
-    for (const persona of cantidadPersonas) {
-      const id_persona = persona.id_persona;
-
-      const nuevoPermisoPersona = await PermisoPersona.create(
-        {
-          id_proceso: id_procesoNuevo,
-          id_persona,
-        },
-        { transaction }
-      );
-    }
-
+    
     // Commit de la transacción si todas las operaciones fueron exitosas
     await transaction.commit();
 
     // Responder con el ID del nuevo proceso creado
-    res
-      .status(201)
-      .json({ id: nuevoProceso.id, message: "Proceso creado con éxito" });
+    res.status(201).json({ id: nuevoProceso.id, message: "Proceso creado con éxito" });
   } catch (error) {
     // Rollback de la transacción en caso de error
     if (transaction) await transaction.rollback();
 
     // Responder con un mensaje de error
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
-  } finally {
-    connection.end();
+  }finally{
+    connection.end()
   }
 };
+
 
 const borrarOpcion = async (req, res) => {
   const { id } = req.body;
@@ -146,11 +122,13 @@ const borrarOpcion = async (req, res) => {
 
 const listarPermisosPorTUsuarios = async (req, res) => {
   const { id } = req.body;
-  const sql =
-    "SELECT pt.id_permiso_tusuario, pt.id_proceso, pt.ver, p.nombre_proceso, tu.nombre_tusuario FROM permiso_tusuario pt LEFT JOIN proceso p  on pt.id_proceso = p.id_proceso  LEFT JOIN tipo_usuario tu ON pt.id_tusuario = tu.id_tusuario  WHERE pt.id_proceso = ? ORDER BY tu.nombre_tusuario ASC ";
+  if( id == undefined){
+    res.status(500).json("algo salio mal")
+    return
+  }
+  const sql = "SELECT pt.id_permiso_tusuario, pt.id_proceso, pt.ver, p.nombre_proceso, tu.nombre_tusuario FROM permiso_tusuario pt LEFT JOIN proceso p  on pt.id_proceso = p.id_proceso  LEFT JOIN tipo_usuario tu ON pt.id_tusuario = tu.id_tusuario  WHERE pt.id_proceso = ? ORDER BY tu.nombre_tusuario ASC ";
   const values = [id];
   let connection;
-
   try {
     connection = await conectarBDEstadisticasMySql();
     const [permisos] = await connection.execute(sql, values);
@@ -200,15 +178,141 @@ const listarEmpleados = async (req, res) => {
   const connection = await conectarBDEstadisticasMySql();
   try {
     const [empleados] = await connection.execute(
-      "SELECT e.id_persona, e.afiliado, p.documento_persona, p.nombre_persona, p.apellido_persona, p.email_persona, r.nombre_reparticion FROM empleado e LEFT JOIN persona p ON e.id_persona = p.id_persona LEFT JOIN reparticion r ON e.id_reparticion = r.id_reparticion"
+      'SELECT e.id_persona, p.id_tusuario, tp.nombre_tusuario, e.afiliado, p.documento_persona, p.nombre_persona, p.apellido_persona, p.email_persona, r.nombre_reparticion FROM empleado e LEFT JOIN persona p ON e.id_persona = p.id_persona LEFT JOIN tipo_usuario tp ON p.id_tusuario = tp.id_tusuario LEFT JOIN reparticion r ON e.id_reparticion = r.id_reparticion'
     );
-    res.status(200).json({ empleados });
+    res.status(200).json({ empleados })
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end();
   }
 };
+const listarProcesosSinId = async (req, res) => {
+  const connection = await conectarBDEstadisticasMySql();
+  try {
+    const [procesos] = await connection.execute(
+      'SELECT * FROM proceso ORDER BY proceso.descripcion ASC'
+    );
+    res.status(200).json({ procesos })
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+};
+const cambiarTipoDeUsuario = async (req, res) => {
+  let connection;
+    try {
+      const { id, id_persona } = req.body;
+  
+      // Verificar que los valores requeridos estén definidos
+      if (id === undefined || id_persona === undefined) {
+        throw new Error("Los parámetros de la solicitud son inválidos");
+      }
+  
+      const sql = "UPDATE persona SET id_tusuario = ? WHERE id_persona = ?";
+      const values = [id, id_persona];
+  
+      // Ejecutar la consulta SQL para insertar la nueva opción
+      connection = await conectarBDEstadisticasMySql();
+      const [result] = await connection.execute(sql, values);
+      const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+  
+      res.status(201).json({ id: nuevoId, message: "Tipo de Usuario modificado." });
+    } catch (error) {
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    } finally{
+      connection.end()
+    }
+};
+const actualizarPermisosEspecificos = async (req, res) => {
+  let connection;
+  try {
+    const { id_persona, permisos } = req.body;
+    if (!id_persona) {
+      throw new Error("El parámetro 'id_persona' es requerido");
+    }
+    if (!permisos || !Array.isArray(permisos)) {
+      throw new Error("Los parámetros de la solicitud son inválidos");
+    }
+    
+    connection = await conectarBDEstadisticasMySql();
+
+    // Verificar si el id_persona existe en la tabla permiso_persona
+    const selectSql = "SELECT COUNT(*) as count FROM permiso_persona WHERE id_persona = ?";
+    const [selectResult] = await connection.execute(selectSql, [id_persona]);
+    const personaExiste = selectResult[0].count > 0;
+
+    if (personaExiste) {
+      // Si existe, actualizar los permisos
+      for (const permiso of permisos) {
+        const { id: procesoId, ver } = permiso;
+
+        if (procesoId === undefined || ver === undefined) {
+          throw new Error("Los parámetros del permiso son inválidos");
+        }
+        const updateSql = "UPDATE permiso_persona SET ver = ? WHERE id_proceso = ? AND id_persona = ?";
+        const updateValues = [ver, procesoId, id_persona];
+        const [result] = await connection.execute(updateSql, updateValues);
+        if (result.affectedRows !== 1) {
+          throw new Error(`No se pudo actualizar el permiso con id ${procesoId}`);
+        }
+      }
+    } else {
+      // Si no existe, insertar nuevos registros
+      for (const permiso of permisos) {
+        const { id: procesoId, ver } = permiso;
+
+        if (procesoId === undefined || ver === undefined) {
+          throw new Error("Los parámetros del permiso son inválidos");
+        }
+        const insertSql = "INSERT INTO permiso_persona (id_persona, id_proceso, ver) VALUES (?, ?, ?)";
+        const insertValues = [id_persona, procesoId, ver];
+        const [result] = await connection.execute(insertSql, insertValues);
+        if (result.affectedRows !== 1) {
+          throw new Error(`No se pudo insertar el permiso con id ${procesoId}`);
+        }
+      }
+    }
+
+    res.status(200).json({ message: "Permisos actualizados correctamente" });
+  } catch (error) {
+    console.error("Error al actualizar permisos:", error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    if (connection) {
+      connection.end();
+    }
+  }
+};
+const existeEnPermisosPersona = async (req, res) => {
+  const { id } = req.body;
+  const sql = "SELECT * FROM permiso_persona WHERE id_persona = ?";
+  const values = [id];
+  let connection;
+  if( id == undefined){
+    res.status(500).json("No llego el id")
+    return
+  }
+  try {
+    connection = await conectarBDEstadisticasMySql();
+    const [result] = await connection.execute(sql, values);
+    if (result.length > 0) {
+      res.status(200).json({ message: "Existe", data: result });
+    } else {
+      res.status(404).json({ message: "Persona no encontrada" });
+    }
+  } catch (error) {
+    console.error("Error al verificar los permisos de la persona:", error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    if (connection) {
+      connection.end();
+    }
+  }
+};
+
+
 
 // --------------------PANEL PARA USUARIOS ----------------------
 
@@ -259,7 +363,7 @@ const editarGenero = async (req, res) => {
       res.status(400).json({ message: "Genero no encontrado" });
     }
   } catch (error) {
-    console.error("Error al editar el genero:", error);
+    logger.error('Error en editarGenero: ' + error);
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
     connection.end();
@@ -538,13 +642,10 @@ const listarProcesos = async (req, res) => {
 
     // Verificar que los valores requeridos estén definidos
     if (id === undefined) {
-      return res
-        .status(400)
-        .json({ message: "Los parámetros de la solicitud son inválidos" });
+      return res.status(500).json({ message: "No llego el id para listarProcesos" });
     }
 
-    const sql =
-      "SELECT pt.*, p.nombre_proceso, p.descripcion FROM permiso_tusuario pt LEFT JOIN proceso p ON pt.id_proceso = p.id_proceso WHERE id_tusuario = ?";
+    const sql = "SELECT pt.*, p.nombre_proceso, p.descripcion FROM permiso_tusuario pt LEFT JOIN proceso p ON pt.id_proceso = p.id_proceso WHERE id_tusuario = ? ORDER BY p.descripcion ASC";
     const values = [id];
 
     // Ejecutar la consulta SQL para obtener los procesos
@@ -677,6 +778,7 @@ const listarContratacion = async (req, res) => {
 
 const agregarContratacion = async (req, res) => {
   let connection;
+  connection = await conectarSMTContratacion();
   try {
     const {
       fecha_apertura,
@@ -695,19 +797,17 @@ const agregarContratacion = async (req, res) => {
 
     const archivo = req.file;
 
-    if (!archivo) {
-      return res.status(400).json({ message: "Por favor, adjunta un archivo" });
+    if (archivo == undefined) {
+      logger.error('Error por falta de archivo');
+      return res.status(500).json({ message: "Por favor, adjunta un archivo" });
     }
 
     // Obtener el nombre del archivo cargado
     const nombre_archivo = archivo.filename;
-    const detalleValorPorDefecto = ""; // Puedes cambiar esto por cualquier otro valor por defecto que desees
+    const detalleValorPorDefecto = '';
     const detalleFinal = detalle ?? detalleValorPorDefecto;
     // Obtener el último id_contratacion de la tabla
-    connection = await conectarSMTContratacion();
-    const [lastIdResult] = await connection.query(
-      "SELECT MAX(id_contratacion) AS max_id FROM contratacion"
-    );
+    const [lastIdResult] = await connection.query("SELECT MAX(id_contratacion) AS max_id FROM contratacion");
     let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_contratacion
     // Query para insertar una nueva convocatoria
     const sql =
@@ -731,17 +831,7 @@ const agregarContratacion = async (req, res) => {
 
     // Ejecutar la consulta SQL para insertar la nueva convocatoria
     await connection.execute(sql, values);
-
-    // const ftpClient = await conectarFTPLICITACIONES();
-    // const remoteFilePath = `/var/www/vhosts/licitaciones.smt.gob.ar/PDF-Convocatorias/${nombre_archivo}`;
-    // const localFilePath = path.join("./pdf", nombre_archivo);
-    // Subir la imagen al servidor FTP
-    // await ftpClient.uploadFrom(localFilePath, remoteFilePath);
-
-    // Eliminar la imagen local después de subirla
-    // fs.unlinkSync(localFilePath);
-    // await ftpClient.close();
-
+    
     // Define las rutas de origen y destino
     const archivoOrigen = path.join(__dirname, "..", "pdf", nombre_archivo);
     const archivoDestino = path.join(
@@ -762,7 +852,7 @@ const agregarContratacion = async (req, res) => {
     // Mueve el archivo
     fs.rename(archivoOrigen, archivoDestino, (err) => {
       if (err) {
-        console.error("Error al mover el archivo:", err);
+        console.log('Error al mover el archivo:', err);
       } else {
         console.log("Archivo movido exitosamente");
       }
@@ -776,12 +866,14 @@ const agregarContratacion = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
-    connection.end();
+    connection?.end()
   }
 };
 
+
 const agregarAnexo = async (req, res) => {
   let connection;
+  connection = await conectarSMTContratacion();
   try {
     const archivo = req.file;
     if (!archivo) {
@@ -792,10 +884,7 @@ const agregarAnexo = async (req, res) => {
     const nombre_anexo = archivo.filename;
 
     // Obtener el último id_contratacion de la tabla
-    connection = await conectarSMTContratacion();
-    const [lastIdResult] = await connection.query(
-      "SELECT MAX(id_contratacion) AS max_id FROM contratacion"
-    );
+    const [lastIdResult] = await connection.query("SELECT MAX(id_contratacion) AS max_id FROM contratacion");
     let maxId = lastIdResult[0].max_id;
     // Query para insertar una nueva convocatoria
     const sql =
@@ -804,11 +893,6 @@ const agregarAnexo = async (req, res) => {
     console.log(values);
     // Ejecutar la consulta SQL para insertar la nueva convocatoria
     await connection.execute(sql, values);
-    // const ftpClient = await conectarFTPLICITACIONES();
-    // const remoteFilePath = `/var/www/vhosts/licitaciones.smt.gob.ar/PDF-Convocatorias/${nombre_anexo}`;
-    // const localFilePath = path.join("./pdf", nombre_anexo);
-    // Subir la imagen al servidor FTP
-    // await ftpClient.uploadFrom(localFilePath, remoteFilePath);
 
     // Define las rutas de origen y destino
     const archivoOrigen = path.join(__dirname, "..", "pdf", nombre_anexo);
@@ -835,20 +919,17 @@ const agregarAnexo = async (req, res) => {
         console.log("Archivo movido exitosamente");
       }
     });
-
-    // Eliminar la imagen local después de subirla
-    // fs.unlinkSync(localFilePath);
-    // await ftpClient.close();
-    res.status(201).json({ message: "Anexo agregado con éxito" });
+    res.status(201).json({ message: "Anexo agregado con éxito"});
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
-    connection.end();
+    connection?.end()
   }
 };
 
 const editarAnexo = async (req, res) => {
   let connection;
+  connection = await conectarSMTContratacion();
   try {
     const { id, oldName, num_instrumento, expte } = req.query;
     const archivo = req.file;
@@ -890,7 +971,7 @@ const editarAnexo = async (req, res) => {
       "UPDATE contratacion SET `nombre_anexo`= ? WHERE `id_contratacion`= ?";
     const values = [nombre_anexo, id];
     // Verificar si la contratacion ya existe con otra ID
-    connection = await conectarSMTContratacion();
+    
     await connection.execute(sql, values);
 
     res.status(201).json({ message: "Anexo editado con éxito" });
@@ -906,7 +987,7 @@ const borrarContratacion = async (req, res) => {
   const sql = "UPDATE contratacion set habilita = 0 WHERE id_contratacion = ?";
   const values = [id];
   let connection;
-
+  
   try {
     connection = await conectarSMTContratacion();
     const [result] = await connection.execute(sql, values);
@@ -924,6 +1005,8 @@ const borrarContratacion = async (req, res) => {
 };
 
 const editarContratacion = async (req, res) => {
+  let connection;
+  connection = await conectarSMTContratacion();
   try {
     const {
       id,
@@ -1017,7 +1100,6 @@ const editarContratacion = async (req, res) => {
     ];
 
     // Verificar si la contratacion ya existe con otra ID
-    const connection = await conectarSMTContratacion();
     const [contratacion] = await connection.execute(
       "SELECT * FROM contratacion WHERE (nombre_contratacion = ? AND id_tcontratacion = ? AND num_instrumento = ? AND valor_pliego = ? AND expte = ? AND habilita = ?) AND id_contratacion != ?",
       [
@@ -1047,8 +1129,8 @@ const editarContratacion = async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
-  } finally {
-    connection.end();
+  } finally{
+    connection?.end();
   }
 };
 //-----------CONTRATACIONES--------------
@@ -1535,9 +1617,9 @@ const deshabilitarPatrimonio = async (req, res) => {
   const sql = "UPDATE patrimonio set habilita = 0 WHERE id_patrimonio = ?";
   const values = [id_patrimonio];
   let connection;
+  connection = await conectarSMTPatrimonio();
   try {
-    connection = await conectarSMTPatrimonio();
-    const [result] = await connection.execute(sql, values);
+    const [result] = await connection.execute(sql, values); 
     if (result.affectedRows > 0) {
       res.status(200).json({ message: "patrimonio deshabilitado con éxito" });
     } else {
@@ -1552,52 +1634,5 @@ const deshabilitarPatrimonio = async (req, res) => {
 };
 //-----------PATRIMOINIO MUNICIPAL--------------
 
-module.exports = {
-  obtenerImagenes,
-  agregarOpcion,
-  borrarOpcion,
-  agregarProceso,
-  listarTipoContratacion,
-  listarTipoInstrumento,
-  agregarContratacion,
-  agregarAnexo,
-  listarContratacionBack,
-  borrarContratacion,
-  editarContratacion,
-  listarContratacion,
-  editarAnexo,
-  listarContratacionPorId,
-  agregarPatrimonio,
-  agregarCategoriaPatrimonio,
-  agregarEstadoPatrimonio,
-  agregarAutorPatrimonio,
-  agregarMaterialPatrimonio,
-  agregarUbicacionPatrimonio,
-  agregarTipologiaPatrimonio,
-  listarPatrimonioBack,
-  listarAutorPatrimonioBack,
-  listarTipologiaPatrimonioBack,
-  listarCategoriaPatrimonioBack,
-  listarMaterialPatrimonioBack,
-  listarEstadoPatrimonioBack,
-  listarUbicacionPatrimonioBack,
-  deshabilitarPatrimonio,
-  editarPatrimonio,
-  listarGenero,
-  editarGenero,
-  agregarGenero,
-  agregarTipoDeUsuario,
-  listarTiposDeUsuario,
-  editarTipoDeUsuario,
-  agregarTipoDoc,
-  editarTipoDoc,
-  listarTipoDoc,
-  agregarReparticion,
-  editarReparticion,
-  listarReparticion,
-  listarProcesos,
-  actualizarPermisosTUsuario,
-  listarPermisosPorTUsuarios,
-  actualizarPermisosPorTUsuario,
-  listarEmpleados,
-};
+
+module.exports={ obtenerImagenes, agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacionBack, borrarContratacion, editarContratacion, listarContratacion, editarAnexo, listarContratacionPorId, agregarPatrimonio, agregarCategoriaPatrimonio, agregarEstadoPatrimonio, agregarAutorPatrimonio, agregarMaterialPatrimonio, agregarUbicacionPatrimonio, agregarTipologiaPatrimonio, listarPatrimonioBack, listarAutorPatrimonioBack, listarTipologiaPatrimonioBack, listarCategoriaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarUbicacionPatrimonioBack, deshabilitarPatrimonio, editarPatrimonio, listarGenero, editarGenero, agregarGenero, agregarTipoDeUsuario, listarTiposDeUsuario, editarTipoDeUsuario, agregarTipoDoc, editarTipoDoc, listarTipoDoc, agregarReparticion, editarReparticion, listarReparticion, listarProcesos, actualizarPermisosTUsuario, listarPermisosPorTUsuarios, actualizarPermisosPorTUsuario, listarEmpleados, cambiarTipoDeUsuario, actualizarPermisosEspecificos, listarProcesosSinId, existeEnPermisosPersona}
