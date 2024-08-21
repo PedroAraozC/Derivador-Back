@@ -22,9 +22,9 @@ const obtenerCategorias = async (req, res) => {
     console.log("Conectado a MySQL");
 
     const [results, fields] = await connection.execute(
-      ` SELECT categoria_reclamo.id_categoria,categoria_reclamo.nombre_categoria FROM categoria_reclamo WHERE categoria_reclamo.habilita = 1 `
+    ` SELECT categoria_reclamo.id_categoria,categoria_reclamo.nombre_categoria FROM categoria_reclamo WHERE categoria_reclamo.habilita = 1 `
     );
-    // console.log(fields);
+    // console.log(fields); 
     // Enviar la respuesta
     res.status(200).json({ results });
 
@@ -41,6 +41,28 @@ const obtenerCategorias = async (req, res) => {
     }
   }
 };
+
+const funcionPrueba = async (req, res) => {
+  
+  try {
+    const telefono = req.query.telefono;
+    const cuil = req.query.cuil;  
+    const connection = await conectarBDEstadisticasMySql();
+ console.log(cuil, "cuil");
+      const [results, fields] = await connection.execute (
+      ` SELECT * FROM persona WHERE documento_persona = ? AND telefono_persona = ?` , [cuil, telefono]  
+      )
+res.status(200).json({results})
+   
+    console.log(results, "results");
+    await connection.end();
+    console.log("conexión cerrada");
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Error de servidor" });
+    
+  }
+}
 
 const obtenerTiposDeReclamoPorCategoria = async (req, res) => {
   const connection = await conectarMySql();
