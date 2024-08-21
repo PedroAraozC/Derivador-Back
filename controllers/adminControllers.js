@@ -9,7 +9,7 @@ const PermisoTUsuario = require("../models/Derivador/PermisoTUsuario");
 const fs = require("fs");
 const path = require("path");
 const { conectarFTPCiudadano } = require("../config/winscpCiudadano");
-const { conectarSFTPCondor } = require("../config/winscpCondor");
+const { conectarSF TPCondor } = require("../config/winscpCondor");
 
 const agregarOpcion = async (req, res) => {
   let connection;
@@ -1636,7 +1636,7 @@ const deshabilitarPatrimonio = async (req, res) => {
   
   try {
     const { id_patrimonio } = req.body;
-    console.log(req.body.id_patrimonio, "hola");
+    // console.log(req.body.id_patrimonio, "hola");
     if (id_patrimonio === undefined || req.body == "") {
       return res
         .status(400)
@@ -1654,11 +1654,12 @@ const deshabilitarPatrimonio = async (req, res) => {
     }
   } catch (error) {
     console.error("Error al eliminar el patrimonio:", error);
-    // res.status(500).json({ message: error.message || "Algo salió mal :(" });
-    res.status(500).json({
-      message: `Error interno del servidor, ${req.body}`,
-      details: error.message,
-    });
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    // res.status(500).json({
+    //   // message: `Error interno del servidor, ${req.body}`,
+    //   message: `Error interno del servidor,AAAAAAAAAAH`,
+    //   details: error.message,
+    // });
   } finally {
     connection.end();
   }
