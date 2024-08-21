@@ -1145,7 +1145,7 @@ const agregarMovimiento = async (req, res) => {
 const agregarMovimientoDefinitivaPreventiva = async (req, res) => {
   let transaction;
   try {
-    const { movimiento, detMovimiento,expediente, presupuesto } = req.body;
+    const { movimiento, detMovimiento,expediente, presupuesto , proveedor} = req.body;
 
     transaction = await sequelize.transaction();
 
@@ -1157,6 +1157,7 @@ const agregarMovimientoDefinitivaPreventiva = async (req, res) => {
       presupuesto_id: presupuesto,
       tipoinstrumento_id: expediente.tipoDeInstrumento,
       instrumento_nro: expediente.numeroInstrumento,
+      proveedor_id: proveedor.id
     };
 
     const nuevoMovimiento = await Movimiento.create(movimientoObj, {
@@ -1184,6 +1185,105 @@ const agregarMovimientoDefinitivaPreventiva = async (req, res) => {
   }
 };
 
+const agregarMovimientoPorTransferenciaDePartidas = async (req, res) => {
+  let transaction;
+  try {
+    const { movimiento, detMovimiento,expediente, presupuesto } = req.body;
+
+    transaction = await sequelize.transaction();
+
+    let expedienteObj = {
+      expediente_anio:expediente.anio,
+      expediente_fecha:expediente.fecha,
+      expediente_asunto:expediente.asunto,
+      expediente_causante:expediente.causante,
+      expediente_numero: expediente.numero,
+      expediente_detalle: expediente.detalle,
+      item_id:expediente.itemCausante
+    }
+    const nuevoExpediente = await Expediente.create(expedienteObj,{
+      transaction
+    });
+
+    const movimientoObj = {
+      movimiento_fecha: movimiento.fecha,
+      expediente_id: nuevoExpediente.expediente_id,
+      tipomovimiento_id: movimiento.tipomovimiento_id,
+      tipoinstrumento_id: expediente.tipoDeInstrumento,
+      instrumento_nro: expediente.numeroInstrumento,
+      presupuesto_id: presupuesto
+    };
+
+    const nuevoMovimiento = await Movimiento.create(movimientoObj, {
+      transaction,
+    });
+
+    // const movimientoId = result.insertId;
+    const movimientoId = nuevoMovimiento.movimiento_id;
+
+    for (const detalle of detMovimiento) {
+      await DetMovimiento.create(
+        {
+          movimiento_id: movimientoId,
+          detpresupuesto_id: detalle.detPresupuesto_id,
+          detpresupuesto_id2: detalle.detPresupuesto_id_destino,
+          detmovimiento_importe: detalle.importe,
+        },
+        { transaction }
+      );
+    }
+    await transaction.commit();
+
+    res.status(200).json({ message: "Movimiento creado con éxito" });
+  } catch (error) {
+ 
+    if(error.name == "SequelizeUniqueConstraintError"){
+      res.status(500).json({ message: "El número de expediente ingresado ya existe"});
+    }else{
+
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    }
+  }
+};
+
+const modificarMovimientoParaTransferenciaEntrePartidas = async (req, res) => {
+  const {  movimiento, detMovimiento } = req.body;
+
+  let connection;
+  try {
+     connection = await conectar_BD_GAF_MySql();
+    await connection.beginTransaction();
+      // Paso 1: Eliminar los detalles de movimiento existentes para el movimiento
+      await connection.query('DELETE FROM detmovimiento WHERE detmovimiento.movimiento_id = ?', [movimiento.id]);
+    console.log(detMovimiento);
+    console.log(movimiento);
+    
+    
+      // Paso 2: Insertar los nuevos detalles de movimiento
+      const insertPromises = detMovimiento.map(detalle => {
+          return connection.query('INSERT INTO detmovimiento (movimiento_id, detpresupuesto_id, detmovimiento_importe, detpresupuesto_id2) VALUES (?, ?, ?, ?)', 
+          [movimiento.id,detalle.detPresupuesto_id,detalle.importe, detalle.detPresupuesto_id_destino]);
+      });
+
+  
+      await connection.query("UPDATE movimiento SET tipoInstrumento_id = ? , instrumento_nro = ? WHERE movimiento_id = ?",[movimiento.tipoinstrumento_id, movimiento.instrumento_nro, movimiento.id])
+
+      await Promise.all(insertPromises);
+
+      await connection.commit();
+      res.status(200).json({ message: 'Movimiento actualizado correctamente' });
+  } catch (error) {
+    console.log(error);
+      await connection.rollback();
+      res.status(500).json({ message: 'Error al actualizar los detalles de movimiento', error });
+  } finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
 const obtenerPresupuestosParaMovimientoPresupuestario = async (req, res) => {
   let connection;
   try {
@@ -1206,7 +1306,7 @@ const obtenerPresupuestosParaMovimientoPresupuestario = async (req, res) => {
 
 
 const modificarMovimiento = async (req, res) => {
-  const {  movimiento, detMovimiento } = req.body;
+  const {  movimiento, detMovimiento, proveedor } = req.body;
 
   let connection;
   try {
@@ -1220,6 +1320,9 @@ const modificarMovimiento = async (req, res) => {
           return connection.query('INSERT INTO detmovimiento (movimiento_id, detpresupuesto_id, detmovimiento_importe) VALUES (?, ?, ?)', 
           [movimiento.id,detalle.detPresupuesto_id,detalle.importe]);
       });
+
+  
+      await connection.query("UPDATE movimiento SET proveedor_id = ? WHERE movimiento_id = ?",[proveedor.id, movimiento.id])
 
       await Promise.all(insertPromises);
 
@@ -1257,9 +1360,10 @@ const buscarExpediente = async (req, res) => {
 
     // Primera consulta: Obtener los detalles del expediente
     const query1 = `
-    SELECT e.*, m.presupuesto_id,m.movimiento_id,m.movimiento_fecha,m.tipomovimiento_id,m.movimiento_id2,m.tipoinstrumento_id,m.instrumento_nro, d.detmovimiento_id,d.detpresupuesto_id,d.detmovimiento_importe, dp.partida_id,dp.presupuesto_anteproyecto,dp.presupuesto_aprobado,dp.presupuesto_credito,dp.presupuesto_ampliaciones,dp.presupuesto_disminuciones, i.item_det,i.item_codigo, i.anexo_id, i.finalidad_id, i.funcion_id, i.item_fechainicio,i.item_fechafin,i.organismo_id
+    SELECT e.*, m.presupuesto_id,m.movimiento_id,m.movimiento_fecha,m.tipomovimiento_id,m.movimiento_id2,m.tipoinstrumento_id,m.instrumento_nro, prov.*, d.detmovimiento_id,d.detpresupuesto_id,d.detmovimiento_importe, dp.partida_id,dp.presupuesto_anteproyecto,dp.presupuesto_aprobado,dp.presupuesto_credito,dp.presupuesto_ampliaciones,dp.presupuesto_disminuciones, i.item_det,i.item_codigo, i.anexo_id, i.finalidad_id, i.funcion_id, i.item_fechainicio,i.item_fechafin,i.organismo_id
     FROM expediente AS e
     LEFT JOIN movimiento AS m ON e.expediente_id = m.expediente_id
+    LEFT JOIN proveedores AS prov ON m.proveedor_id = prov.proveedor_id
     LEFT JOIN detmovimiento AS d ON m.movimiento_id = d.movimiento_id
     LEFT JOIN detpresupuesto AS dp ON d.detpresupuesto_id = dp.detpresupuesto_id
     LEFT JOIN item AS i ON dp.item_id = i.item_id
@@ -1272,7 +1376,7 @@ const buscarExpediente = async (req, res) => {
 console.log(result1);
     // Obtener los `movimiento_id` para la segunda consulta
     const movimientoIds = result1.map(row => row.movimiento_id);
-    // console.log(movimientoIds);
+    console.log(movimientoIds);
 
     if (movimientoIds.length > 0) {
       // Segunda consulta: Obtener los `movimiento_id` a excluir
@@ -1281,6 +1385,7 @@ console.log(result1);
         FROM movimiento AS definitiva 
         WHERE definitiva.movimiento_id2 IN (${movimientoIds.join(', ')})
     `;
+    console.log(query2);
       const [result2] = await connection.execute(query2);
 
       // Responder al cliente con los resultados de ambas consultas
@@ -1296,7 +1401,7 @@ console.log(result1);
       // Enviar la respuesta al cliente
       console.log(response);
       if (response.primeraConsulta.length > 0 && response.segundaConsulta.length > 0 && tipomovimiento_id == 5) {
-        throw new Error("Ya tiene preventiva")
+        throw new Error("Ya tiene compromiso")
       } else if(response.primeraConsulta.length > 0 && response.segundaConsulta.length > 0 && tipomovimiento_id == 4){
         throw new Error("Ya tiene reserva")
       }else if (response.primeraConsulta.length > 0 && response.segundaConsulta.length == 0) {
@@ -1329,6 +1434,32 @@ console.log(result1);
   }
 };
 
+const obtenerProveedor = async (req,res) => {
+  let connection;
+  try {
+    const cuit = req.query.cuit;
+    connection = await conectar_BD_GAF_MySql();
+    let sqlQuery = `SELECT *  FROM proveedores WHERE proveedores.proveedor_cuit = ?`;
+    const [proveedores] = await connection.execute(sqlQuery,[cuit]);
+
+    if (proveedores.length === 0) {
+      return res.status(404).json({ message: 'Proveedor no encontrado' });
+  }
+
+  res.status(200).json(proveedores[0]);
+
+  } catch (error) {
+
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+}
+
 
 const buscarExpedienteParaModificarDefinitiva = async (req, res) => {
   let connection;
@@ -1339,14 +1470,84 @@ const buscarExpedienteParaModificarDefinitiva = async (req, res) => {
     const anio = req.query.anio;
 
 
-    const query = `SELECT e.expediente_id,e.item_id,e.expediente_numero,e.expediente_anio,e.expediente_causante,e.expediente_asunto,e.expediente_fecha,e.expediente_detalle , m.presupuesto_id,m.movimiento_id,m.movimiento_fecha,m.tipomovimiento_id,m.movimiento_id2,m.tipoinstrumento_id,m.instrumento_nro,
-ti.tipoinstrumento_det, d.detmovimiento_id,d.detpresupuesto_id,d.detmovimiento_importe,dp.partida_id,dp.presupuesto_anteproyecto,dp.presupuesto_aprobado,dp.presupuesto_credito,dp.presupuesto_ampliaciones,dp.presupuesto_disminuciones,
+    const query = `SELECT e.expediente_id,e.item_id,e.expediente_numero,e.expediente_anio,e.expediente_causante,e.expediente_asunto,e.expediente_fecha,e.expediente_detalle , m.presupuesto_id,m.movimiento_id,m.movimiento_fecha,m.tipomovimiento_id,m.movimiento_id2,m.tipoinstrumento_id,m.instrumento_nro,prov.*,
+ti.tipoinstrumento_det, d.detmovimiento_id,d.detpresupuesto_id,d.detpresupuesto_id2,d.detmovimiento_importe,dp.partida_id,dp.presupuesto_anteproyecto,dp.presupuesto_aprobado,dp.presupuesto_credito,dp.presupuesto_ampliaciones,dp.presupuesto_disminuciones,
 i.item_det,i.item_codigo, i.anexo_id, i.finalidad_id, i.funcion_id, i.item_fechainicio,i.item_fechafin,i.organismo_id
-FROM expediente AS e LEFT JOIN movimiento AS m ON e.expediente_id = m.expediente_id 
-LEFT JOIN tipoinstrumento AS ti ON m.tipoinstrumento_id = ti.tipoinstrumento_id LEFT JOIN detmovimiento AS d ON m.movimiento_id = d.movimiento_id 
-LEFT JOIN detpresupuesto AS dp ON d.detpresupuesto_id = dp.detpresupuesto_id 
-LEFT JOIN item AS i ON dp.item_id = i.item_id LEFT JOIN partidas AS pda ON dp.partida_id=pda.partida_id  WHERE e.expediente_numero = ? AND m.tipomovimiento_id = ? AND e.expediente_anio = ?
+FROM expediente AS e 
+LEFT JOIN movimiento AS m ON e.expediente_id = m.expediente_id 
+LEFT JOIN proveedores AS prov ON m.proveedor_id = prov.proveedor_id
+LEFT JOIN tipoinstrumento AS ti ON m.tipoinstrumento_id = ti.tipoinstrumento_id 
+LEFT JOIN detmovimiento AS d ON m.movimiento_id = d.movimiento_id 
+LEFT JOIN detpresupuesto AS dp ON d.detpresupuesto_id = dp.detpresupuesto_id
+LEFT JOIN item AS i ON dp.item_id = i.item_id 
+LEFT JOIN partidas AS pda ON dp.partida_id=pda.partida_id  
+WHERE e.expediente_numero = ? AND m.tipomovimiento_id = ? AND e.expediente_anio = ?
     `;
+
+
+    const [result] = await connection.execute(query, [numero, tipomovimiento_id, anio]);
+
+    console.log(result);
+
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+}
+
+const buscarExpedienteParaModificarPorTransferenciaEntrePartidas = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql();
+    const numero = req.query.numero;
+    const tipomovimiento_id = req.query.tipomovimiento_id;
+    const anio = req.query.anio;
+
+// FALTA TRAER EL ITEM_ID DEL EXPEDIENTE
+// DISTINGUIR ITEM_ID DE PARTIDA ORIGEN Y DESTINO
+
+    const query = `SELECT 
+    e.expediente_id, 
+    e.item_id, 
+    e.expediente_numero, 
+    e.expediente_anio, 
+    e.expediente_causante, 
+    e.expediente_asunto, 
+    e.expediente_fecha, 
+    e.expediente_detalle, 
+    m.presupuesto_id, 
+    m.movimiento_id, 
+    m.movimiento_fecha, 
+    m.tipomovimiento_id, 
+    m.movimiento_id2, 
+    m.tipoinstrumento_id, 
+    m.instrumento_nro, 
+    prov.*, 
+    ti.tipoinstrumento_det, 
+    d.detmovimiento_id,
+    d.detmovimiento_importe, 
+    d.detpresupuesto_id,d.detpresupuesto_id2,
+    dp1.partida_id AS partida_id,
+    dp1.item_id AS item_id_origen,
+    dp2.item_id AS item_id_destino, 
+    dp2.partida_id AS partida_id_destino 
+FROM expediente AS e LEFT JOIN movimiento AS m ON e.expediente_id = m.expediente_id 
+LEFT JOIN proveedores AS prov ON m.proveedor_id = prov.proveedor_id
+LEFT JOIN tipoinstrumento AS ti ON m.tipoinstrumento_id = ti.tipoinstrumento_id 
+LEFT JOIN detmovimiento AS d ON m.movimiento_id = d.movimiento_id 
+LEFT JOIN detpresupuesto AS dp1 ON d.detpresupuesto_id = dp1.detpresupuesto_id
+LEFT JOIN detpresupuesto AS dp2 ON d.detpresupuesto_id2 = dp2.detpresupuesto_id
+WHERE e.expediente_numero = ? 
+AND m.tipomovimiento_id = ? 
+AND e.expediente_anio = ?
+`;
+
+
     const [result] = await connection.execute(query, [numero, tipomovimiento_id, anio]);
 
     console.log(result);
@@ -1638,11 +1839,14 @@ const obtenerSaldoPorDetPresupuestoID = async (req,res)=>{
   let connection;
   try {
     const detPresupuestoId = req.query.detPresupuestoId;
-
+    console.log(detPresupuestoId);
+    
     connection = await conectar_BD_GAF_MySql();
     let sqlQuery = `SELECT sp_saldopartida(?)`;
     const [results, fields] = await connection.execute(sqlQuery, [detPresupuestoId]);
     // console.log(results[0]['sp_saldopartida(?)']);
+    console.log(results);
+    
     const saldo = results[0]['sp_saldopartida(?)'];
     res.status(200).send({mge:'saldo:',saldo});
 
@@ -2113,9 +2317,71 @@ const agregarRubro = async (req, res) => {
 
 
 
-module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida,
-  agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,buscarExpediente,
-  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado, modificarMovimiento,obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular,buscarExpedienteParaModificarDefinitiva, agregarMovimientoDefinitivaPreventiva, obtenerPresupuestosParaMovimientoPresupuestario,obtenerPerfilPorCuil,actualizarCreditoCompleto,actualizarPresupuestoAprobadoCompleto,listarItemsFiltrado, obtenerTiposDeInstrumentos,obtenerSaldoPorDetPresupuestoID,obtenerProveedores,editarProveedor,agregarProveedor,eliminarProveedor,obtenerRubros,agregarRubro,crearEstructuraItem,listarItemsSinPartidas}
+module.exports = {
+  listarAnexos,
+  agregarAnexo,
+  editarAnexo,
+  borrarAnexo,
+  listarFinalidades,
+  agregarFinalidad,
+  editarFinalidad,
+  borrarFinalidad,
+  listarFunciones,
+  agregarFuncion,
+  editarFuncion,
+  borrarFuncion,
+  listarItems,
+  agregarItem,
+  editarItem,
+  borrarItem,
+  listarPartidas,
+  listarPartidasConCodigo,
+  agregarPartida,
+  editarPartida,
+  borrarPartida,
+  agregarEjercicio,
+  editarEjercicio,
+  borrarEjercicio,
+  listarTiposDeMovimientos,
+  listarOrganismos,
+  agregarExpediente,
+  buscarExpediente,
+  obtenerDetPresupuestoPorItemYpartida,
+  agregarMovimiento,
+  listarPartidasCONCAT,
+  partidaExistente,
+  listarEjercicio,
+  listarAnteproyecto,
+  actualizarPresupuestoAnteproyecto,
+  actualizarCredito,
+  actualizarPresupuestoAprobado,
+  modificarMovimiento,
+  obtenerPartidasPorItemYMovimiento,
+  editarDetalleMovimiento,
+  acumular,
+  buscarExpedienteParaModificarDefinitiva,
+  agregarMovimientoDefinitivaPreventiva,
+  obtenerPresupuestosParaMovimientoPresupuestario,
+  obtenerPerfilPorCuil,
+  actualizarCreditoCompleto,
+  actualizarPresupuestoAprobadoCompleto,
+  listarItemsFiltrado,
+  obtenerTiposDeInstrumentos,
+  obtenerSaldoPorDetPresupuestoID,
+  obtenerProveedores,
+  editarProveedor,
+  agregarProveedor,
+  eliminarProveedor,
+  obtenerRubros,
+  agregarRubro,
+  crearEstructuraItem,
+  listarItemsSinPartidas,
+  obtenerProveedor,
+  agregarMovimientoPorTransferenciaDePartidas,
+  modificarMovimientoParaTransferenciaEntrePartidas,
+  buscarExpedienteParaModificarPorTransferenciaEntrePartidas
+};
+
 
 
 

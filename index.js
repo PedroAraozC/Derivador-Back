@@ -6,8 +6,8 @@ const connectDB = require("./config/dbUsuariosMongoDB");
 const bodyParser = require('body-parser');
 const https = require('https');
 const fs = require('fs');
-
 const app = express();
+
 app.use(cors());
 dotenv.config();
 // connectDB();
@@ -44,17 +44,18 @@ app.use("/macro",macroRoutes)
 app.use("/turnos", turnosRoutes);
 app.use("/patrimonio", patrimonioRoutes);
 
-// const options = {
-//   key: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),
-//   cert: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),
-//   // ca: fs.readFileSync('/opt/psa/var/certificates/scfqdiDyQ') // si tienes un archivo CA bundle
-// };
 
-// https.createServer(options, app).listen(PORT, () => {
-//   console.log(`server listening on port ${PORT}`);
-// });
+const options = {
+  key: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),
+  cert: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),
+  // ca: fs.readFileSync('/opt/psa/var/certificates/scfqdiDyQ') // si tienes un archivo CA bundle
+};
 
-
-app.listen(3000, () => {
-  console.log(`server listening on port 3000`);
+https.createServer(options, app).listen(PORT, () => {
+  console.log(`server listening on port ${PORT}`);
 });
+
+
+// app.listen(3000, () => {
+//   console.log(`server listening on port 3000`);
+// });

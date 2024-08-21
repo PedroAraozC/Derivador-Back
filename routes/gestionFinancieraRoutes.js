@@ -4,7 +4,71 @@ const verifyRole = require("../middlewares/verifyRole");
 
 
 
-const { listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas, agregarPartida, editarPartida, borrarPartida, agregarEjercicio, editarEjercicio, borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente, listarPartidasConCodigo, obtenerDetPresupuestoPorItemYpartida, agregarMovimiento, listarPartidasCONCAT,partidaExistente, buscarExpediente,listarAnteproyecto, actualizarPresupuestoAnteproyecto, listarEjercicio, actualizarCredito, actualizarPresupuestoAprobado, modificarMovimiento, obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular, buscarExpedienteParaModificarDefinitiva, agregarMovimientoDefinitivaPreventiva, obtenerPresupuestosParaMovimientoPresupuestario, listarItemsFiltrado, obtenerPerfilPorCuil, actualizarCreditoCompleto, actualizarPresupuestoAprobadoCompleto, obtenerTiposDeInstrumentos, obtenerSaldoPorDetPresupuestoID, obtenerProveedores, editarProveedor, agregarProveedor, eliminarProveedor, obtenerRubros, agregarRubro, crearEstructuraItem, listarItemsSinPartidas } = require("../controllers/gestionFinancieraControllers");
+const { 
+    listarAnexos, 
+    agregarAnexo, 
+    editarAnexo, 
+    borrarAnexo, 
+    listarFinalidades, 
+    agregarFinalidad, 
+    editarFinalidad, 
+    borrarFinalidad, 
+    listarFunciones, 
+    agregarFuncion, 
+    editarFuncion, 
+    borrarFuncion, 
+    listarItems, 
+    agregarItem, 
+    editarItem, 
+    borrarItem, 
+    listarPartidas, 
+    agregarPartida, 
+    editarPartida, 
+    borrarPartida, 
+    agregarEjercicio, 
+    editarEjercicio, 
+    borrarEjercicio, 
+    listarTiposDeMovimientos, 
+    listarOrganismos, 
+    agregarExpediente, 
+    listarPartidasConCodigo, 
+    obtenerDetPresupuestoPorItemYpartida, 
+    agregarMovimiento, 
+    listarPartidasCONCAT, 
+    partidaExistente, 
+    buscarExpediente, 
+    listarAnteproyecto, 
+    actualizarPresupuestoAnteproyecto, 
+    listarEjercicio, 
+    actualizarCredito, 
+    actualizarPresupuestoAprobado, 
+    modificarMovimiento, 
+    obtenerPartidasPorItemYMovimiento, 
+    editarDetalleMovimiento, 
+    acumular, 
+    buscarExpedienteParaModificarDefinitiva, 
+    agregarMovimientoDefinitivaPreventiva, 
+    obtenerPresupuestosParaMovimientoPresupuestario, 
+    listarItemsFiltrado, 
+    obtenerPerfilPorCuil, 
+    actualizarCreditoCompleto, 
+    actualizarPresupuestoAprobadoCompleto, 
+    obtenerTiposDeInstrumentos, 
+    obtenerSaldoPorDetPresupuestoID, 
+    obtenerProveedores, 
+    editarProveedor, 
+    agregarProveedor, 
+    eliminarProveedor, 
+    obtenerRubros, 
+    agregarRubro, 
+    crearEstructuraItem, 
+    listarItemsSinPartidas, 
+    obtenerProveedor, 
+    agregarMovimientoPorTransferenciaDePartidas, 
+    modificarMovimientoParaTransferenciaEntrePartidas, 
+    buscarExpedienteParaModificarPorTransferenciaEntrePartidas 
+  } = require("../controllers/gestionFinancieraControllers");
+  
 
 
 const router = Router();
@@ -52,6 +116,7 @@ router.get("/organismo/listar", listarOrganismos);
 router.post("/expediente/alta",agregarExpediente)
 router.get("/expediente/buscar", buscarExpediente)
 router.get("/expediente/buscarExpedienteComun", buscarExpedienteParaModificarDefinitiva)
+router.get("/expediente/buscarExpedienteParaTransferencias", buscarExpedienteParaModificarPorTransferenciaEntrePartidas)
 
 router.patch("/editarDetalleMovimiento", editarDetalleMovimiento)
 
@@ -60,8 +125,11 @@ router.get("/detPresupuesto/obtenerSaldoPorDetPresupuestoID", obtenerSaldoPorDet
 
 router.post("/movimiento/alta",agregarMovimiento)
 router.post("/movimiento/altaDefinitivaPreventiva",agregarMovimientoDefinitivaPreventiva)
+router.post("/movimiento/altaPorTransferenciaEntrePartidas",agregarMovimientoPorTransferenciaDePartidas)
+router.patch("/movimiento/editarPorTransferenciaEntrePartidas",modificarMovimientoParaTransferenciaEntrePartidas)
 
 router.patch("/movimiento/editar",modificarMovimiento)
+router.get("/proveedor/listar", obtenerProveedor)
 router.get("/movimiento/tipoInstrumento", obtenerTiposDeInstrumentos)
 
 router.get("/anteproyecto/listar", listarAnteproyecto);
