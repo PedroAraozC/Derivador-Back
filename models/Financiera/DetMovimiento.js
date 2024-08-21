@@ -21,6 +21,10 @@ const DetMovimiento = sequelize.define('DetMovimiento', {
   movimiento_id: {
     type: DataTypes.INTEGER,
     allowNull: false
+  },
+  detpresupuesto_id2:{
+    type: DataTypes.INTEGER,
+    allowNull: true
   }
 },
 {
