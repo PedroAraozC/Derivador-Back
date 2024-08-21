@@ -9,7 +9,7 @@ const PermisoTUsuario = require("../models/Derivador/PermisoTUsuario");
 const fs = require("fs");
 const path = require("path");
 const { conectarFTPCiudadano } = require("../config/winscpCiudadano");
-const { conectarSF TPCondor } = require("../config/winscpCondor");
+const { conectarSFTPCondor } = require("../config/winscpCondor");
 
 const agregarOpcion = async (req, res) => {
   let connection;
