@@ -561,6 +561,34 @@ const listarItems = async (req, res) => {
   }
 };
 
+const listarItemsSinPartidas = async (req, res) => {
+  let connection;
+  try {
+     connection = await conectar_BD_GAF_MySql();
+      // Verifica si hay un término de búsqueda en los parámetros de la solicitud
+      const searchTerm = req.query.searchTerm || '';
+
+      let sqlQuery =  'SELECT item_codigo,item_det,item_id FROM item WHERE (Select COUNT(partida_id) FROM detpresupuesto WHERE detpresupuesto.presupuesto_id=1 and detpresupuesto.item_id=item.item_id)=0'
+
+      // Agrega la cláusula WHERE para la búsqueda si hay un término de búsqueda
+      if (searchTerm) {
+          
+          sqlQuery += ' WHERE LOWER(item_codigo) LIKE LOWER(?) OR LOWER(item_det) LIKE LOWER(?)';
+      } 
+      const [items] = await connection.execute(sqlQuery, [`%${searchTerm}%`, `%${searchTerm}%`]);
+      // await connection.end();
+      res.status(200).json({ items });
+  } catch (error) {
+    console.log(error);
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
 const listarItemsFiltrado = async (req, res) => {
   const cuil=req.params.cuil
   let connection;
@@ -1738,12 +1766,12 @@ const crearEstructuraItem = async (req,res)=>{
 
 
     connection = await conectar_BD_GAF_MySql();
-    let sqlQuery = `CALL sp_nuevoitem(?,?,)`;
+    let sqlQuery = `CALL sp_nuevoitem(?,?)`;
     const [result] = await connection.execute(sqlQuery, [ejercicioId, itemId]);
 
    if (result)
    {
-    res.status(200).send({mge:'operacion exitosa'});
+    res.status(200).send({mge:'operacion exitosa',ok:true});
    }
 
    
@@ -2057,16 +2085,15 @@ const agregarRubro = async (req, res) => {
     connection = await conectar_BD_GAF_MySql();
 
     // Datos recibidos desde el request
-    const { nuevoRubro } = req.body;
-    console.log(nuevoRubro);
-    
+    const { rubro, codigo } = req.body;
+   
     // Asegúrate de que nuevoRubro sea un string o ajusta según el tipo de dato esperado
     const sqlInsertRubro = `
-      INSERT INTO rubroprv (rubroprv_det) VALUES (?)
+      INSERT INTO rubroprv (rubroprv_det,rubroprv_afip) VALUES (?,?)
     `;
 
     // Ejecución de la consulta con los valores a insertar
-    const [result] = await connection.execute(sqlInsertRubro, [nuevoRubro]);
+    const [result] = await connection.execute(sqlInsertRubro, [rubro.toUpperCase(),codigo]);
 
     if (result.affectedRows === 0) {
       return res.status(400).json({ message: "No se pudo agregar el rubro", ok: false });
@@ -2088,7 +2115,7 @@ const agregarRubro = async (req, res) => {
 
 module.exports={listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas,listarPartidasConCodigo, agregarPartida, editarPartida, borrarPartida,
   agregarEjercicio,editarEjercicio,borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente,buscarExpediente,
-  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado, modificarMovimiento,obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular,buscarExpedienteParaModificarDefinitiva, agregarMovimientoDefinitivaPreventiva, obtenerPresupuestosParaMovimientoPresupuestario,obtenerPerfilPorCuil,actualizarCreditoCompleto,actualizarPresupuestoAprobadoCompleto,listarItemsFiltrado, obtenerTiposDeInstrumentos,obtenerSaldoPorDetPresupuestoID,obtenerProveedores,editarProveedor,agregarProveedor,eliminarProveedor,obtenerRubros,agregarRubro,crearEstructuraItem}
+  obtenerDetPresupuestoPorItemYpartida,agregarMovimiento,listarPartidasCONCAT,partidaExistente,listarEjercicio,listarAnteproyecto,actualizarPresupuestoAnteproyecto,actualizarCredito,actualizarPresupuestoAprobado, modificarMovimiento,obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular,buscarExpedienteParaModificarDefinitiva, agregarMovimientoDefinitivaPreventiva, obtenerPresupuestosParaMovimientoPresupuestario,obtenerPerfilPorCuil,actualizarCreditoCompleto,actualizarPresupuestoAprobadoCompleto,listarItemsFiltrado, obtenerTiposDeInstrumentos,obtenerSaldoPorDetPresupuestoID,obtenerProveedores,editarProveedor,agregarProveedor,eliminarProveedor,obtenerRubros,agregarRubro,crearEstructuraItem,listarItemsSinPartidas}
 
 
 
