@@ -1238,7 +1238,7 @@ const modificarMovimientoParaTransferenciaEntrePartidas = async (req, res) => {
       });
 
   
-      // await connection.query("UPDATE movimiento SET proveedor_id = ? WHERE movimiento_id = ?",[proveedor.id, movimiento.id])
+      await connection.query("UPDATE movimiento SET tipoInstrumento_id = ? , instrumento_nro = ? WHERE movimiento_id = ?",[movimiento.tipoinstrumento_id, movimiento.instrumento_nro, movimiento.id])
 
       await Promise.all(insertPromises);
 
