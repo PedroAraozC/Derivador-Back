@@ -1464,24 +1464,47 @@ const editarPatrimonio = async (req, res) => {
       id,
       oldName,
     } = req.body;
-    // Verificar si hay un archivo adjunto
+
     const archivo = req.file;
-    let nombre_archivo = null;
-    nombre_archivo = `${nombre_patrimonio.replace(/\s+/g, "").trim()}.jpg`;
+    const nombre_archivo = `${nombre_patrimonio.replace(/\s+/g, "").trim()}.jpg`;
+
     if (archivo) {
-      let nombreViejo = `${oldName.replace(/\s+/g, "").trim()}.jpg`;
-      let archivoViejo = nombre_archivo.replace(/\//g, "-");
-      const ftpClient = await conectarFTPCiudadano();
+      const nombreViejo = `${oldName.replace(/\s+/g, "").trim()}.jpg`;
+      const archivoViejo = nombre_archivo.replace(/\//g, "-");
+      const sftpClient = await conectarSFTPCondor();
+      const localFilePath = path.join("./pdf", archivoViejo);
+      const remoteFilePath = `/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/${archivoViejo}`;
 
       try {
-        const localFilePath = path.join("./pdf", archivoViejo);
-        const remoteFilePath = `/Fotos-Patrimonio/${archivoViejo}`;
+        // Verificar si el archivo local existe
+        if (!fs.existsSync(localFilePath)) {
+          throw new Error(`El archivo local no existe: ${localFilePath}`);
+        }
 
-        await ftpClient.remove(`/Fotos-Patrimonio/${nombreViejo}`);
-        await ftpClient.uploadFrom(localFilePath, remoteFilePath);
+        // Intentar eliminar el archivo remoto si existe
+        try {
+          await sftpClient.delete(remoteFilePath);
+          console.log(`Archivo remoto ${remoteFilePath} eliminado exitosamente`);
+        } catch (deleteError) {
+          if (deleteError.code !== 550) { // 550 indica que el archivo no existe
+            throw new Error(`Error al eliminar el archivo remoto: ${deleteError.message}`);
+          }
+          console.log(`Archivo remoto ${remoteFilePath} no existe, procediendo a la subida del nuevo archivo`);
+        }
+
+        // Subir el nuevo archivo
+        await sftpClient.put(localFilePath, remoteFilePath);
+        console.log(`Archivo ${archivoViejo} subido exitosamente al servidor`);
+
+        // Eliminar archivo local después de subir
         fs.unlinkSync(localFilePath);
+        console.log(`Archivo local ${localFilePath} eliminado exitosamente`);
+
+      } catch (error) {
+        console.error('Error durante la operación SFTP:', error);
+        return res.status(500).json({ message: 'Error durante la operación de archivo' });
       } finally {
-        await ftpClient.close();
+        await sftpClient.end();
       }
     }
     // Query para actualizar la patrimonio
