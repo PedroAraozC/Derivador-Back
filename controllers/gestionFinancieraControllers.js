@@ -2050,6 +2050,8 @@ const editarProveedor = async (req, res) => {
       proveedor_iva,
       proveedor_nroreso,
       proveedor_anioreso,
+      proveedor_telefono,
+      proveedor_contacto,
       idRubro,
     } = req.body.proveedorEditado;
 
@@ -2062,7 +2064,7 @@ const editarProveedor = async (req, res) => {
     // Actualizar el proveedor
     const sqlUpdateProveedor = `
       UPDATE proveedores
-      SET proveedor_razsocial = ?, proveedor_cuit = ?, proveedor_domicilio = ?, proveedor_email = ?, proveedor_iva = ?, proveedor_nroreso = ?, proveedor_anioreso = ?
+      SET proveedor_razsocial = ?, proveedor_cuit = ?, proveedor_domicilio = ?, proveedor_email = ?, proveedor_iva = ?, proveedor_nroreso = ?, proveedor_anioreso = ?,proveedor_telefono=?,proveedor_contacto=?
       WHERE proveedor_id = ?
     `;
 
@@ -2074,6 +2076,8 @@ const editarProveedor = async (req, res) => {
       proveedor_iva,
       proveedor_nroreso,
       proveedor_anioreso,
+      proveedor_telefono,
+      proveedor_contacto,
       proveedor_id,
     ]);
 
@@ -2142,7 +2146,7 @@ const agregarProveedor = async (req, res) => {
     connection = await conectar_BD_GAF_MySql();
 
     // Datos recibidos desde el request
-    const { razonSocial, cuit, domicilio, email, iva, nroreso, anioreso } = req.body.nuevoProveedor;
+    const { razonSocial, cuit, domicilio, email, iva, nroreso, anioreso,telefono,contacto } = req.body.nuevoProveedor;
     const obj = req.body.selectedRubro;
     const ids = Object.values(obj);
 
@@ -2151,8 +2155,8 @@ const agregarProveedor = async (req, res) => {
 
     // Consulta para insertar un nuevo proveedor
     const sqlInsertProveedor = `
-      INSERT INTO proveedores (proveedor_razsocial, proveedor_cuit, proveedor_domicilio, proveedor_email, proveedor_iva, proveedor_nroreso, proveedor_anioreso)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO proveedores (proveedor_razsocial, proveedor_cuit, proveedor_domicilio, proveedor_email, proveedor_iva, proveedor_nroreso, proveedor_anioreso,proveedor_telefono,proveedor_contacto)
+      VALUES (?, ?, ?, ?, ?, ?, ?,?,?)
     `;
 
     // Ejecución de la consulta con los valores a insertar
@@ -2164,6 +2168,8 @@ const agregarProveedor = async (req, res) => {
       iva,
       nroreso,
       anioreso,
+      telefono,
+      contacto
     ]);
 
     // Verificar si alguna fila fue afectada (es decir, si el proveedor fue insertado)
