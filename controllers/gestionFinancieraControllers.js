@@ -2296,14 +2296,23 @@ const agregarRubro = async (req, res) => {
 
     // Datos recibidos desde el request
     const { rubro, codigo } = req.body;
-   
-    // Asegúrate de que nuevoRubro sea un string o ajusta según el tipo de dato esperado
+
+    // Verificar si ya existe un rubro con el mismo código
+    const sqlCheckCodigo = `SELECT COUNT(*) as count FROM rubroprv WHERE rubroprv_afip = ?`;
+    const [rows] = await connection.execute(sqlCheckCodigo, [codigo]);
+
+    // Si el código ya existe, retornamos un error
+    if (rows[0].count > 0) {
+      return res.status(200).json({ message: "El código ya existe, no se puede agregar el rubro", ok: false });
+    }
+
+    // Si el código no existe, procedemos con la inserción
     const sqlInsertRubro = `
-      INSERT INTO rubroprv (rubroprv_det,rubroprv_afip) VALUES (?,?)
+      INSERT INTO rubroprv (rubroprv_det, rubroprv_afip) VALUES (?, ?)
     `;
 
     // Ejecución de la consulta con los valores a insertar
-    const [result] = await connection.execute(sqlInsertRubro, [rubro.toUpperCase(),codigo]);
+    const [result] = await connection.execute(sqlInsertRubro, [rubro.toUpperCase(), codigo]);
 
     if (result.affectedRows === 0) {
       return res.status(400).json({ message: "No se pudo agregar el rubro", ok: false });
@@ -2320,6 +2329,7 @@ const agregarRubro = async (req, res) => {
     }
   }
 };
+
 
 
 
