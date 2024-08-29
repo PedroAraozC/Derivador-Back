@@ -66,7 +66,11 @@ const {
     obtenerProveedor, 
     agregarMovimientoPorTransferenciaDePartidas, 
     modificarMovimientoParaTransferenciaEntrePartidas, 
-    buscarExpedienteParaModificarPorTransferenciaEntrePartidas 
+    buscarExpedienteParaModificarPorTransferenciaEntrePartidas, 
+    eliminarNomenclador,
+    agregarNomenclador,
+    editarNomenclador,
+    obtenerNomencladores
   } = require("../controllers/gestionFinancieraControllers");
   
 
@@ -159,5 +163,11 @@ router.delete("/proveedores/eliminar/:idEliminar", eliminarProveedor);
 
 router.get("/rubros/listar", obtenerRubros);
 router.post("/rubros/agregar", agregarRubro);
+
+router.get("/nomencladores/listar", obtenerNomencladores);
+router.put("/nomencladores/editar", editarNomenclador);
+router.post("/nomencladores/agregar", agregarNomenclador);
+router.delete("/nomencladores/eliminar/:idEliminar", eliminarNomenclador);
+
 
 module.exports = router;
