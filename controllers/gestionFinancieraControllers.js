@@ -2330,8 +2330,158 @@ const agregarRubro = async (req, res) => {
   }
 };
 
+/////////////////////// NOMENCLADORES ////////////////////////////////
+
+const obtenerNomencladores = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql(); // Conexión a la base de datos
+
+    // Consulta para obtener los nomencladores y realizar el JOIN con la tabla partidas
+    const sqlNomencladores = `
+      SELECT n.nomenclador_id, n.nomenclador_det, n.partida_id, 
+             p.partida_codigo, p.partida_det
+      FROM nomenclador n
+      LEFT JOIN partidas p ON n.partida_id = p.partida_id
+    `;
+
+    // Ejecutar la consulta
+    const [nomencladores] = await connection.execute(sqlNomencladores);
+
+    // Enviar los resultados como respuesta
+    res.status(200).json({ nomencladores });
+  } catch (error) {
+    // Manejo de errores detallado
+    console.error('Error al obtener los nomencladores:', error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
+const agregarNomenclador = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql(); // Asegúrate de que esta función se conecte correctamente a tu base de datos
+
+    // Datos recibidos desde el request
+    const { nomenclador_det, partida_id } = req.body;
+console.log(req.body);
+    // Verificar que los campos requeridos estén presentes
+    if (!nomenclador_det || !partida_id) {
+      return res.status(400).json({ message: "Todos los campos son requeridos", ok: false });
+    }
+
+    // Consulta para insertar un nuevo nomenclador
+    const sqlInsertNomenclador = `
+      INSERT INTO nomenclador (nomenclador_det, partida_id)
+      VALUES (?, ?)
+    `;
+
+    // Ejecutar la consulta con los valores a insertar
+    const [result] = await connection.execute(sqlInsertNomenclador, [nomenclador_det.toUpperCase(), partida_id]);
+
+    // Verificar si la inserción fue exitosa
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ message: "No se pudo agregar el nomenclador", ok: false });
+    }
+
+    res.status(201).json({ message: "Nomenclador agregado correctamente", ok: true });
+  } catch (error) {
+    // Manejo de errores detallado
+    console.error('Error al agregar el nomenclador:', error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
 
 
+const editarNomenclador = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql(); // Asegúrate de tener esta función para conectar a la base de datos
+
+    // Datos recibidos desde el request
+    const { nomenclador_id, nomenclador_det, partida_id } = req.body;
+
+    // Verificar que los campos requeridos estén presentes
+    if (!nomenclador_id || !nomenclador_det || !partida_id) {
+      return res.status(400).json({ message: "Todos los campos son requeridos", ok: false });
+    }
+
+    // Consulta para actualizar el nomenclador
+    const sqlUpdateNomenclador = `
+      UPDATE nomenclador
+      SET nomenclador_det = ?, partida_id = ?
+      WHERE nomenclador_id = ?
+    `;
+
+    // Ejecutar la consulta con los nuevos valores
+    const [result] = await connection.execute(sqlUpdateNomenclador, [nomenclador_det.toUpperCase(), partida_id, nomenclador_id]);
+
+    // Verificar si se actualizó algún registro
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Nomenclador no encontrado", ok: false });
+    }
+
+    res.status(200).json({ message: "Nomenclador actualizado correctamente", ok: true });
+  } catch (error) {
+    // Manejo de errores detallado
+    console.error('Error al actualizar el nomenclador:', error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
+const eliminarNomenclador = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql(); // Asegúrate de que esta función se conecte correctamente a tu base de datos
+
+    // Obtener el nomenclador_id desde los parámetros de la URL
+    const  nomenclador_id  = req.params.idEliminar;
+
+    // Verificar que el nomenclador_id esté presente
+    if (!nomenclador_id) {
+      return res.status(400).json({ message: "El ID del nomenclador es requerido", ok: false });
+    }
+
+    // Consulta para eliminar el nomenclador por su ID
+    const sqlEliminarNomenclador = `
+      DELETE FROM nomenclador WHERE nomenclador_id = ?
+    `;
+
+    // Ejecutar la consulta para eliminar
+    const [result] = await connection.execute(sqlEliminarNomenclador, [nomenclador_id]);
+
+    // Verificar si la eliminación fue exitosa
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Nomenclador no encontrado o no se pudo eliminar", ok: false });
+    }
+
+    res.status(200).json({ message: "Nomenclador eliminado correctamente", ok: true });
+  } catch (error) {
+    // Manejo de errores detallado
+    console.error('Error al eliminar el nomenclador:', error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
 
 module.exports = {
   listarAnexos,
@@ -2395,7 +2545,9 @@ module.exports = {
   obtenerProveedor,
   agregarMovimientoPorTransferenciaDePartidas,
   modificarMovimientoParaTransferenciaEntrePartidas,
-  buscarExpedienteParaModificarPorTransferenciaEntrePartidas
+  buscarExpedienteParaModificarPorTransferenciaEntrePartidas,
+  obtenerNomencladores,
+  agregarNomenclador,editarNomenclador,eliminarNomenclador
 };
 
 
