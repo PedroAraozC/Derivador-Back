@@ -70,7 +70,8 @@ const {
     eliminarNomenclador,
     agregarNomenclador,
     editarNomenclador,
-    obtenerNomencladores
+    obtenerNomencladores,
+    listarPartidasConCodigoGasto
   } = require("../controllers/gestionFinancieraControllers");
   
 
@@ -107,6 +108,7 @@ router.delete("/item/borrar", borrarItem)
 router.get("/partida/obtenerPartidasPorItemYMovimiento",obtenerPartidasPorItemYMovimiento)
 router.get("/partida/listar", listarPartidas);
 router.get("/partida/listarConCodigo", listarPartidasConCodigo);
+router.get("/partida/listarConCodigoGasto", listarPartidasConCodigoGasto);
 router.get("/partida/listar/concat", listarPartidasCONCAT);
 router.post("/partida/existente", partidaExistente);
 router.post("/partida/alta", agregarPartida)

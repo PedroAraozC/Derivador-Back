@@ -774,6 +774,30 @@ const listarPartidasConCodigo =async(req,res)=>{
   }
 }
 
+const listarPartidasConCodigoGasto =async(req,res)=>{
+  let connection;
+  try {
+  
+       connection = await conectar_BD_GAF_MySql();
+    
+
+      const [partidas] = await connection.execute(
+         `SELECT partida_id,CONCAT(partida_codigo, ' _ ', partida_det) AS partida FROM partidas WHERE partida_gasto = 1 ORDER BY partida_codigo`
+      );
+      console.log(partidas); 
+      // await connection.end();
+      res.status(200).json({partidas})
+  } catch (error) {
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  }finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+}
+
+
 const agregarPartida = async (req, res) => {
   let connection;
   try {
@@ -2547,7 +2571,7 @@ module.exports = {
   modificarMovimientoParaTransferenciaEntrePartidas,
   buscarExpedienteParaModificarPorTransferenciaEntrePartidas,
   obtenerNomencladores,
-  agregarNomenclador,editarNomenclador,eliminarNomenclador
+  agregarNomenclador,editarNomenclador,eliminarNomenclador,listarPartidasConCodigoGasto
 };
 
 
