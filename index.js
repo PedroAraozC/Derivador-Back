@@ -25,6 +25,7 @@ const adminRoutes = require("./routes/adminRoutes");
 const macroRoutes = require("./routes/macroRoutes")
 const turnosRoutes = require("./routes/turnosRoutes");
 const patrimonioRoutes = require("./routes/patrimonioRoutes");
+const gerenciaDatosRoutes=require("./routes/gerenciaDatosRoutes");
 
 const PORT = process.env.PORT;
 
@@ -43,6 +44,7 @@ app.use('/admin', adminRoutes)
 app.use("/macro",macroRoutes)
 app.use("/turnos", turnosRoutes);
 app.use("/patrimonio", patrimonioRoutes);
+app.use("/gerenciaDatos",gerenciaDatosRoutes);
 
 
 // const options = {
