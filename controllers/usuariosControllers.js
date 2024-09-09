@@ -56,6 +56,43 @@ const enviarEmail = (codigo, email, cuil) => {
   }
 };
 
+const enviarEmailMulta = (req, res) => {
+  try {
+    // console.log("a", req.body);
+    const { user, message, recipient, subject } = req.body;
+    const mailOptions = {
+      from: `SMT - Ciudadano Digital <no-reply-cdigital@smt.gob.ar>`,
+      to: "tmfconsultas@smt.gob.ar",
+      subject: `Consulta de Multas de Tránsito Ciudadano: ${user.nombre_persona}, ${user.apellido_persona} ${user.documento_persona}`,
+      // html: `<p><strong style="font-size: 24px;">${message}</strong></p>`,
+      html: `<p>El Ciudadano Digital: <strong>${user.nombre_persona}, ${user.apellido_persona} </strong></p>
+      <p>CUIL: <strong>${user.documento_persona}</strong></p>
+      <p>TELEFONO: <strong>${user.telefono_persona}</strong></p>
+      <p>Solicita el estado de multas de los siguentes dominios: <strong>${message}</strong></p>
+      <p>Este correo debe ser respondido al email: <strong>${user.email_persona}</strong></p>`,
+    };
+
+    transporter.sendMail(mailOptions, (errorEmail, info) => {
+      if (errorEmail) {
+        console.log("error al enviar correo");
+        return res.status(500).json({
+          mge: "Error al enviar el correo electrónico:",
+          ok: false,
+          error: errorEmail,
+        });
+      } else {
+        console.log("email enviado");
+        return res
+          .status(200)
+          .json({ mge: "Correo electrónico enviado correctamente:", ok: true });
+      }
+    });
+  } catch (error) {
+    console.log("Error al enviar email");
+    console.error("Error al enviar email de multas:", error);
+  }
+};
+
 const generarCodigo = (numero) => {
   const numeroInvertido = parseInt(
     numero.toString().split("").reverse().join("")
@@ -279,7 +316,7 @@ const obtenerOpcionesHabilitadas = async (req, res) => {
     connection = await conectarBDEstadisticasMySql();
 
     const [opciones] = await connection.execute(
-        `SELECT o.*, p.nombre_proceso, p.id_proceso 
+      `SELECT o.*, p.nombre_proceso, p.id_proceso 
         FROM opcion o
         LEFT JOIN proceso p ON o.id_opcion = p.id_opcion
         ORDER BY o.nombre_opcion, p.nombre_proceso`
@@ -353,7 +390,7 @@ const editarUsuarioCompleto = async (req, res) => {
 
     const fechaFormateada = moment(fechaStr).format("YYYY-MM-DD");
     //const hashedPassword = await bcrypt.hash(clave, 10);
-// console.log(fechaFormateada)
+    // console.log(fechaFormateada)
     // Establecer la conexión a la base de datos MySQL
     connection = await conectarBDEstadisticasMySql();
 
@@ -901,4 +938,5 @@ module.exports = {
   editarClave,
   restablecerClave,
   desactivarUsuario,
+  enviarEmailMulta,
 };
