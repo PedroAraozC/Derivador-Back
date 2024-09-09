@@ -285,12 +285,12 @@ const existeEnPermisosPersona = async (req, res) => {
   const sql = "SELECT * FROM permiso_persona WHERE id_persona = ?";
   const values = [id];
   let connection;
+  connection = await conectarBDEstadisticasMySql();
   if( id == undefined){
     res.status(500).json("No llego el id")
     return
   }
   try {
-    connection = await conectarBDEstadisticasMySql();
     const [result] = await connection.execute(sql, values);
     if (result.length > 0) {
       res.status(200).json({ message: "Existe", data: result });
@@ -520,7 +520,7 @@ const listarReparticion = async (req, res) => {
 
 // --------------------PANEL PARA TIPO DE USUARIO DERIVADOR----------------------
 
-const agregarTipoDeUsuario = async (req, res) =>{
+const agregarTipoDeUsuario = async (req, res) => {
   let connection;
   try {
     const { nombre_tusuario, observacion, habilita } = req.body;
@@ -530,20 +530,37 @@ const agregarTipoDeUsuario = async (req, res) =>{
       throw new Error("Los parámetros de la solicitud son inválidos");
     }
 
-    // Query para insertar una nuevo tipo de usuario
-    const sql = "INSERT INTO tipo_usuario (nombre_tusuario, observacion, habilita) VALUES (?, ?, ?)";
-    const values = [nombre_tusuario, observacion, habilita];
-
-    // Ejecutar la consulta SQL para insertar la nueva opción
+    // Iniciar la conexión y la transacción manualmente
     connection = await conectarBDEstadisticasMySql();
-    const [result] = await connection.execute(sql, values);
-    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+    await connection.beginTransaction(); // Comienza la transacción
 
-    res.status(201).json({ id: nuevoId, message: "Tipo de usuario creado con éxito" });
+    // Insertar el nuevo tipo de usuario
+    const sqlInsertTUsuario = "INSERT INTO tipo_usuario (nombre_tusuario, observacion, habilita) VALUES (?, ?, ?)";
+    const valuesTUsuario = [nombre_tusuario, observacion, habilita];
+    const [resultTUsuario] = await connection.execute(sqlInsertTUsuario, valuesTUsuario);
+    const nuevoIdTUsuario = resultTUsuario.insertId;
+
+    // Obtener todos los procesos existentes
+    const [procesos] = await connection.execute("SELECT id_proceso FROM proceso");
+
+    // Crear las asociaciones en la tabla de permisos
+    for (const proceso of procesos) {
+      const sqlInsertPermiso = "INSERT INTO permiso_tusuario (id_proceso, id_tusuario, ver, agregar, modificar, habilita) VALUES (?, ?, ?, ?, ?, ?)";
+      const valuesPermiso = [proceso.id_proceso, nuevoIdTUsuario, 0, 0, 0, 1];
+      await connection.execute(sqlInsertPermiso, valuesPermiso);
+    }
+
+    // Confirmar la transacción
+    await connection.commit();
+
+    res.status(201).json({ id: nuevoIdTUsuario, message: "Tipo de usuario creado con éxito y asociado a todos los procesos" });
   } catch (error) {
+    // Revertir la transacción en caso de error
+    if (connection) await connection.rollback();
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
-    connection.end()
+    // Cerrar la conexión
+    if (connection) connection.end();
   }
 }
 
