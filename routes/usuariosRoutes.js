@@ -47,7 +47,7 @@ router.post(
 // router.post("/alta", auth, verifyRole, agregarUsuario);
 router.get("/authStatus", auth, getAuthStatus);
 router.get("/listar/:id?", auth, verifyRole, obtenerUsuarios);
-router.get("/permisos/:id?", auth, obtenerPermisos);
+router.get("/permisos/:idTusuario/:idPersona", auth, obtenerPermisos);
 router.get("/opciones", auth, obtenerOpcionesHabilitadas);
 // router.put("/:id",auth,verifyRole,editarUsuario)
 router.delete(
