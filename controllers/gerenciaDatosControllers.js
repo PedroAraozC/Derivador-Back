@@ -7,9 +7,9 @@ const obtenerPerfilPorCuilGED = async (req, res) => {
     const connection = await conectar_BD_GED_MySql();
   
     try {
-        // Obtener el perfil_id correspondiente al cuil
+        // Obtener el usuario_id y perfil_id correspondiente al cuil
         const [usuarios] = await connection.execute(
-            'SELECT perfil_id FROM usuario WHERE usuario_cuil = ?',
+            'SELECT usuario_id, perfil_id FROM usuario WHERE usuario_cuil = ?',
             [cuil]
         );
   
@@ -17,26 +17,32 @@ const obtenerPerfilPorCuilGED = async (req, res) => {
             return res.status(404).json({ message: 'Usuario no encontrado' });
         }
   
-        const perfilId = usuarios[0].perfil_id;
+        const usuario = usuarios[0]; // Obtén el usuario con usuario_id y perfil_id
   
         // Obtener la fila completa del perfil correspondiente al perfil_id
         const [perfiles] = await connection.execute(
             'SELECT * FROM perfil WHERE perfil_id = ?',
-            [perfilId]
+            [usuario.perfil_id]
         );
   
         if (perfiles.length === 0) {
             return res.status(404).json({ message: 'Perfil no encontrado' });
         }
   
-        res.status(200).json(perfiles[0]);
+        // Combinar el perfil con el usuario_id en la respuesta
+        const perfilConUsuario = {
+            ...perfiles[0],  // Copia todos los campos del perfil
+            usuario_id: usuario.usuario_id  // Agrega el usuario_id
+        };
+  
+        res.status(200).json(perfilConUsuario);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: error.message || 'Algo salió mal :(' });
     } finally {
         await connection.end();
     }
-  };
+};
 
 ////////// REPARTICIONES ////////////////////////////////////////////////////////////
 
@@ -311,14 +317,39 @@ INNER JOIN reparticion ON programa.reparticion_id=reparticion.reparticion_id
       // Ejecutar la consulta con el reparticion_id proporcionado
       const [programasFiltrados] = await connection.execute(sqlProgramasFiltrados, [reparticion_id]);
   
-      if (programasFiltrados.length > 0) {
-        res.status(200).json({ programas: programasFiltrados });
-      } else {
-        res.status(204).json({ message: "No se encontraron programas para esta repartición." });
+      if (programasFiltrados.length === 0) {
+        return res.status(204).json({ message: "No se encontraron programas para esta repartición." });
       }
+  
+      // Obtener los IDs de los programas filtrados
+      const programaIds = programasFiltrados.map(programa => programa.programa_id);
+  
+      if (programaIds.length === 0) {
+        return res.status(204).json({ message: "No se encontraron indicadores para los programas seleccionados." });
+      }
+  
+      // Para usar el array en la consulta SQL, necesitamos convertirlo a una lista separada por comas
+      const placeholders = programaIds.map(() => '?').join(', ');
+  
+      // Consulta SQL para obtener los indicadores asociados a los programas seleccionados, incluyendo la unidad correspondiente
+      const sqlIndicadoresFiltrados = `
+        SELECT indicador.indicador_id, indicador.indicador_det, indicador.indicador_descripcion, indicador.unidad_id, 
+        unidad.unidad_det AS unidad_nombre
+        FROM indicador
+        JOIN r_indicador_programa ON indicador.indicador_id = r_indicador_programa.indicador_id
+        JOIN unidad ON indicador.unidad_id = unidad.unidad_id
+        WHERE r_indicador_programa.programa_id IN (${placeholders})
+      `;
+  
+      // Ejecutar la consulta para obtener los indicadores asociados a los programas
+      const [indicadoresFiltrados] = await connection.execute(sqlIndicadoresFiltrados, programaIds);
+  
+      // Devolver la respuesta con los programas e indicadores filtrados
+      res.status(200).json({ programas: programasFiltrados, indicadores: indicadoresFiltrados });
+  
     } catch (error) {
       // Manejo de errores detallado
-      console.error('Error al obtener los programas filtrados:', error);
+      console.error('Error al obtener los programas e indicadores filtrados:', error);
       res.status(500).json({ message: error.message || "Algo salió mal :(" });
     } finally {
       // Cerrar la conexión a la base de datos
@@ -722,5 +753,97 @@ SELECT * FROM unidad
   };
   
   
+  const grabarPlanilla = async (req, res) => {
+    const { planilla, valores } = req.body;  // Obtener los objetos 'planilla' y 'valores' del cuerpo del request
+    let connection;
 
-  module.exports ={obtenerReparticionesGED,agregarReparticionGED,editarReparticionGED,eliminarReparticionGED,obtenerProgramasGED,agregarProgramaGED,editarProgramaGED,eliminarProgramaGED,obtenerIndicadoresGED,agregarIndicadorGED,editarIndicadorGED,eliminarIndicadorGED,obtenerUnidadesGED,obtenerPerfilPorCuilGED,obtenerReparticionesFiltradasGED,obtenerProgramasPorReparticionGED}
+    try {
+        connection = await conectar_BD_GED_MySql();
+
+        // Convertir fechas al formato adecuado para MySQL (YYYY-MM-DD)
+        const planillaDesde = new Date(planilla.planilla_desde).toISOString().split('T')[0];
+        const planillaHasta = new Date(planilla.planilla_hasta).toISOString().split('T')[0];
+
+        // Iniciar una transacción
+        await connection.beginTransaction();
+
+        // Inserción en la tabla planilla
+        const sqlInsertPlanilla = `
+            INSERT INTO planilla (planilla_nro, planilla_desde, planilla_hasta, reparticion_id, reparticion_dependencia, programa_id, usuario_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `;
+
+        const [resultPlanilla] = await connection.execute(sqlInsertPlanilla, [
+            planilla.planilla_nro,
+            planillaDesde,  // Fecha convertida
+            planillaHasta,  // Fecha convertida
+            planilla.reparticion_id,
+            planilla.reparticion_dependencia,
+            planilla.programa_id,
+            planilla.usuario_id
+        ]);
+
+        const planillaId = resultPlanilla.insertId;  // Obtener el ID de la planilla recién insertada
+
+        if (!planillaId) {
+            await connection.rollback();  // Deshacer la transacción en caso de error
+            return res.status(400).json({ message: "No se pudo agregar la planilla", ok: false });
+        }
+
+        // Calcular la diferencia de días entre las fechas
+        const desdeFecha = new Date(planilla.planilla_desde);
+        const hastaFecha = new Date(planilla.planilla_hasta);
+        const diferenciaDias = Math.ceil((hastaFecha - desdeFecha) / (1000 * 60 * 60 * 24));  // Diferencia en días
+
+        // Inserción en la tabla detplanilla para cada objeto del array 'valores'
+        const sqlInsertDetPlanilla = `
+            INSERT INTO detplanilla (planilla_id, detplanilla_desde, detplanilla_hasta, reparticion_id, reparticion_dependencia, programa_id, usuario_id, indicador_id, unidad_id, detplanilla_valor, detplanilla_promediodiario)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+
+        for (const valor of valores) {
+            const { indicador_id, unidad_id, valor: valorIndicador } = valor;
+
+            // Calcular el promedio diario
+            const promedioDiario = valorIndicador / diferenciaDias;
+
+            // Ejecutar la inserción para cada valor
+            const [resultDetPlanilla] = await connection.execute(sqlInsertDetPlanilla, [
+                planillaId,
+                planillaDesde,  // Fecha convertida
+                planillaHasta,  // Fecha convertida
+                planilla.reparticion_id,
+                planilla.reparticion_dependencia,
+                planilla.programa_id,
+                planilla.usuario_id,
+                indicador_id,
+                unidad_id,
+                valorIndicador,       // Valor del indicador
+                promedioDiario        // Promedio diario calculado
+            ]);
+
+            if (resultDetPlanilla.affectedRows === 0) {
+                await connection.rollback();  // Deshacer la transacción si algo falla
+                return res.status(400).json({ message: "No se pudo agregar un valor en detplanilla", ok: false });
+            }
+        }
+
+        // Confirmar la transacción si todo fue exitoso
+        await connection.commit();
+
+        res.status(201).json({ message: "Planilla y valores agregados correctamente", ok: true, planillaId });
+    } catch (error) {
+        console.error('Error al grabar la planilla y valores:', error);
+        if (connection) await connection.rollback();  // Deshacer la transacción en caso de error
+        res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    } finally {
+        // Cerrar la conexión a la base de datos
+        if (connection) {
+            await connection.end();
+        }
+    }
+};
+
+
+
+  module.exports ={obtenerReparticionesGED,agregarReparticionGED,editarReparticionGED,eliminarReparticionGED,obtenerProgramasGED,agregarProgramaGED,editarProgramaGED,eliminarProgramaGED,obtenerIndicadoresGED,agregarIndicadorGED,editarIndicadorGED,eliminarIndicadorGED,obtenerUnidadesGED,obtenerPerfilPorCuilGED,obtenerReparticionesFiltradasGED,obtenerProgramasPorReparticionGED,grabarPlanilla}
