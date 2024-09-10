@@ -5,6 +5,8 @@ const { agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, lis
 const fs = require('fs');
 const router = Router();
 const multer  = require('multer');
+const express = require('express');
+const app = express();
 // Configurar multer para manejar la carga de archivos
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -36,21 +38,40 @@ const storageAnexo = multer.diskStorage({
 });
 const storagePatrimonio = multer.diskStorage({
     destination: function (req, file, cb) {
-        const uploadPath = `./pdf`; // Ruta de la carpeta de destino para los anexos
-        fs.mkdirSync(uploadPath, { recursive: true }); // Crear carpeta si no existe
-        cb(null, uploadPath);
+        console.log(req.body)
+
+      const uploadPath = `./pdf`;
+      fs.mkdirSync(uploadPath, { recursive: true });
+      cb(null, uploadPath);
     },
     filename: function (req, file, cb) {
-        const { nombre_patrimonio } = req.body;
-        let finalName = nombre_patrimonio.replace(/\s+/g, '').trim();
-        const nombreArchivo = `${finalName}.jpg`;
-        cb(null, nombreArchivo);
+        console.log(req.body)
+      const { nombre_patrimonio } = req.body;
+      // Validar si 'nombre_patrimonio' está presente
+      if (!nombre_patrimonio) {
+        return cb(new Error('nombre_patrimonio no está definido en el cuerpo de la solicitud'));
+      }
+  
+      let finalName = nombre_patrimonio.replace(/\s+/g, '').trim();
+      const nombreArchivo = `${finalName}.jpg`;
+      cb(null, nombreArchivo);
     }
-});
+  });
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
 const upload = multer({ storage: storage });
 const uploadAnexo = multer({ storage: storageAnexo });
 const uploadPatrimonio = multer({ storage: storagePatrimonio });
+
+// router.post(
+//     "/editarPatrimonio",
+//     uploadPatrimonio.fields([
+//       { name: 'archivo', maxCount: 1 },
+//       // Si tienes otros archivos, también puedes definirlos aquí
+//     ]),
+//     editarPatrimonio
+//   );
 
 router.post("/altaOpcion", agregarOpcion);
 router.post("/altaProceso", agregarProceso);
@@ -124,7 +145,7 @@ router.get("/listarAutores", listarAutorPatrimonioBack);
 router.get("/listarUbicaciones", listarUbicacionPatrimonioBack);
 router.get("/obtenerImagenes", obtenerImagenes);
 router.post("/agregarPatrimonio", uploadPatrimonio.single('archivo'), agregarPatrimonio);
-router.post("/editarPatrimonio", uploadPatrimonio.single('archivo'), editarPatrimonio);
+router.patch('/editarPatrimonio', uploadPatrimonio.single('archivo'), (req, res) => { editarPatrimonio});
 router.post("/agregarAutor", agregarAutorPatrimonio);
 router.post("/agregarEstado", agregarEstadoPatrimonio);
 router.post("/agregarMaterial", agregarMaterialPatrimonio);

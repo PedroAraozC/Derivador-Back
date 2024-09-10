@@ -1421,7 +1421,8 @@ const agregarPatrimonio = async (req, res) => {
 const obtenerImagenes = (req, res) => {
   const imageDirectory = path.join(
     __dirname,
-    "/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio"
+    // "/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio"
+    "../pdf"
   );
   const { image } = req.query;
 
@@ -1430,6 +1431,7 @@ const obtenerImagenes = (req, res) => {
   }
 
   const imagePath = path.join(imageDirectory, image);
+  console.log(`Requested image path: ${imagePath}`);
 
   // Verifica si la imagen existe y envíala como respuesta
   fs.access(imagePath, fs.constants.F_OK, (err) => {
@@ -1444,7 +1446,8 @@ const obtenerImagenes = (req, res) => {
 
 const editarPatrimonio = async (req, res) => {
   let connection;
-  try {
+  try { 
+    console.log("req.body",req.body)
     const {
       nombre_patrimonio,
       anio_emplazamiento,
@@ -1466,6 +1469,7 @@ const editarPatrimonio = async (req, res) => {
     } = req.body;
 
     const archivo = req.file;
+    console.log(nombre_patrimonio)
     const nombre_archivo = `${nombre_patrimonio.replace(/\s+/g, "").trim()}.jpg`;
 
     if (archivo) {
@@ -1509,7 +1513,7 @@ const editarPatrimonio = async (req, res) => {
     }
     // Query para actualizar la patrimonio
     const sql =
-      "UPDATE patrimonio SET nombre_patrimonio = ?, anio_emplazamiento = ?, descripcion = ?, origen = ?, id_categoria = ?, id_tipologia = ?, id_material = ?, id_estado = ?, id_autor = ?, id_ubicacion = ?, latylon = ?, imagen_carrousel_1 = ?, imagen_carrousel_2 = ?, imagen_carrousel_3 = ?, habilita = ?, nombre_archivo = ? WHERE id_patrimonio = ?";
+      "UPDATE patrimonio SET nombre_patrimonio = ?, anio_emplazamiento = ?, descripcion = ?, origen = ?, id_categoria = ?, id_tipologia = ?, id_material = ?, id_estado = ?, id_autor = ?, id_ubicacion = ?, latylon = ?, habilita = ?, nombre_archivo = ? WHERE id_patrimonio = ?";
     const values = [
       nombre_patrimonio,
       anio_emplazamiento,
@@ -1522,9 +1526,6 @@ const editarPatrimonio = async (req, res) => {
       id_autor,
       id_ubicacion,
       latylon,
-      imagen_carrousel_1,
-      imagen_carrousel_2,
-      imagen_carrousel_3,
       habilita,
       nombre_archivo,
       id,
