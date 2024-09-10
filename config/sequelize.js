@@ -39,7 +39,7 @@ const sequelize_ciu_digital_derivador = new Sequelize(
 );
 
 const sequelize_ciu_digital = new Sequelize("ciudadano", "siac", "jo180401", {
-  host: process.env.HOST,
+  //host: process.env.HOST,
   //port: process.env.PORT_CIU_DIGITAL,
   host: "192.96.215.86",
   port: 3306,

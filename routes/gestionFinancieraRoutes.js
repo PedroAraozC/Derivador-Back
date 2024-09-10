@@ -4,7 +4,76 @@ const verifyRole = require("../middlewares/verifyRole");
 
 
 
-const { listarAnexos, agregarAnexo, editarAnexo, borrarAnexo, listarFinalidades, agregarFinalidad, editarFinalidad, borrarFinalidad, listarFunciones, agregarFuncion, editarFuncion, borrarFuncion, listarItems, agregarItem, editarItem, borrarItem, listarPartidas, agregarPartida, editarPartida, borrarPartida, agregarEjercicio, editarEjercicio, borrarEjercicio, listarTiposDeMovimientos, listarOrganismos, agregarExpediente, listarPartidasConCodigo, obtenerDetPresupuestoPorItemYpartida, agregarMovimiento, listarPartidasCONCAT,partidaExistente, buscarExpediente,listarAnteproyecto, actualizarPresupuestoAnteproyecto, listarEjercicio, actualizarCredito, actualizarPresupuestoAprobado, modificarMovimiento, obtenerPartidasPorItemYMovimiento, editarDetalleMovimiento,acumular, buscarExpedienteParaModificarDefinitiva, agregarMovimientoDefinitivaPreventiva, obtenerPresupuestosParaMovimientoPresupuestario, listarItemsFiltrado, obtenerPerfilPorCuil, actualizarCreditoCompleto, actualizarPresupuestoAprobadoCompleto, obtenerTiposDeInstrumentos, obtenerSaldoPorDetPresupuestoID, obtenerProveedores, editarProveedor, agregarProveedor, eliminarProveedor, obtenerProveedor } = require("../controllers/gestionFinancieraControllers");
+const { 
+    listarAnexos, 
+    agregarAnexo, 
+    editarAnexo, 
+    borrarAnexo, 
+    listarFinalidades, 
+    agregarFinalidad, 
+    editarFinalidad, 
+    borrarFinalidad, 
+    listarFunciones, 
+    agregarFuncion, 
+    editarFuncion, 
+    borrarFuncion, 
+    listarItems, 
+    agregarItem, 
+    editarItem, 
+    borrarItem, 
+    listarPartidas, 
+    agregarPartida, 
+    editarPartida, 
+    borrarPartida, 
+    agregarEjercicio, 
+    editarEjercicio, 
+    borrarEjercicio, 
+    listarTiposDeMovimientos, 
+    listarOrganismos, 
+    agregarExpediente, 
+    listarPartidasConCodigo, 
+    obtenerDetPresupuestoPorItemYpartida, 
+    agregarMovimiento, 
+    listarPartidasCONCAT, 
+    partidaExistente, 
+    buscarExpediente, 
+    listarAnteproyecto, 
+    actualizarPresupuestoAnteproyecto, 
+    listarEjercicio, 
+    actualizarCredito, 
+    actualizarPresupuestoAprobado, 
+    modificarMovimiento, 
+    obtenerPartidasPorItemYMovimiento, 
+    editarDetalleMovimiento, 
+    acumular, 
+    buscarExpedienteParaModificarDefinitiva, 
+    agregarMovimientoDefinitivaPreventiva, 
+    obtenerPresupuestosParaMovimientoPresupuestario, 
+    listarItemsFiltrado, 
+    obtenerPerfilPorCuil, 
+    actualizarCreditoCompleto, 
+    actualizarPresupuestoAprobadoCompleto, 
+    obtenerTiposDeInstrumentos, 
+    obtenerSaldoPorDetPresupuestoID, 
+    obtenerProveedores, 
+    editarProveedor, 
+    agregarProveedor, 
+    eliminarProveedor, 
+    obtenerRubros, 
+    agregarRubro, 
+    crearEstructuraItem, 
+    listarItemsSinPartidas, 
+    obtenerProveedor, 
+    agregarMovimientoPorTransferenciaDePartidas, 
+    modificarMovimientoParaTransferenciaEntrePartidas, 
+    buscarExpedienteParaModificarPorTransferenciaEntrePartidas, 
+    eliminarNomenclador,
+    agregarNomenclador,
+    editarNomenclador,
+    obtenerNomencladores,
+    listarPartidasConCodigoGasto
+  } = require("../controllers/gestionFinancieraControllers");
+  
 
 
 const router = Router();
@@ -30,6 +99,7 @@ router.put("/ejercicio/editar/:id",editarEjercicio)
 router.delete("/ejercicio/borrar", borrarEjercicio)
 
 router.get("/item/listar", listarItems);
+router.get("/item/listarSinPartidas", listarItemsSinPartidas);
 router.post("/item/listar/:cuil", listarItemsFiltrado);
 router.post("/item/alta", agregarItem)
 router.put("/item/editar/:id",editarItem)
@@ -38,6 +108,7 @@ router.delete("/item/borrar", borrarItem)
 router.get("/partida/obtenerPartidasPorItemYMovimiento",obtenerPartidasPorItemYMovimiento)
 router.get("/partida/listar", listarPartidas);
 router.get("/partida/listarConCodigo", listarPartidasConCodigo);
+router.get("/partida/listarConCodigoGasto", listarPartidasConCodigoGasto);
 router.get("/partida/listar/concat", listarPartidasCONCAT);
 router.post("/partida/existente", partidaExistente);
 router.post("/partida/alta", agregarPartida)
@@ -51,6 +122,7 @@ router.get("/organismo/listar", listarOrganismos);
 router.post("/expediente/alta",agregarExpediente)
 router.get("/expediente/buscar", buscarExpediente)
 router.get("/expediente/buscarExpedienteComun", buscarExpedienteParaModificarDefinitiva)
+router.get("/expediente/buscarExpedienteParaTransferencias", buscarExpedienteParaModificarPorTransferenciaEntrePartidas)
 
 router.patch("/editarDetalleMovimiento", editarDetalleMovimiento)
 
@@ -59,6 +131,8 @@ router.get("/detPresupuesto/obtenerSaldoPorDetPresupuestoID", obtenerSaldoPorDet
 
 router.post("/movimiento/alta",agregarMovimiento)
 router.post("/movimiento/altaDefinitivaPreventiva",agregarMovimientoDefinitivaPreventiva)
+router.post("/movimiento/altaPorTransferenciaEntrePartidas",agregarMovimientoPorTransferenciaDePartidas)
+router.patch("/movimiento/editarPorTransferenciaEntrePartidas",modificarMovimientoParaTransferenciaEntrePartidas)
 
 router.patch("/movimiento/editar",modificarMovimiento)
 router.get("/proveedor/listar", obtenerProveedor)
@@ -81,10 +155,21 @@ router.put("/acumular", acumular);
 
 router.post('/perfil/:cuil', obtenerPerfilPorCuil);
 
+router.post('/anteproyecto/crearEstructura', crearEstructuraItem);
+
 
 router.get("/proveedores/listar", obtenerProveedores);
 router.put("/proveedores/editar", editarProveedor);
 router.post("/proveedores/agregar", agregarProveedor);
 router.delete("/proveedores/eliminar/:idEliminar", eliminarProveedor);
+
+router.get("/rubros/listar", obtenerRubros);
+router.post("/rubros/agregar", agregarRubro);
+
+router.get("/nomencladores/listar", obtenerNomencladores);
+router.put("/nomencladores/editar", editarNomenclador);
+router.post("/nomencladores/agregar", agregarNomenclador);
+router.delete("/nomencladores/eliminar/:idEliminar", eliminarNomenclador);
+
 
 module.exports = router;
