@@ -1,5 +1,5 @@
 const { Router } = require("express");
-const { obtenerReparticiones, eliminarReparticion, obtenerReparticionesGED, agregarReparticionGED, editarReparticionGED, eliminarReparticionGED, obtenerProgramasGED, agregarProgramaGED, editarProgramaGED, eliminarProgramaGED, obtenerIndicadoresGED, agregarIndicadorGED, editarIndicadorGED, eliminarIndicadorGED, obtenerUnidadesGED, obtenerPerfilPorCuilGED, obtenerReparticionesFiltradasGED, obtenerProgramasPorReparticionGED, grabarPlanilla } = require("../controllers/gerenciaDatosControllers");
+const { obtenerReparticiones, eliminarReparticion, obtenerReparticionesGED, agregarReparticionGED, editarReparticionGED, eliminarReparticionGED, obtenerProgramasGED, agregarProgramaGED, editarProgramaGED, eliminarProgramaGED, obtenerIndicadoresGED, agregarIndicadorGED, editarIndicadorGED, eliminarIndicadorGED, obtenerUnidadesGED, obtenerPerfilPorCuilGED, obtenerReparticionesFiltradasGED, obtenerProgramasPorReparticionGED, grabarPlanilla, obtenerPlanillasFiltradas, obtenerDetallesPlanilla, actualizarValorPlanilla } = require("../controllers/gerenciaDatosControllers");
 const { agregarReparticion, editarReparticion } = require("../controllers/adminControllers");
 
 const router = Router();
@@ -29,7 +29,12 @@ router.post("/indicadores/agregar", agregarIndicadorGED);
 router.put("/indicadores/editar", editarIndicadorGED);
 router.delete("/indicadores/eliminar/:indicador_id", eliminarIndicadorGED);
 
+///////////PLANILLAS////////////////////////////////
+
 router.post("/planilla/agregar", grabarPlanilla);
+router.post("/planilla/listar", obtenerPlanillasFiltradas);
+router.get("/planilla/listarDetalle/:planilla_id", obtenerDetallesPlanilla);
+router.put("/planilla/editar", actualizarValorPlanilla);
 
 
 module.exports = router;

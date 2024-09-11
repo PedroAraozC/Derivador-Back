@@ -752,6 +752,8 @@ SELECT * FROM unidad
     }
   };
   
+
+  ////////////PLANILLAS//////////////////////////////
   
   const grabarPlanilla = async (req, res) => {
     const { planilla, valores } = req.body;  // Obtener los objetos 'planilla' y 'valores' del cuerpo del request
@@ -844,6 +846,142 @@ SELECT * FROM unidad
     }
 };
 
+const obtenerPlanillasFiltradas = async (req, res) => {
+    const { reparticion_id, programa_id, fechacarga } = req.body;
+    let connection;
+  
+    try {
+      connection = await conectar_BD_GED_MySql();
+  
+      // Crear la base de la consulta
+      let sqlQuery = `
+        SELECT planilla.*, 
+               programa.programa_codigo, programa.programa_det, 
+               usuario.usuario_cuil,
+               reparticion.reparticion_det
+        FROM planilla
+        INNER JOIN programa ON planilla.programa_id = programa.programa_id
+        INNER JOIN usuario ON planilla.usuario_id = usuario.usuario_id
+        INNER JOIN reparticion ON planilla.reparticion_id = reparticion.reparticion_id
+        WHERE 1 = 1
+      `;
+  
+      // Array para almacenar los valores de los parámetros de la consulta
+      let queryParams = [];
+  
+      // Verificar los parámetros recibidos y construir la consulta dinámica
+      if (reparticion_id) {
+        sqlQuery += ' AND planilla.reparticion_id = ?';
+        queryParams.push(reparticion_id);
+      }
+  
+      if (programa_id) {
+        sqlQuery += ' AND planilla.programa_id = ?';
+        queryParams.push(programa_id);
+      }
+  
+      if (fechacarga) {
+        sqlQuery += ' AND planilla.fechacarga = ?';
+        queryParams.push(fechacarga);
+      }
+  
+      // Ejecutar la consulta
+      const [planillasFiltradas] = await connection.execute(sqlQuery, queryParams);
+  
+      if (planillasFiltradas.length > 0) {
+        res.status(200).json({ planillas: planillasFiltradas });
+      } else {
+        res.status(204).json({ message: "No se encontraron planillas con los parámetros dados." });
+      }
+    } catch (error) {
+      console.error('Error al obtener las planillas:', error);
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    } finally {
+      if (connection) {
+        await connection.end();
+      }
+    }
+  };
+  
+  const obtenerDetallesPlanilla = async (req, res) => {
+    const { planilla_id } = req.params;  // Obtener el planilla_id de los parámetros de la solicitud
+    let connection;
+  
+    try {
+      connection = await conectar_BD_GED_MySql();  // Conectar a la base de datos
+  
+      // Consulta SQL con los JOINs entre detplanilla, unidad e indicador
+      const sqlDetallesPlanilla = `
+        SELECT dp.*, u.unidad_det, i.indicador_det
+        FROM detplanilla dp
+        JOIN unidad u ON dp.unidad_id = u.unidad_id
+        JOIN indicador i ON dp.indicador_id = i.indicador_id
+        WHERE dp.planilla_id = ?
+      `;
+  
+      // Ejecutar la consulta con el planilla_id proporcionado
+      const [detallesPlanilla] = await connection.execute(sqlDetallesPlanilla, [planilla_id]);
+  
+      if (detallesPlanilla.length > 0) {
+        // Convertir detplanilla_valor a número
+        detallesPlanilla.forEach(item => {
+          item.detplanilla_valor = parseFloat(item.detplanilla_valor);
+        });
+  
+        // Si se encontraron filas, devolver los datos
+        res.status(200).json({ detallesPlanilla });
+      } else {
+        // Si no se encontraron filas, enviar un estado 404
+        res.status(404).json({ message: "No se encontraron detalles para esta planilla." });
+      }
+    } catch (error) {
+      // Manejo de errores
+      console.error('Error al obtener los detalles de la planilla:', error);
+      res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    } finally {
+      // Cerrar la conexión a la base de datos
+      if (connection) {
+        await connection.end();
+      }
+    }
+  };
+  
+
+const actualizarValorPlanilla = async (req, res) => {
+  const { planilla_id, detplanilla_valor,indicador_id } = req.body;  // Obtener los datos del cuerpo de la solicitud
+  let connection;
+
+  try {
+    connection = await conectar_BD_GED_MySql();  // Conectar a la base de datos
+
+    // Consulta SQL para actualizar el valor en detplanilla
+    const sqlActualizarValor = `
+      UPDATE detplanilla
+      SET detplanilla_valor = ?
+      WHERE planilla_id = ? AND indicador_id=?
+    `;
+
+    // Ejecutar la consulta con los valores proporcionados
+    const [result] = await connection.execute(sqlActualizarValor, [detplanilla_valor, planilla_id,indicador_id]);
+
+    if (result.affectedRows > 0) {
+      // Si se actualizó al menos una fila, devolver éxito
+      res.status(200).json({ message: "Valor actualizado correctamente." ,ok:true});
+    } else {
+      // Si no se encontró ningún registro con el planilla_id, enviar un estado 404
+      res.status(404).json({ message: "No se encontró la planilla para actualizar." });
+    }
+  } catch (error) {
+    // Manejo de errores
+    console.error('Error al actualizar el valor de la planilla:', error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
 
 
-  module.exports ={obtenerReparticionesGED,agregarReparticionGED,editarReparticionGED,eliminarReparticionGED,obtenerProgramasGED,agregarProgramaGED,editarProgramaGED,eliminarProgramaGED,obtenerIndicadoresGED,agregarIndicadorGED,editarIndicadorGED,eliminarIndicadorGED,obtenerUnidadesGED,obtenerPerfilPorCuilGED,obtenerReparticionesFiltradasGED,obtenerProgramasPorReparticionGED,grabarPlanilla}
+  module.exports ={obtenerReparticionesGED,agregarReparticionGED,editarReparticionGED,eliminarReparticionGED,obtenerProgramasGED,agregarProgramaGED,editarProgramaGED,eliminarProgramaGED,obtenerIndicadoresGED,agregarIndicadorGED,editarIndicadorGED,eliminarIndicadorGED,obtenerUnidadesGED,obtenerPerfilPorCuilGED,obtenerReparticionesFiltradasGED,obtenerProgramasPorReparticionGED,grabarPlanilla,obtenerPlanillasFiltradas,obtenerDetallesPlanilla,actualizarValorPlanilla}
