@@ -90,24 +90,26 @@ FROM reparticion a ORDER BY reparticion_codigo
       // Obtener el cuil desde los parámetros de la solicitud
       const { cuil } = req.params;
   
-      // Consulta SQL para obtener las reparticiones filtradas por el cuil en la tabla permisos
+      // Consulta SQL para filtrar por CUIL o devolver reparticiones con tipo = 3 si no se encuentra el CUIL
       const sqlReparticionesFiltradas = `
         SELECT a.reparticion_id, a.reparticion_codigo, a.reparticion_det, a.reparticion_dependencia,
         (SELECT reparticion_det FROM reparticion b WHERE b.reparticion_id = a.reparticion_dependencia) AS dependencia,
         a.reparticion_tipo, IF(a.reparticion_tipo = 1, 'SECRETARIA', IF(a.reparticion_tipo = 2, 'SUBSECRETARIA', 'DIRECCION')) AS tipo
         FROM reparticion a
-        JOIN permisos p ON a.reparticion_id = p.reparticion_id
-        WHERE p.usuario_cuil = ?
+        LEFT JOIN permisos p ON a.reparticion_id = p.reparticion_id AND p.usuario_cuil = ?
+        WHERE p.usuario_cuil IS NOT NULL 
+        OR (NOT EXISTS (SELECT 1 FROM permisos WHERE usuario_cuil = ?) AND a.reparticion_tipo = 3)
         ORDER BY a.reparticion_codigo
       `;
   
-      // Ejecutar la consulta con el cuil proporcionado
-      const [reparticionesFiltradas] = await connection.execute(sqlReparticionesFiltradas, [cuil]);
+      // Ejecutar la consulta con el cuil proporcionado en ambos lugares
+      const [reparticionesFiltradas] = await connection.execute(sqlReparticionesFiltradas, [cuil, cuil]);
   
+      // Devolver las reparticiones filtradas o todas las reparticiones de tipo 3
       if (reparticionesFiltradas.length > 0) {
         res.status(200).json({ reparticiones: reparticionesFiltradas });
       } else {
-        res.status(204).json({ message: "No se encontraron reparticiones para este CUIL." });
+        res.status(204).json({ message: "No se encontraron reparticiones." });
       }
     } catch (error) {
       // Manejo de errores
@@ -121,6 +123,7 @@ FROM reparticion a ORDER BY reparticion_codigo
     }
   };
   
+
 
   const agregarReparticionGED = async (req, res) => {
     let connection;
