@@ -54,12 +54,16 @@ app.use("/norma", normaRoutes);
 app.use("/origen", origenRoutes);
 //
 
-const options = {
-    key: fs.readFileSync('./scfg0cbqs'),
-    cert: fs.readFileSync('./scfg0cbqs'),
-    //ca: fs.readFileSync('/opt/psa/var/certificates/scfqdiDyQ') // si tienes un archivo CA bundle
-  };
+// const options = {
+//     key: fs.readFileSync('./scfg0cbqs'),
+//     cert: fs.readFileSync('./scfg0cbqs'),
+//     //ca: fs.readFileSync('/opt/psa/var/certificates/scfqdiDyQ') // si tienes un archivo CA bundle
+//   };
   
-  https.createServer(options, app).listen(5000, () => {
-    console.log(`server listening on port 5000`);
+//   https.createServer(options, app).listen(5000, () => {
+//     console.log(`server listening on port 5000`);
+//   });
+
+  app.listen(3050, () => {
+    console.log(`server listening on port 3050`);
   });
