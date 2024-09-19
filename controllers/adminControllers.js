@@ -11,6 +11,7 @@ const path = require("path");
 const { conectarFTPCiudadano } = require("../config/winscpCiudadano");
 const { conectarSFTPCondor } = require("../config/winscpCondor");
 
+
 const agregarOpcion = async (req, res) => {
   let connection;
   try {
@@ -1488,7 +1489,7 @@ const obtenerImagenes = (req, res) => {
 const editarPatrimonio = async (req, res) => {
   let connection;
   try { 
-    console.log("req.body",req.body)
+   
     const {
       nombre_patrimonio,
       anio_emplazamiento,
@@ -1501,112 +1502,121 @@ const editarPatrimonio = async (req, res) => {
       id_autor,
       id_ubicacion,
       latylon,
-      imagen_carrousel_1,
-      imagen_carrousel_2,
-      imagen_carrousel_3,
       habilita,
-      id,
+      id_patrimonio,
       oldName,
     } = req.body;
 
-    const archivo = req.file;
-    console.log(nombre_patrimonio)
-    const nombre_archivo = `${nombre_patrimonio.replace(/\s+/g, "").trim()}.jpg`;
+    console.log(req.body)
 
-    if (archivo) {
-      const nombreViejo = `${oldName.replace(/\s+/g, "").trim()}.jpg`;
-      const archivoViejo = nombre_archivo.replace(/\//g, "-");
-      const sftpClient = await conectarSFTPCondor();
-      const localFilePath = path.join("./pdf", archivoViejo);
-      const remoteFilePath = `/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/${archivoViejo}`;
+ 
+    const nombre_archivo = nombre_patrimonio;
 
-      try {
-        // Verificar si el archivo local existe
-        if (!fs.existsSync(localFilePath)) {
-          throw new Error(`El archivo local no existe: ${localFilePath}`);
-        }
-
-        // Intentar eliminar el archivo remoto si existe
-        try {
-          await sftpClient.delete(remoteFilePath);
-          console.log(`Archivo remoto ${remoteFilePath} eliminado exitosamente`);
-        } catch (deleteError) {
-          if (deleteError.code !== 550) { // 550 indica que el archivo no existe
-            throw new Error(`Error al eliminar el archivo remoto: ${deleteError.message}`);
-          }
-          console.log(`Archivo remoto ${remoteFilePath} no existe, procediendo a la subida del nuevo archivo`);
-        }
-
-        // Subir el nuevo archivo
-        await sftpClient.put(localFilePath, remoteFilePath);
-        console.log(`Archivo ${archivoViejo} subido exitosamente al servidor`);
-
-        // Eliminar archivo local después de subir
-        fs.unlinkSync(localFilePath);
-        console.log(`Archivo local ${localFilePath} eliminado exitosamente`);
-
-      } catch (error) {
-        console.error('Error durante la operación SFTP:', error);
-        return res.status(500).json({ message: 'Error durante la operación de archivo' });
-      } finally {
-        await sftpClient.end();
-      }
-    }
-    // Query para actualizar la patrimonio
     const sql =
-      "UPDATE patrimonio SET nombre_patrimonio = ?, anio_emplazamiento = ?, descripcion = ?, origen = ?, id_categoria = ?, id_tipologia = ?, id_material = ?, id_estado = ?, id_autor = ?, id_ubicacion = ?, latylon = ?, habilita = ?, nombre_archivo = ? WHERE id_patrimonio = ?";
-    const values = [
-      nombre_patrimonio,
-      anio_emplazamiento,
-      descripcion,
-      origen,
-      id_categoria,
-      id_tipologia,
-      id_material,
-      id_estado,
-      id_autor,
-      id_ubicacion,
-      latylon,
-      habilita,
-      nombre_archivo,
-      id,
-    ];
-    // Verificar si la patrimonio ya existe con otra ID
-    connection = await conectarSMTPatrimonio();
-    const [patrimonio] = await connection.execute(
-      "SELECT * FROM patrimonio WHERE (nombre_patrimonio = ? AND descripcion = ? AND id_categoria = ? AND id_tipologia = ? AND latylon = ? AND habilita = ?) AND id_patrimonio != ?",
-      [
-        nombre_patrimonio,
-        descripcion,
-        id_categoria,
-        id_tipologia,
-        latylon,
-        habilita,
-        id,
-      ]
-    );
+    "UPDATE patrimonio SET nombre_patrimonio = ?, anio_emplazamiento = ?, descripcion = ?, origen = ?, id_categoria = ?, id_tipologia = ?, id_material = ?, id_estado = ?, id_autor = ?, id_ubicacion = ?, latylon = ?, habilita = ? WHERE id_patrimonio = ?";
+  const values = [
+    nombre_patrimonio,
+    anio_emplazamiento,
+    descripcion,
+    origen,
+    id_categoria,
+    id_tipologia,
+    id_material,
+    id_estado,
+    id_autor,
+    id_ubicacion,
+    latylon,
+    habilita,
+    id_patrimonio,
+  ];
 
-    if (patrimonio.length === 0) {
-      // No existe otra patrimonio con los mismos datos, se puede proceder con la actualización
-      const [result] = await connection.execute(sql, values);
-      console.log("Filas actualizadas:", result.affectedRows);
-      res
-        .status(200)
-        .json({ message: "Patrimonio modificado con éxito", result });
-    } else {
-      // Ya existe otra patrimonio con los mismos datos, devolver un error
-      res.status(400).json({
-        message: "Ya existe un Patrimonio con los mismos datos",
-        patrimonio: patrimonio[0],
-      });
-    }
+  connection = await conectarSMTPatrimonio();
+  const [patrimonio] = await connection.execute(sql,values);
+  res.status(201).json({
+    message: "Patrimonio editado con éxito"
+  });
   } catch (error) {
-    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    console.error('Error al editar el patrimonio:', error);
+    if (error.response) {
+      console.error('Error del servidor:', error.response.data);
+    }
   } finally {
     connection.end();
   }
 };
 
+
+const editarPatrimonioImagenes = async (req, res) => {
+  let sftp;
+  let db;
+  db = await conectarSMTPatrimonio();
+  
+  try {
+    const { id_patrimonio, nombre_patrimonio } = req.body;
+    const newImage = req.files;
+    console.log(newImage)
+    const archivosKeys = Object.keys(newImage);
+  
+  
+
+    // 1. Obtener la imagen actual del patrimonio de la base de datos
+    const [patrimonio] = await db.query('SELECT nombre_archivo FROM patrimonio WHERE id_patrimonio = ?', [id_patrimonio]);
+  if (!patrimonio.length) {
+      return res.status(404).json({ message: 'Patrimonio no encontrado' });
+    }
+
+    sftp = await conectarSFTPCondor();
+    for (let key of archivosKeys) {
+      let archivo = newImage[key];
+
+      // Verificar si la clave corresponde a un archivo de carrousel
+      if (key.includes('imagen_carrousel_1')) {
+        await procesarImagen(archivo, '_1', sftp, nombre_patrimonio);
+      } else if (key.includes('imagen_carrousel_2')) {
+        await procesarImagen(archivo, '_2', sftp, nombre_patrimonio);
+      } else if (key.includes('imagen_carrousel_3')) {
+        await procesarImagen(archivo, '_3', sftp, nombre_patrimonio);
+      }
+    }
+
+    res.status(200).json({ message: 'Imagen actualizada correctamente.'});
+ 
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Algo salió mal :(' });
+  } finally {
+    if (sftp) sftp.end(); // Asegúrate de cerrar la conexión SFTP
+  }
+};
+
+async function procesarImagen(archivo, carrouselKey, sftp, nombre) {
+  // Extraer la extensión del archivo original
+  const extension = path.extname(archivo.originalFilename);
+  const newFilename = `${nombre}${carrouselKey}${extension}`; // Agregar la extensión al nuevo nombre
+  const newPath = path.join(__dirname, '../tempUploads/', newFilename);
+
+  // Renombrar el archivo temporalmente
+  await new Promise((resolve, reject) => {
+    fs.rename(archivo.filepath, newPath, (err) => {
+      if (err) {
+        console.error(`Error renombrando el archivo ${carrouselKey}:`, err);
+        return reject(err);
+      }
+      console.log(`Archivo ${carrouselKey} renombrado a: ${newFilename}`);
+      resolve();
+    });
+  });
+
+  // Subir el archivo al servidor SFTP
+  const remotePath = `/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/${newFilename}`;
+  try {
+    console.log(remotePath, 'cosa')
+    await sftp.fastPut(newPath, remotePath);
+    console.log(`Archivo ${newFilename} subido al servidor SFTP en: ${remotePath}`);
+  } catch (error) {
+    console.error(`Error subiendo ${newFilename} al servidor SFTP:`, error);
+    throw error;
+  }
+}
 const listarPatrimonioBack = async (req, res) => {
   const connection = await conectarSMTPatrimonio();
   try {
@@ -1672,14 +1682,18 @@ const listarMaterialPatrimonioBack = async (req, res) => {
 };
 
 const listarCategoriaPatrimonioBack = async (req, res) => {
-  const connection = await conectarSMTPatrimonio();
+  let connection;  // Inicializar la variable sin asignarle nada
   try {
+    connection = await conectarSMTPatrimonio();  // Asignar conexión
     const [categorias] = await connection.execute("SELECT * FROM categoria");
     res.status(200).json({ categorias });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
-    connection.end();
+    // Verifica si la conexión fue establecida antes de intentar cerrarla
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
@@ -1783,4 +1797,5 @@ module.exports = {
   actualizarPermisosEspecificos,
   listarProcesosSinId,
   existeEnPermisosPersona,
+  editarPatrimonioImagenes,
 };
