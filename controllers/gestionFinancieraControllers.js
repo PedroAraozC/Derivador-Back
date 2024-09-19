@@ -1555,7 +1555,7 @@ const buscarExpedienteParaModificarNomenclador = async (req, res) => {
     const movimiento_id = req.query.movimiento_id;
 
 
-    const query = `SELECT * FROM detmovimiento_nomenclador AS det JOIN nomenclador AS nom ON det.nomenclador_id = nom.nomenclador_id WHERE movimiento_id = ?`;
+    const query = `SELECT * FROM detmovimiento_nomenclador AS det JOIN nomenclador AS nom ON det.nomenclador_id = nom.nomenclador_id JOIN partidas AS p ON nom.partida_id = p.partida_id WHERE movimiento_id = ?`;
 
 
     const [result] = await connection.execute(query, [movimiento_id]);
