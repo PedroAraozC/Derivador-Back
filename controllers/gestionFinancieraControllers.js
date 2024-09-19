@@ -4,6 +4,7 @@ const DetMovimiento = require("../models/Financiera/DetMovimiento");
 const Movimiento = require("../models/Financiera/Movimiento");
 const Expediente = require("../models/Financiera/Expediente");
 const { obtenerFechaEnFormatoDate } = require("../utils/helpers");
+const DetMovimientoNomenclador = require("../models/Financiera/DetMovimientoNomenclador");
 
 const listarAnexos = async (req, res) => {
   let connection;
@@ -1109,7 +1110,8 @@ const partidaExistente = async (req, res) => {
 const agregarMovimiento = async (req, res) => {
   let transaction;
   try {
-    const { movimiento, detMovimiento,expediente, presupuesto } = req.body;
+    const { movimiento, detMovimiento,expediente, presupuesto, items } = req.body;
+console.log(items);
 
     transaction = await sequelize.transaction();
 
@@ -1152,6 +1154,22 @@ const agregarMovimiento = async (req, res) => {
         { transaction }
       );
     }
+
+    for (const item of items) {
+      await DetMovimientoNomenclador.create(
+        {
+          movimiento_id: movimientoId,
+          nomenclador_id:item.nomenclador_id,
+          descripcion: item.descripcion,
+          cantidad: item.cantidad,
+          precio: item.precio,
+          total: item.total,
+          detPresupuesto_id: item.detPresupuesto_id
+        },
+        { transaction }
+      );
+    }
+
     await transaction.commit();
 
     res.status(200).json({ message: "Movimiento creado con éxito" });
@@ -1330,7 +1348,7 @@ const obtenerPresupuestosParaMovimientoPresupuestario = async (req, res) => {
 
 
 const modificarMovimiento = async (req, res) => {
-  const {  movimiento, detMovimiento, proveedor } = req.body;
+  const {  movimiento, detMovimiento, proveedor, items } = req.body;
 
   let connection;
   try {
@@ -1338,6 +1356,7 @@ const modificarMovimiento = async (req, res) => {
     await connection.beginTransaction();
       // Paso 1: Eliminar los detalles de movimiento existentes para el movimiento
       await connection.query('DELETE FROM detmovimiento WHERE detmovimiento.movimiento_id = ?', [movimiento.id]);
+      await connection.query('DELETE FROM detmovimiento_nomenclador WHERE detmovimiento_nomenclador.movimiento_id = ?', [movimiento.id]);
 
       // Paso 2: Insertar los nuevos detalles de movimiento
       const insertPromises = detMovimiento.map(detalle => {
@@ -1345,11 +1364,16 @@ const modificarMovimiento = async (req, res) => {
           [movimiento.id,detalle.detPresupuesto_id,detalle.importe]);
       });
 
-  
+      const insertPromisesNomenclador = items.map(item => {
+        return connection.query('INSERT INTO detmovimiento_nomenclador (movimiento_id, nomenclador_id, descripcion,cantidad,precio,total,detPresupuesto_id) VALUES (?, ?, ?, ?, ?, ?, ?)', 
+        [movimiento.id,item.nomenclador_id,item.descripcion,item.cantidad,item.precio,item.total,item.detPresupuesto_id]);
+    });
+    
+    await Promise.all([...insertPromises, ...insertPromisesNomenclador]);
+    
+    if(proveedor.id !== ""){
       await connection.query("UPDATE movimiento SET proveedor_id = ? WHERE movimiento_id = ?",[proveedor.id, movimiento.id])
-
-      await Promise.all(insertPromises);
-
+    }
       await connection.commit();
       res.status(200).json({ message: 'Movimiento actualizado correctamente' });
   } catch (error) {
@@ -1510,6 +1534,31 @@ WHERE e.expediente_numero = ? AND m.tipomovimiento_id = ? AND e.expediente_anio 
 
 
     const [result] = await connection.execute(query, [numero, tipomovimiento_id, anio]);
+
+    console.log(result);
+
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+}
+
+const buscarExpedienteParaModificarNomenclador = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql();
+    const movimiento_id = req.query.movimiento_id;
+
+
+    const query = `SELECT * FROM detmovimiento_nomenclador AS det JOIN nomenclador AS nom ON det.nomenclador_id = nom.nomenclador_id JOIN partidas AS p ON nom.partida_id = p.partida_id WHERE movimiento_id = ?`;
+
+
+    const [result] = await connection.execute(query, [movimiento_id]);
 
     console.log(result);
 
@@ -1959,7 +2008,9 @@ const obtenerPerfilPorCuil = async (req, res) => {
       console.error(error);
       res.status(500).json({ message: error.message || 'Algo salió mal :(' });
   } finally {
+    if(connection){
       await connection.end();
+    }
   }
 };
 
@@ -2571,7 +2622,7 @@ module.exports = {
   modificarMovimientoParaTransferenciaEntrePartidas,
   buscarExpedienteParaModificarPorTransferenciaEntrePartidas,
   obtenerNomencladores,
-  agregarNomenclador,editarNomenclador,eliminarNomenclador,listarPartidasConCodigoGasto
+  agregarNomenclador,editarNomenclador,eliminarNomenclador,listarPartidasConCodigoGasto,buscarExpedienteParaModificarNomenclador
 };
 
 
