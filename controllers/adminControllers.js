@@ -1570,11 +1570,17 @@ const editarPatrimonioImagenes = async (req, res) => {
       let archivo = newImage[key];
 
       // Verificar si la clave corresponde a un archivo de carrousel
+      
+      if (key.includes('imagen_card')) {
+        await procesarImagen(archivo, '_card', sftp, nombre_patrimonio);
+      }
       if (key.includes('imagen_carrousel_1')) {
         await procesarImagen(archivo, '_1', sftp, nombre_patrimonio);
-      } else if (key.includes('imagen_carrousel_2')) {
+      }
+      if (key.includes('imagen_carrousel_2')) {
         await procesarImagen(archivo, '_2', sftp, nombre_patrimonio);
-      } else if (key.includes('imagen_carrousel_3')) {
+      }
+      if (key.includes('imagen_carrousel_3')) {
         await procesarImagen(archivo, '_3', sftp, nombre_patrimonio);
       }
     }
