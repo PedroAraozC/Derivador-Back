@@ -1110,7 +1110,7 @@ const partidaExistente = async (req, res) => {
 const agregarMovimiento = async (req, res) => {
   let transaction;
   try {
-    const { movimiento, detMovimiento,expediente, presupuesto, items } = req.body;
+    const { movimiento, detMovimiento,expediente, presupuesto, items, encuadreLegal } = req.body;
 console.log(items);
 
     transaction = await sequelize.transaction();
@@ -1134,7 +1134,8 @@ console.log(items);
       tipomovimiento_id: movimiento.tipomovimiento_id,
       tipoinstrumento_id: expediente.tipoDeInstrumento,
       instrumento_nro: expediente.numeroInstrumento,
-      presupuesto_id: presupuesto
+      presupuesto_id: presupuesto,
+      encuadrelegal_id: encuadreLegal
     };
 
     const nuevoMovimiento = await Movimiento.create(movimientoObj, {
@@ -1187,7 +1188,7 @@ console.log(items);
 const agregarMovimientoDefinitivaPreventiva = async (req, res) => {
   let transaction;
   try {
-    const { movimiento, detMovimiento,expediente, presupuesto , proveedor} = req.body;
+    const { movimiento, detMovimiento,expediente, presupuesto , proveedor, items, encuadreLegal} = req.body;
 
     transaction = await sequelize.transaction();
 
@@ -1199,7 +1200,8 @@ const agregarMovimientoDefinitivaPreventiva = async (req, res) => {
       presupuesto_id: presupuesto,
       tipoinstrumento_id: expediente.tipoDeInstrumento,
       instrumento_nro: expediente.numeroInstrumento,
-      proveedor_id: proveedor.id
+      proveedor_id: proveedor.id,
+      encuadrelegal_id: encuadreLegal
     };
 
     const nuevoMovimiento = await Movimiento.create(movimientoObj, {
@@ -1219,6 +1221,22 @@ const agregarMovimientoDefinitivaPreventiva = async (req, res) => {
         { transaction }
       );
     }
+
+    for (const item of items) {
+      await DetMovimientoNomenclador.create(
+        {
+          movimiento_id: movimientoId,
+          nomenclador_id:item.nomenclador_id,
+          descripcion: item.descripcion,
+          cantidad: item.cantidad,
+          precio: item.precio,
+          total: item.total,
+          detPresupuesto_id: item.detPresupuesto_id
+        },
+        { transaction }
+      );
+    }
+
     await transaction.commit();
 
     res.status(200).json({ message: "Movimiento creado con éxito" });
@@ -1348,7 +1366,7 @@ const obtenerPresupuestosParaMovimientoPresupuestario = async (req, res) => {
 
 
 const modificarMovimiento = async (req, res) => {
-  const {  movimiento, detMovimiento, proveedor, items } = req.body;
+  const {  movimiento, detMovimiento, proveedor, items, encuadreLegal } = req.body;
 
   let connection;
   try {
@@ -1374,6 +1392,11 @@ const modificarMovimiento = async (req, res) => {
     if(proveedor.id !== ""){
       await connection.query("UPDATE movimiento SET proveedor_id = ? WHERE movimiento_id = ?",[proveedor.id, movimiento.id])
     }
+
+    if(encuadreLegal != null){
+      await connection.query("UPDATE movimiento SET encuadrelegal_id = ? WHERE movimiento_id = ?",[encuadreLegal, movimiento.id])
+    }
+
       await connection.commit();
       res.status(200).json({ message: 'Movimiento actualizado correctamente' });
   } catch (error) {
@@ -1408,7 +1431,7 @@ const buscarExpediente = async (req, res) => {
 
     // Primera consulta: Obtener los detalles del expediente
     const query1 = `
-    SELECT e.*, m.presupuesto_id,m.movimiento_id,m.movimiento_fecha,m.tipomovimiento_id,m.movimiento_id2,m.tipoinstrumento_id,m.instrumento_nro, prov.*, d.detmovimiento_id,d.detpresupuesto_id,d.detmovimiento_importe, dp.partida_id,dp.presupuesto_anteproyecto,dp.presupuesto_aprobado,dp.presupuesto_credito,dp.presupuesto_ampliaciones,dp.presupuesto_disminuciones, i.item_det,i.item_codigo, i.anexo_id, i.finalidad_id, i.funcion_id, i.item_fechainicio,i.item_fechafin,i.organismo_id
+    SELECT e.*, m.presupuesto_id,m.movimiento_id,m.movimiento_fecha,m.tipomovimiento_id,m.movimiento_id2,m.tipoinstrumento_id,m.instrumento_nro,m.encuadrelegal_id, prov.*, d.detmovimiento_id,d.detpresupuesto_id,d.detmovimiento_importe, dp.partida_id,dp.presupuesto_anteproyecto,dp.presupuesto_aprobado,dp.presupuesto_credito,dp.presupuesto_ampliaciones,dp.presupuesto_disminuciones, i.item_det,i.item_codigo, i.anexo_id, i.finalidad_id, i.funcion_id, i.item_fechainicio,i.item_fechafin,i.organismo_id
     FROM expediente AS e
     LEFT JOIN movimiento AS m ON e.expediente_id = m.expediente_id
     LEFT JOIN proveedores AS prov ON m.proveedor_id = prov.proveedor_id
@@ -1518,7 +1541,7 @@ const buscarExpedienteParaModificarDefinitiva = async (req, res) => {
     const anio = req.query.anio;
 
 
-    const query = `SELECT e.expediente_id,e.item_id,e.expediente_numero,e.expediente_anio,e.expediente_causante,e.expediente_asunto,e.expediente_fecha,e.expediente_detalle , m.presupuesto_id,m.movimiento_id,m.movimiento_fecha,m.tipomovimiento_id,m.movimiento_id2,m.tipoinstrumento_id,m.instrumento_nro,prov.*,
+    const query = `SELECT e.expediente_id,e.item_id,e.expediente_numero,e.expediente_anio,e.expediente_causante,e.expediente_asunto,e.expediente_fecha,e.expediente_detalle , m.presupuesto_id,m.movimiento_id,m.encuadrelegal_id,m.movimiento_fecha,m.tipomovimiento_id,m.movimiento_id2,m.tipoinstrumento_id,m.instrumento_nro,prov.*,
 ti.tipoinstrumento_det, d.detmovimiento_id,d.detpresupuesto_id,d.detpresupuesto_id2,d.detmovimiento_importe,dp.partida_id,dp.presupuesto_anteproyecto,dp.presupuesto_aprobado,dp.presupuesto_credito,dp.presupuesto_ampliaciones,dp.presupuesto_disminuciones,
 i.item_det,i.item_codigo, i.anexo_id, i.finalidad_id, i.funcion_id, i.item_fechainicio,i.item_fechafin,i.organismo_id
 FROM expediente AS e 
@@ -2437,6 +2460,32 @@ const obtenerNomencladores = async (req, res) => {
   }
 };
 
+const obtenerEncuadres = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql(); // Conexión a la base de datos
+
+    // Consulta para obtener los nomencladores y realizar el JOIN con la tabla partidas
+    const sqlEncuadres = `
+      SELECT * FROM encuadrelegal`;
+
+    // Ejecutar la consulta
+    const [encuadres] = await connection.execute(sqlEncuadres);
+
+    // Enviar los resultados como respuesta
+    res.status(200).json({ encuadres });
+  } catch (error) {
+    // Manejo de errores detallado
+    console.error('Error al obtener los encuadres:', error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
 const agregarNomenclador = async (req, res) => {
   let connection;
   try {
@@ -2748,7 +2797,8 @@ module.exports = {
   modificarMovimientoParaTransferenciaEntrePartidas,
   buscarExpedienteParaModificarPorTransferenciaEntrePartidas,
   obtenerNomencladores,
-  agregarNomenclador,editarNomenclador,eliminarNomenclador,listarPartidasConCodigoGasto,buscarExpedienteParaModificarNomenclador,obtenerEncuadresLegales,agregarEncuadreLegal,editarEncuadreLegal,eliminarEncuadreLegal
+  agregarNomenclador,editarNomenclador,eliminarNomenclador,listarPartidasConCodigoGasto,buscarExpedienteParaModificarNomenclador, obtenerEncuadres,
+ obtenerEncuadresLegales,agregarEncuadreLegal,editarEncuadreLegal,eliminarEncuadreLegal
 };
 
 

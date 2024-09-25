@@ -73,6 +73,7 @@ const {
     obtenerNomencladores,
     listarPartidasConCodigoGasto,
     buscarExpedienteParaModificarNomenclador,
+    obtenerEncuadres,
     obtenerEncuadresLegales,
     editarEncuadreLegal,
     agregarEncuadreLegal,
@@ -140,7 +141,6 @@ router.post("/movimiento/altaPorTransferenciaEntrePartidas",agregarMovimientoPor
 router.patch("/movimiento/editarPorTransferenciaEntrePartidas",modificarMovimientoParaTransferenciaEntrePartidas)
 
 router.patch("/movimiento/editar",modificarMovimiento)
-router.get("/proveedor/listar", obtenerProveedor)
 router.get("/movimiento/tipoInstrumento", obtenerTiposDeInstrumentos)
 
 router.get("/anteproyecto/listar", listarAnteproyecto);
@@ -168,6 +168,10 @@ router.put("/proveedores/editar", editarProveedor);
 router.post("/proveedores/agregar", agregarProveedor);
 router.delete("/proveedores/eliminar/:idEliminar", eliminarProveedor);
 
+//EJECUCION DE GASTOS
+router.get("/proveedor/listar", obtenerProveedor);
+//
+
 router.get("/rubros/listar", obtenerRubros);
 router.post("/rubros/agregar", agregarRubro);
 
@@ -178,6 +182,7 @@ router.delete("/nomencladores/eliminar/:idEliminar", eliminarNomenclador);
 
 router.get("/detmovimiento_nomenclador/buscar", buscarExpedienteParaModificarNomenclador);
 
+router.get("/encuadres/listar", obtenerEncuadres)
 router.get("/encuadrelegal/listar", obtenerEncuadresLegales);
 router.put("/encuadrelegal/editar", editarEncuadreLegal);
 router.post("/encuadrelegal/agregar", agregarEncuadreLegal);
