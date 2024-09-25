@@ -2558,6 +2558,132 @@ const eliminarNomenclador = async (req, res) => {
   }
 };
 
+
+//////////////////////////ENCUADRE LEGAL ///////////////////////////////////////
+
+const obtenerEncuadresLegales = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql(); // Conexión a la base de datos
+
+    const sqlEncuadresLegales = `SELECT * FROM encuadrelegal`;
+    const [encuadres] = await connection.execute(sqlEncuadresLegales);
+
+    if (encuadres.length > 0) {
+      res.status(200).json({ encuadres });
+    } else {
+      res.status(204).json({ message: "No hay datos disponibles" });
+    }
+  } catch (error) {
+    console.error('Error al obtener los encuadres legales:', error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
+const agregarEncuadreLegal = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql(); // Conexión a la base de datos
+
+    const { encuadrelegal_det } = req.body;
+
+    if (!encuadrelegal_det) {
+      return res.status(400).json({ message: "El detalle del encuadre legal es requerido", ok: false });
+    }
+
+    const sqlInsertEncuadre = `
+      INSERT INTO encuadrelegal (encuadrelegal_det)
+      VALUES (?)
+    `;
+
+    const [result] = await connection.execute(sqlInsertEncuadre, [encuadrelegal_det.toUpperCase()]);
+
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ message: "No se pudo agregar el encuadre legal", ok: false });
+    }
+
+    res.status(201).json({ message: "Encuadre legal agregado correctamente", ok: true });
+  } catch (error) {
+    console.error('Error al agregar el encuadre legal:', error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
+const editarEncuadreLegal = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql(); // Conexión a la base de datos
+
+    const { encuadrelegal_id, encuadrelegal_det } = req.body;
+
+    if (!encuadrelegal_id || !encuadrelegal_det) {
+      return res.status(400).json({ message: "Todos los campos son requeridos", ok: false });
+    }
+
+    const sqlUpdateEncuadre = `
+      UPDATE encuadrelegal
+      SET encuadrelegal_det = ?
+      WHERE encuadrelegal_id = ?
+    `;
+
+    const [result] = await connection.execute(sqlUpdateEncuadre, [encuadrelegal_det.toUpperCase(), encuadrelegal_id]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Encuadre legal no encontrado", ok: false });
+    }
+
+    res.status(200).json({ message: "Encuadre legal actualizado correctamente", ok: true });
+  } catch (error) {
+    console.error('Error al actualizar el encuadre legal:', error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
+const eliminarEncuadreLegal = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql(); // Conexión a la base de datos
+
+    const { idEliminar } = req.params;
+
+    if (!idEliminar) {
+      return res.status(400).json({ message: "El ID del encuadre legal es requerido", ok: false });
+    }
+
+    const sqlEliminarEncuadre = `
+      DELETE FROM encuadrelegal WHERE encuadrelegal_id = ?
+    `;
+
+    const [result] = await connection.execute(sqlEliminarEncuadre, [idEliminar]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Encuadre legal no encontrado", ok: false });
+    }
+
+    res.status(200).json({ message: "Encuadre legal eliminado correctamente", ok: true });
+  } catch (error) {
+    console.error('Error al eliminar el encuadre legal:', error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
+
 module.exports = {
   listarAnexos,
   agregarAnexo,
@@ -2622,7 +2748,7 @@ module.exports = {
   modificarMovimientoParaTransferenciaEntrePartidas,
   buscarExpedienteParaModificarPorTransferenciaEntrePartidas,
   obtenerNomencladores,
-  agregarNomenclador,editarNomenclador,eliminarNomenclador,listarPartidasConCodigoGasto,buscarExpedienteParaModificarNomenclador
+  agregarNomenclador,editarNomenclador,eliminarNomenclador,listarPartidasConCodigoGasto,buscarExpedienteParaModificarNomenclador,obtenerEncuadresLegales,agregarEncuadreLegal,editarEncuadreLegal,eliminarEncuadreLegal
 };
 
 
