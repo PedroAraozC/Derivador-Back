@@ -73,7 +73,11 @@ const {
     obtenerNomencladores,
     listarPartidasConCodigoGasto,
     buscarExpedienteParaModificarNomenclador,
-    obtenerEncuadres
+    obtenerEncuadres,
+    obtenerEncuadresLegales,
+    editarEncuadreLegal,
+    agregarEncuadreLegal,
+    eliminarEncuadreLegal
   } = require("../controllers/gestionFinancieraControllers");
   
 
@@ -179,6 +183,11 @@ router.delete("/nomencladores/eliminar/:idEliminar", eliminarNomenclador);
 router.get("/detmovimiento_nomenclador/buscar", buscarExpedienteParaModificarNomenclador);
 
 router.get("/encuadres/listar", obtenerEncuadres)
+router.get("/encuadrelegal/listar", obtenerEncuadresLegales);
+router.put("/encuadrelegal/editar", editarEncuadreLegal);
+router.post("/encuadrelegal/agregar", agregarEncuadreLegal);
+router.delete("/encuadrelegal/eliminar/:idEliminar", eliminarEncuadreLegal);
+
 
 
 module.exports = router;
