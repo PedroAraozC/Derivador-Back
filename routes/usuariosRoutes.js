@@ -19,7 +19,8 @@ const {
   obtenerOpcionesHabilitadas,
   editarClave,
   restablecerClave,
-  desactivarUsuario
+  desactivarUsuario,
+  enviarEmailMulta
 } = require("../controllers/usuariosControllers");
 
 const verifyRole = require("../middlewares/verifyRole");
@@ -46,7 +47,7 @@ router.post(
 // router.post("/alta", auth, verifyRole, agregarUsuario);
 router.get("/authStatus", auth, getAuthStatus);
 router.get("/listar/:id?", auth, verifyRole, obtenerUsuarios);
-router.get("/permisos/:id?", auth, obtenerPermisos);
+router.get("/permisos/:idTusuario/:idPersona", auth, obtenerPermisos);
 router.get("/opciones", auth, obtenerOpcionesHabilitadas);
 // router.put("/:id",auth,verifyRole,editarUsuario)
 router.delete(
@@ -64,5 +65,6 @@ router.put("/restablecerClave", restablecerClave);
 router.post("/registro", agregarUsuarioMYSQL);
 router.put("/email", enviarEmailValidacion);
 router.patch("/desactivar", desactivarUsuario);
+router.post("/consultaMulta", enviarEmailMulta);
 
 module.exports = router;

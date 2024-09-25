@@ -27,6 +27,11 @@ const turnosRoutes = require("./routes/turnosRoutes");
 const patrimonioRoutes = require("./routes/patrimonioRoutes");
 const gerenciaDatosRoutes=require("./routes/gerenciaDatosRoutes");
 
+//pedro Back
+const boletinRoutes = require("./routes/boletinRoutes");
+const normaRoutes = require("./routes/normaRoutes");
+const origenRoutes = require("./routes/origenRoutes.js");
+//
 const PORT = process.env.PORT;
 
 app.use(morgan("dev"));
@@ -46,18 +51,22 @@ app.use("/turnos", turnosRoutes);
 app.use("/patrimonio", patrimonioRoutes);
 app.use("/gerenciaDatos",gerenciaDatosRoutes);
 
+//pedro back
+app.use("/boletin", boletinRoutes);
+app.use("/norma", normaRoutes);
+app.use("/origen", origenRoutes);
+//
 
 // const options = {
-//   key: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),
-//   cert: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),
-//   // ca: fs.readFileSync('/opt/psa/var/certificates/scfqdiDyQ') // si tienes un archivo CA bundle
-// };
+//     key: fs.readFileSync('./scfg0cbqs'),
+//     cert: fs.readFileSync('./scfg0cbqs'),
+//     //ca: fs.readFileSync('/opt/psa/var/certificates/scfqdiDyQ') // si tienes un archivo CA bundle
+//   };
+  
+//   https.createServer(options, app).listen(5000, () => {
+//     console.log(`server listening on port 5000`);
+//   });
 
-// https.createServer(options, app).listen(PORT, () => {
-//   console.log(`server listening on port ${PORT}`);
-// });
-
-
-app.listen(3000, () => {
-  console.log(`server listening on port 3000`);
-});
+  app.listen(3050, () => {
+    console.log(`server listening on port 3050`);
+  });
