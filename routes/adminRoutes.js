@@ -9,7 +9,7 @@ const uploadPath = '../tempUploads';
 const pdfPath = '../pdf';
 const app = express();
 const router = Router();
-const {agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacion, listarContratacionBack, borrarContratacion, editarContratacion, editarAnexo, listarContratacionPorId, listarPatrimonioBack, listarCategoriaPatrimonioBack, listarTipologiaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarAutorPatrimonioBack, listarUbicacionPatrimonioBack, agregarPatrimonio, deshabilitarPatrimonio, agregarAutorPatrimonio, agregarEstadoPatrimonio, agregarMaterialPatrimonio, agregarTipologiaPatrimonio, agregarCategoriaPatrimonio, agregarUbicacionPatrimonio, editarPatrimonio, agregarGenero, editarGenero, listarGenero, listarTiposDeUsuario, agregarTipoDeUsuario, editarTipoDeUsuario, listarTipoDoc, agregarTipoDoc, editarTipoDoc, listarReparticion, agregarReparticion, editarReparticion, listarProcesos, actualizarPermisosTUsuario, listarPermisosPorTUsuarios, actualizarPermisosPorTUsuario, listarEmpleados, cambiarTipoDeUsuario, actualizarPermisosEspecificos, listarProcesosSinId, existeEnPermisosPersona, listarTareas, obtenerImagenes 
+const {crearPatrimonioImagenes, agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacion, listarContratacionBack, borrarContratacion, editarContratacion, editarAnexo, listarContratacionPorId, listarPatrimonioBack, listarCategoriaPatrimonioBack, listarTipologiaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarAutorPatrimonioBack, listarUbicacionPatrimonioBack, agregarPatrimonio, deshabilitarPatrimonio, agregarAutorPatrimonio, agregarEstadoPatrimonio, agregarMaterialPatrimonio, agregarTipologiaPatrimonio, agregarCategoriaPatrimonio, agregarUbicacionPatrimonio, editarPatrimonio, agregarGenero, editarGenero, listarGenero, listarTiposDeUsuario, agregarTipoDeUsuario, editarTipoDeUsuario, listarTipoDoc, agregarTipoDoc, editarTipoDoc, listarReparticion, agregarReparticion, editarReparticion, listarProcesos, actualizarPermisosTUsuario, listarPermisosPorTUsuarios, actualizarPermisosPorTUsuario, listarEmpleados, cambiarTipoDeUsuario, actualizarPermisosEspecificos, listarProcesosSinId, existeEnPermisosPersona, listarTareas, obtenerImagenes 
 , editarPatrimonioImagenes} = require("../controllers/adminControllers");
 
 // Configurar multer para manejar la carga de archivos (deberías incluir estas configuraciones también)
@@ -39,7 +39,8 @@ const storage = multer.diskStorage({
     cb(null, uploadPath); // Usa la variable uploadPath
   },
   filename: function (req, file, cb) {
-    cb(null, file.originalname);
+    const nombrePatrimonio = req.body.nombre_patrimonio; // Asegúrate de que esto existe
+    cb(null, `${nombrePatrimonio}-${Date.now()}${path.extname(file.originalname)}`);
   }
 });
 
@@ -48,7 +49,9 @@ const storagePatrimonio = multer.diskStorage({
     cb(null, pdfPath);
   },
   filename: (req, file, cb) => {
+    console.log(req)
     const { nombre_patrimonio } = req.body;
+    // console.log(req)
     if (!nombre_patrimonio) {
       return cb(new Error('nombre_patrimonio no está definido en el cuerpo de la solicitud'));
     }
@@ -76,10 +79,16 @@ cb(null, nombreArchivo);
 
 
 const upload = multer({ 
+
+  
   storage: storage,
-  limits: { fileSize: 1000000 } // Limite de tamaño de archivo
+  limits: { fileSize: 1000000 } ,
+  
+
+  
 });
 const uploadAnexo = multer({ storage: storageAnexo });
+
 const uploadPatrimonio = multer({ 
   storage: storagePatrimonio,
   fileFilter: (req, file, cb) => {
@@ -259,7 +268,8 @@ router.get("/listarEstados", listarEstadoPatrimonioBack);
 router.get("/listarAutores", listarAutorPatrimonioBack);
 router.get("/listarUbicaciones", listarUbicacionPatrimonioBack);
 router.get("/obtenerImagenes", obtenerImagenes);
-router.post("/agregarPatrimonio", uploadPatrimonio.single('archivo'), agregarPatrimonio);
+router.post("/agregarPatrimonio",agregarPatrimonio);
+router.post('/crearPatrimonioImagenes', parseMultipartFormData, crearPatrimonioImagenes);
 router.post("/editarPatrimonio", editarPatrimonio);
 router.post('/editarPatrimonioImagenes', parseMultipartFormData, editarPatrimonioImagenes);
 

@@ -1368,8 +1368,10 @@ const agregarUbicacionPatrimonio = async (req, res) => {
 };
 
 const agregarPatrimonio = async (req, res) => {
+
   let connection;
-  try {
+  try { 
+   
     const {
       nombre_patrimonio,
       anio_emplazamiento,
@@ -1382,81 +1384,129 @@ const agregarPatrimonio = async (req, res) => {
       id_autor,
       id_ubicacion,
       latylon,
-      imagen_carrousel_1,
-      imagen_carrousel_2,
-      imagen_carrousel_3,
       habilita,
+     
     } = req.body;
 
-    const archivo = req.file;
-    console.log("Archivo:", archivo);
+    console.log(req)
 
-    if (!archivo) {
-      return res.status(400).json({ message: "Por favor, adjunta un archivo" });
+ 
+    const nombre_archivo = nombre_patrimonio;
+
+    const sql =
+    ('INSERT INTO patrimonio (nombre_patrimonio, anio_emplazamiento, descripcion, origen, id_categoria, id_tipologia, id_material, id_estado, id_autor, id_ubicacion, latylon, nombre_archivo, habilita) VALUES (?, ?, ?, ?, ?, ? , ?, ?, ?, ?, ?, ?, ?)' ) 
+    const values = [nombre_patrimonio,
+    anio_emplazamiento,
+    descripcion,
+    origen,
+    id_categoria,
+    id_tipologia,
+    id_material,
+    id_estado,
+    id_autor,
+    id_ubicacion,
+    latylon,
+    nombre_archivo,
+    habilita
+  ];
+
+  connection = await conectarSMTPatrimonio();
+  const [patrimonio] = await connection.execute(sql,values);
+  res.status(201).json({
+    message: "Patrimonio subido con éxito"
+  });
+  } catch (error) {
+    console.error('Error al subir el patrimonio:', error);
+    if (error.response) {
+      console.error('Error del servidor:', error.response.data);
+    }
+  } 
+};
+
+  // let sftp;
+  // let db;
+  // db = await conectarSMTPatrimonio();
+  
+  // try {
+  //   const { id_patrimonio, nombre_patrimonio } = req.body;
+  //   const newImage = req.files;
+  //   console.log(newImage)
+  //   const archivosKeys = Object.keys(newImage);
+  
+  
+
+  //   // 1. Obtener la imagen actual del patrimonio de la base de datos
+  //   const [patrimonio] = await db.query('SELECT nombre_archivo FROM patrimonio WHERE id_patrimonio = ?', [id_patrimonio]);
+  // if (!patrimonio.length) {
+  //     return res.status(404).json({ message: 'Patrimonio no encontrado' });
+  //   }
+
+  //   sftp = await conectarSFTPCondor();
+  //   for (let key of archivosKeys) {
+  //     let archivo = newImage[key];
+
+  //     // Verificar si la clave corresponde a un archivo de carrousel
+      
+  //     if (key.includes('imagen_card')) {
+  //       await procesarImagen(archivo, '_card', sftp, nombre_patrimonio);
+  //     }
+  //     if (key.includes('imagen_carrousel_1')) {
+  //       await procesarImagen(archivo, '_1', sftp, nombre_patrimonio);
+  //     }
+  //     if (key.includes('imagen_carrousel_2')) {
+  //       await procesarImagen(archivo, '_2', sftp, nombre_patrimonio);
+  //     }
+  //     if (key.includes('imagen_carrousel_3')) {
+  //       await procesarImagen(archivo, '_3', sftp, nombre_patrimonio);
+  //     }
+  //   }
+
+  //   res.status(200).json({ message: 'Imagen actualizada correctamente.'});
+ 
+  // } catch (error) {
+  //   res.status(500).json({ message: error.message || 'Algo salió mal :(' });
+  // } finally {
+  //   if (sftp) sftp.end(); // Asegúrate de cerrar la conexión SFTP
+  // }
+// };
+
+
+const crearPatrimonioImagenes = async (req, res) => {
+  let sftp;
+  
+  try {
+    const { nombre_patrimonio } = req.body;
+    const newImage = req.files;
+    console.log(newImage)
+    const archivosKeys = Object.keys(newImage);
+  
+
+    sftp = await conectarSFTPCondor();
+    for (let key of archivosKeys) {
+      let archivo = newImage[key];
+
+      // Verificar si la clave corresponde a un archivo de carrousel
+      
+      if (key.includes('imagen_card')) {
+        await procesarImagen(archivo, '_card', sftp, nombre_patrimonio);
+      }
+      if (key.includes('imagen_carrousel_1')) {
+        await procesarImagen(archivo, '_1', sftp, nombre_patrimonio);
+      }
+      if (key.includes('imagen_carrousel_2')) {
+        await procesarImagen(archivo, '_2', sftp, nombre_patrimonio);
+      }
+      if (key.includes('imagen_carrousel_3')) {
+        await procesarImagen(archivo, '_3', sftp, nombre_patrimonio);
+      }
     }
 
-    // Obtener el nombre del archivo cargado
-    const nombre_archivo = archivo.filename;
-    console.log("Nombre archivo:", nombre_archivo);
-    // Obtener el último id_patrimonio de la tabla
-    connection = await conectarSMTPatrimonio();
-    const [lastIdResult] = await connection.query(
-      "SELECT MAX(id_patrimonio) AS max_id FROM patrimonio"
-    );
-    console.log("Last ID result:", lastIdResult);
-    let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_patrimonio
-    console.log("Next ID:", nextId);
-    // Query para insertar una nuevo patrimonio
-    const sql =
-      "INSERT INTO patrimonio (id_patrimonio, nombre_patrimonio, anio_emplazamiento, descripcion, origen, id_categoria, id_tipologia, id_material, id_estado, id_autor, id_ubicacion, latylon, nombre_archivo, habilita, imagen_carrousel_1, imagen_carrousel_2, imagen_carrousel_3 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    const values = [
-      nextId,
-      nombre_patrimonio,
-      anio_emplazamiento,
-      descripcion,
-      origen,
-      id_categoria,
-      id_tipologia,
-      id_material,
-      id_estado,
-      id_autor,
-      id_ubicacion,
-      latylon,
-      nombre_archivo,
-      habilita,
-      imagen_carrousel_1,
-      imagen_carrousel_2,
-      imagen_carrousel_3,
-    ];
-    console.log(values);
-    // Ejecutar la consulta SQL para insertar la nueva convocatoria
-    await connection.execute(sql, values);
-    // const ftpClient = await conectarFTPCiudadano();
-    const sftpClient = await conectarSFTPCondor();
-    // const remoteFilePath = `/Fotos-Patrimonio/${nombre_archivo}`;
-    const remoteFilePath = `/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/${nombre_archivo}`;
-    const localFilePath = path.join("./pdf", nombre_archivo);
-    console.log("Remote file path:", remoteFilePath);
-    console.log("Local file path:", localFilePath);
-    // Subir la imagen al servidor FTP
-    // await ftpClient.uploadFrom(localFilePath, remoteFilePath);
-    await sftpClient.put(localFilePath, remoteFilePath);
-
-    // Eliminar la imagen local después de subirla
-    fs.unlinkSync(localFilePath);
-    // await ftpClient.close();
-    await sftpClient.end();
-    res.status(201).json({
-      message: "Patrimonio creado con éxito",
-      id: nextId,
-      num_patrimonio: nextId,
-    });
+    res.status(200).json({ message: 'Imagen actualizada correctamente.'});
+ 
   } catch (error) {
-    console.error("Error:", error);
-    // res.status(500).json({ message: error.message || "Algo salió mal :(" });
-    res.status(500).json(error);
+    res.status(500).json({ message: error.message || 'Algo salió mal :(' });
   } finally {
-    connection.end();
+    if (sftp) sftp.end(); // Asegúrate de cerrar la conexión SFTP
   }
 };
 
@@ -1507,7 +1557,7 @@ const editarPatrimonio = async (req, res) => {
       oldName,
     } = req.body;
 
-    console.log(req.body)
+
 
  
     const nombre_archivo = nombre_patrimonio;
@@ -1804,4 +1854,5 @@ module.exports = {
   listarProcesosSinId,
   existeEnPermisosPersona,
   editarPatrimonioImagenes,
+  crearPatrimonioImagenes,
 };
