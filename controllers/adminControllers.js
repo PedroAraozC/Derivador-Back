@@ -1472,110 +1472,148 @@ const crearPatrimonioImagenes = async (req, res) => {
     if (sftp) sftp.end(); // Asegúrate de cerrar la conexión SFTP
   }
 };
-const comprobarExistenciaArchivo = async (ruta) => {
-  let sftp;
-  try {
-    sftp = await conectarSFTPCondor();
-    const fileExists = await sftp.exists(ruta);
-    return fileExists; // Retorna true o false
-  } catch (error) {
-    console.error(`Error al comprobar el archivo: ${error.message}`);
-    return false; // O manejar el error de otra manera
-  } finally {
-    sftp.end(); // Cierra la conexión SFTP
-  }
-}
-async function obtenerImagenes(nombreArchivo) {
-  console.log(nombreArchivo.query)
-  const imagenes = [
-    `${nombreArchivo.query.nombreArchivo}_card.jpg`,
-    `${nombreArchivo.query.nombreArchivo}_1.jpg`,
-    `${nombreArchivo.query.nombreArchivo}_2.jpg`,
-    `${nombreArchivo.query.nombreArchivo}_3.jpg`,
-  ];
- console.log(imagenes, "hola")
-  for (const imagen of imagenes) {
-    const rutaRemota = `/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/${imagen}`;
-    try {
-
-      const existe = await comprobarExistenciaArchivo(rutaRemota); // Implementa esta función para verificar la existencia
-      if (!existe) {
-        console.error(`Image not found: ${rutaRemota}`);
-      } else {
-        console.log(`Image found: ${rutaRemota}`);
-        // Lógica para procesar la imagen
-      }
-    } catch (error) {
-      console.error(`Error processing ${imagen}: ${error.message}`);
-    }
-  }
-}
-
-
 const obtenerImagenesPatri = async (req, res) => {
-  let connection;
+  let sftp;
+  const nombreArchivo = req.query.nombreArchivo; // obtener el nombre base del archivo desde los parámetros de la consulta
+  console.log(nombreArchivo, "Nombre archivo recibido");
+
+  const archivosBuscados = [
+    `${nombreArchivo}_card`,
+    `${nombreArchivo}_1`,
+    `${nombreArchivo}_2`,
+    `${nombreArchivo}_3`
+  ];
+
   try {
-    connection = await conectarSFTPCondor();
-    const { nombreArchivo } = req.query;
-console.log(nombreArchivo)
-    if (!nombreArchivo) {
-      return res.status(400).send("No image specified");
+    // Conexión al servidor SFTP
+    sftp = await conectarSFTPCondor();
+    const remotePath = '/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/'; // Cambia a la ruta donde están las imágenes
+
+    // Obtener la lista de archivos en el directorio remoto
+    const archivosRemotos = await sftp.list(remotePath);
+
+    // Crear un objeto para almacenar las imágenes encontradas
+    const imagenesEncontradas = {};
+
+    // Filtrar archivos que coincidan con los nombres esperados en una sola pasada
+    for (const archivoRemoto of archivosRemotos) {
+      const nombreSinExtension = archivoRemoto.name.split('.')[0]; // Nombre sin la extensión
+
+      // Si el nombre coincide con uno de los archivos buscados
+      if (archivosBuscados.includes(nombreSinExtension)) {
+        // Obtener el archivo como Buffer
+        const remoteFilePath = `${remotePath}${archivoRemoto.name}`;
+        const buffer = await sftp.get(remoteFilePath);
+        
+        // Convertir la imagen a base64
+        const base64Image = buffer.toString('base64');
+
+        // Guardar la imagen en el objeto
+        imagenesEncontradas[nombreSinExtension] = {
+          nombre: archivoRemoto.name,
+          imagen: base64Image
+        };
+      }
     }
 
-    // Define los nombres de los archivos a buscar
-    const fileNames = [
-      `${nombreArchivo}_card`,
-      `${nombreArchivo}_1`,
-      `${nombreArchivo}_2`,
-      `${nombreArchivo}_3`
-    ].map(name => `${name}.jpg`); // Cambia la extensión según corresponda
-
-    console.log(`Requested file names: ${fileNames}`);
-
-    // Array para almacenar los streams de archivos
-    const fileStreams = [];
-
-    // Intenta obtener cada archivo
-    for (const fileName of fileNames) {
-      const remoteImagePath = `/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/${fileName}`;
-      console.log(`Requested remote image path: ${remoteImagePath}`);
-
-      // Crea un flujo de lectura para el archivo
-      const fileStream = connection.createReadStream(remoteImagePath);
-
-      fileStream.on('error', (err) => {
-        console.warn("Image not found:", remoteImagePath, "Error details:", err);
+    // Si no se encontró ninguna imagen específica, buscar la imagen base
+    if (Object.keys(imagenesEncontradas).length === 0) {
+      const imagenBase = archivosRemotos.find(archivoRemoto => {
+        const nombreSinExtension = archivoRemoto.name.split('.')[0];
+        return nombreSinExtension === nombreArchivo; // Buscar la imagen base
       });
 
-      // Almacena el flujo de archivos
-      fileStreams.push(fileStream);
+      if (imagenBase) {
+        const remoteFilePath = `${remotePath}${imagenBase.name}`;
+        const buffer = await sftp.get(remoteFilePath);
+        const base64Image = buffer.toString('base64');
+        imagenesEncontradas[nombreArchivo] = {
+          nombre: imagenBase.name,
+          imagen: base64Image
+        };
+      }
     }
 
-    // Espera a que todos los flujos de archivos estén listos
-    Promise.all(fileStreams.map(stream => new Promise((resolve, reject) => {
-      stream.on('data', () => resolve());
-      stream.on('error', () => reject());
-    })))
-    .then(() => {
-      // Envía los archivos como respuesta
-      res.setHeader('Content-Type', 'application/json');
-      res.send(fileStreams.map((stream, index) => {
-        return {
-          filename: fileNames[index],
-          stream: stream // Este campo se puede eliminar si solo necesitas los nombres
-        };
-      }));
-    })
-    .catch((error) => {
-      console.error("Error processing file streams:", error);
-      res.status(500).send("Internal server error");
-    });
-
+    // Devolver las imágenes encontradas
+    res.json(Object.values(imagenesEncontradas));
   } catch (error) {
-    console.error("Algo salió mal :(", error);
-    res.status(500).send("Internal server error");
+    console.error("Error fetching images:", error);
+    res.status(500).json({ error: "Error fetching images" });
+  } finally {
+    // Cerrar la conexión SFTP
+    if (sftp) {
+      sftp.end();
+    }
   }
 };
+
+
+
+
+// const obtenerImagenesPatri = async (req, res) => {
+//   let connection;
+//   try {
+//     connection = await conectarSFTPCondor();
+//     const { nombreArchivo } = req.query;
+// console.log(nombreArchivo)
+//     if (!nombreArchivo) {
+//       return res.status(400).send("No image specified");
+//     }
+
+//     // Define los nombres de los archivos a buscar
+//     const fileNames = [
+//       `${nombreArchivo}_card`,
+//       `${nombreArchivo}_1`,
+//       `${nombreArchivo}_2`,
+//       `${nombreArchivo}_3`
+//     ].map(name => `${name}.jpg`); // Cambia la extensión según corresponda
+
+//     console.log(`Requested file names: ${fileNames}`);
+
+//     // Array para almacenar los streams de archivos
+//     const fileStreams = [];
+
+//     // Intenta obtener cada archivo
+//     for (const fileName of fileNames) {
+//       const remoteImagePath = `/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/${fileName}`;
+//       console.log(`Requested remote image path: ${remoteImagePath}`);
+
+//       // Crea un flujo de lectura para el archivo
+//       const fileStream = connection.createReadStream(remoteImagePath);
+
+//       fileStream.on('error', (err) => {
+//         console.warn("Image not found:", remoteImagePath, "Error details:", err);
+//       });
+
+//       // Almacena el flujo de archivos
+//       fileStreams.push(fileStream);
+//     }
+
+//     // Espera a que todos los flujos de archivos estén listos
+//     Promise.all(fileStreams.map(stream => new Promise((resolve, reject) => {
+//       stream.on('data', () => resolve());
+//       stream.on('error', () => reject());
+//     })))
+//     .then(() => {
+//       // Envía los archivos como respuesta
+//       res.setHeader('Content-Type', 'application/json');
+//       res.send(fileStreams.map((stream, index) => {
+//         return {
+//           filename: fileNames[index],
+//           stream: stream // Este campo se puede eliminar si solo necesitas los nombres
+//         };
+//       }));
+//     })
+//     .catch((error) => {
+//       console.error("Error processing file streams:", error);
+//       res.status(500).send("Internal server error");
+//     });
+
+//   } catch (error) {
+//     console.error("Algo salió mal :(", error);
+//     res.status(500).send("Internal server error");
+//   }
+// };
 
 const editarPatrimonio = async (req, res) => {
   let connection;
@@ -1839,7 +1877,7 @@ const deshabilitarPatrimonio = async (req, res) => {
 //-----------PATRIMOINIO MUNICIPAL--------------
 
 module.exports = {
-  obtenerImagenes,
+  // obtenerImagenes,
   agregarOpcion,
   borrarOpcion,
   agregarProceso,
@@ -1892,5 +1930,5 @@ module.exports = {
   existeEnPermisosPersona,
   editarPatrimonioImagenes,
   crearPatrimonioImagenes,
-  obtenerImagenesPatri
+obtenerImagenesPatri
 };
