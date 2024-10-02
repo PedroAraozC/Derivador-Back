@@ -9,7 +9,7 @@ const uploadPath = '../tempUploads';
 const pdfPath = '../pdf';
 const app = express();
 const router = Router();
-const {crearPatrimonioImagenes, agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacion, listarContratacionBack, borrarContratacion, editarContratacion, editarAnexo, listarContratacionPorId, listarPatrimonioBack, listarCategoriaPatrimonioBack, listarTipologiaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarAutorPatrimonioBack, listarUbicacionPatrimonioBack, agregarPatrimonio, deshabilitarPatrimonio, agregarAutorPatrimonio, agregarEstadoPatrimonio, agregarMaterialPatrimonio, agregarTipologiaPatrimonio, agregarCategoriaPatrimonio, agregarUbicacionPatrimonio, editarPatrimonio, agregarGenero, editarGenero, listarGenero, listarTiposDeUsuario, agregarTipoDeUsuario, editarTipoDeUsuario, listarTipoDoc, agregarTipoDoc, editarTipoDoc, listarReparticion, agregarReparticion, editarReparticion, listarProcesos, actualizarPermisosTUsuario, listarPermisosPorTUsuarios, actualizarPermisosPorTUsuario, listarEmpleados, cambiarTipoDeUsuario, actualizarPermisosEspecificos, listarProcesosSinId, existeEnPermisosPersona, listarTareas 
+const {crearPatrimonioImagenes, agregarOpcion, borrarOpcion, agregarProceso, listarTipoContratacion, listarTipoInstrumento, agregarContratacion, agregarAnexo, listarContratacion, listarContratacionBack, borrarContratacion, editarContratacion, editarAnexo, listarContratacionPorId, listarPatrimonioBack, listarCategoriaPatrimonioBack, listarTipologiaPatrimonioBack, listarMaterialPatrimonioBack, listarEstadoPatrimonioBack, listarAutorPatrimonioBack, listarUbicacionPatrimonioBack, agregarPatrimonio, deshabilitarPatrimonio, agregarAutorPatrimonio, agregarEstadoPatrimonio, agregarMaterialPatrimonio, agregarTipologiaPatrimonio, agregarCategoriaPatrimonio, agregarUbicacionPatrimonio, editarPatrimonio, agregarGenero, editarGenero, listarGenero, listarTiposDeUsuario, agregarTipoDeUsuario, editarTipoDeUsuario, listarTipoDoc, agregarTipoDoc, editarTipoDoc, listarReparticion, agregarReparticion, editarReparticion, listarProcesos, actualizarPermisosTUsuario, listarPermisosPorTUsuarios, actualizarPermisosPorTUsuario, listarEmpleados, cambiarTipoDeUsuario, actualizarPermisosEspecificos, listarProcesosSinId, existeEnPermisosPersona, listarTareas, obtenerImagenCard 
 , editarPatrimonioImagenes,
 obtenerImagenesPatri} = require("../controllers/adminControllers");
 
@@ -270,6 +270,7 @@ router.get("/listarAutores", listarAutorPatrimonioBack);
 router.get("/listarUbicaciones", listarUbicacionPatrimonioBack);
 // router.get("/obtenerImagenes", obtenerImagenes);
 router.get("/obtenerImagenesPatri", obtenerImagenesPatri);
+router.get("/obtenerImagenCard", obtenerImagenCard);
 router.post("/agregarPatrimonio",agregarPatrimonio);
 router.post('/crearPatrimonioImagenes', parseMultipartFormData, crearPatrimonioImagenes);
 router.post("/editarPatrimonio", editarPatrimonio);

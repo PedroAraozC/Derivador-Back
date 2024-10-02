@@ -1534,8 +1534,11 @@ const obtenerImagenesPatri = async (req, res) => {
       }
     }
 
-    // Devolver las imágenes encontradas
-    res.json(Object.values(imagenesEncontradas));
+    // Ordenar las imágenes encontradas según el orden de archivosBuscados
+    const imagenesOrdenadas = archivosBuscados.map(nombreBuscado => imagenesEncontradas[nombreBuscado]).filter(Boolean);
+
+    // Devolver las imágenes ordenadas
+    res.json(imagenesOrdenadas);
   } catch (error) {
     console.error("Error fetching images:", error);
     res.status(500).json({ error: "Error fetching images" });
@@ -1547,7 +1550,57 @@ const obtenerImagenesPatri = async (req, res) => {
   }
 };
 
+const obtenerImagenCard = async (req, res) => {
+  let sftp;
+  const archivosBuscados = req.query.archivosBuscados; // Recibe un array de nombres de archivos desde el frontend
+  console.log(archivosBuscados, "Nombres de archivos recibidos");
 
+  try {
+    // Conexión al servidor SFTP
+    sftp = await conectarSFTPCondor();
+    const remotePath = '/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/'; // Cambia a la ruta donde están las imágenes
+
+    // Obtener la lista de archivos en el directorio remoto
+    const archivosRemotos = await sftp.list(remotePath);
+
+    // Crear un objeto para almacenar las imágenes encontradas
+    const imagenesEncontradas = {};
+
+    // Crear un conjunto para facilitar la búsqueda de imágenes
+    const archivosRemotosSet = new Set(archivosRemotos.map(archivo => archivo.name.split('.')[0])); // Guardamos solo el nombre sin extensión
+
+    for (const nombreArchivo of archivosBuscados) {
+      const archivoEsperado = `${nombreArchivo}_card`;
+
+      // Verificar si el nombre del archivo esperado está en el conjunto
+      if (archivosRemotosSet.has(archivoEsperado)) {
+        // Obtener el archivo que coincide con el nombre esperado, sin importar la extensión
+        const archivoRemoto = archivosRemotos.find(archivo => archivo.name.startsWith(archivoEsperado));
+
+        if (archivoRemoto) {
+          const remoteFilePath = `${remotePath}${archivoRemoto.name}`;
+          const buffer = await sftp.get(remoteFilePath);
+          const base64Image = buffer.toString('base64');
+
+          // Guardar la imagen en el objeto
+          imagenesEncontradas[nombreArchivo] = { [archivoEsperado]: base64Image };
+        }
+      }
+    }
+
+    // Verificar si se encontraron imágenes
+    if (Object.keys(imagenesEncontradas).length === 0) {
+      return res.status(404).json({ error: "No se encontraron imágenes" });
+    }
+
+    res.json(imagenesEncontradas);
+  } catch (error) {
+    console.error("Error fetching images:", error);
+    res.status(500).json({ error: "Error fetching images" });
+  } finally {
+    if (sftp) sftp.end();
+  }
+};
 
 
 // const obtenerImagenesPatri = async (req, res) => {
@@ -1930,5 +1983,6 @@ module.exports = {
   existeEnPermisosPersona,
   editarPatrimonioImagenes,
   crearPatrimonioImagenes,
-obtenerImagenesPatri
+obtenerImagenesPatri,
+obtenerImagenCard
 };
