@@ -25,6 +25,8 @@ const adminRoutes = require("./routes/adminRoutes");
 const macroRoutes = require("./routes/macroRoutes")
 const turnosRoutes = require("./routes/turnosRoutes");
 const patrimonioRoutes = require("./routes/patrimonioRoutes");
+const gerenciaDatosRoutes=require("./routes/gerenciaDatosRoutes");
+
 //pedro Back
 const boletinRoutes = require("./routes/boletinRoutes");
 const normaRoutes = require("./routes/normaRoutes");
@@ -47,6 +49,7 @@ app.use('/admin', adminRoutes)
 app.use("/macro",macroRoutes)
 app.use("/turnos", turnosRoutes);
 app.use("/patrimonio", patrimonioRoutes);
+app.use("/gerenciaDatos",gerenciaDatosRoutes);
 
 //pedro back
 app.use("/boletin", boletinRoutes);
@@ -60,10 +63,10 @@ app.use("/origen", origenRoutes);
 //     //ca: fs.readFileSync('/opt/psa/var/certificates/scfqdiDyQ') // si tienes un archivo CA bundle
 //   };
   
-  // https.createServer(app).listen(3000, () => {
-  //   console.log(`server listening on port 3000`);
-  // });
+//   https.createServer(options, app).listen(5000, () => {
+//     console.log(`server listening on port 5000`);
+//   });
 
-app.listen (3000, () => {
-  console.log("Server listening on port 3000")
-})
+  app.listen(3050, () => {
+    console.log(`server listening on port 3050`);
+  });

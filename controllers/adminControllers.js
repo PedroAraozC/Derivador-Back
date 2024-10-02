@@ -1481,13 +1481,13 @@ const obtenerImagenesPatri = async (req, res) => {
     `${nombreArchivo}_card`,
     `${nombreArchivo}_1`,
     `${nombreArchivo}_2`,
-    `${nombreArchivo}_3`
+    `${nombreArchivo}_3`,
   ];
 
   try {
     // Conexión al servidor SFTP
     sftp = await conectarSFTPCondor();
-    const remotePath = '/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/'; // Cambia a la ruta donde están las imágenes
+    const remotePath = "/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/"; // Cambia a la ruta donde están las imágenes
 
     // Obtener la lista de archivos en el directorio remoto
     const archivosRemotos = await sftp.list(remotePath);
@@ -1497,45 +1497,47 @@ const obtenerImagenesPatri = async (req, res) => {
 
     // Filtrar archivos que coincidan con los nombres esperados en una sola pasada
     for (const archivoRemoto of archivosRemotos) {
-      const nombreSinExtension = archivoRemoto.name.split('.')[0]; // Nombre sin la extensión
+      const nombreSinExtension = archivoRemoto.name.split(".")[0]; // Nombre sin la extensión
 
       // Si el nombre coincide con uno de los archivos buscados
       if (archivosBuscados.includes(nombreSinExtension)) {
         // Obtener el archivo como Buffer
         const remoteFilePath = `${remotePath}${archivoRemoto.name}`;
         const buffer = await sftp.get(remoteFilePath);
-        
+
         // Convertir la imagen a base64
-        const base64Image = buffer.toString('base64');
+        const base64Image = buffer.toString("base64");
 
         // Guardar la imagen en el objeto
         imagenesEncontradas[nombreSinExtension] = {
           nombre: archivoRemoto.name,
-          imagen: base64Image
+          imagen: base64Image,
         };
       }
     }
 
     // Si no se encontró ninguna imagen específica, buscar la imagen base
     if (Object.keys(imagenesEncontradas).length === 0) {
-      const imagenBase = archivosRemotos.find(archivoRemoto => {
-        const nombreSinExtension = archivoRemoto.name.split('.')[0];
+      const imagenBase = archivosRemotos.find((archivoRemoto) => {
+        const nombreSinExtension = archivoRemoto.name.split(".")[0];
         return nombreSinExtension === nombreArchivo; // Buscar la imagen base
       });
 
       if (imagenBase) {
         const remoteFilePath = `${remotePath}${imagenBase.name}`;
         const buffer = await sftp.get(remoteFilePath);
-        const base64Image = buffer.toString('base64');
+        const base64Image = buffer.toString("base64");
         imagenesEncontradas[nombreArchivo] = {
           nombre: imagenBase.name,
-          imagen: base64Image
+          imagen: base64Image,
         };
       }
     }
 
     // Ordenar las imágenes encontradas según el orden de archivosBuscados
-    const imagenesOrdenadas = archivosBuscados.map(nombreBuscado => imagenesEncontradas[nombreBuscado]).filter(Boolean);
+    const imagenesOrdenadas = archivosBuscados
+      .map((nombreBuscado) => imagenesEncontradas[nombreBuscado])
+      .filter(Boolean);
 
     // Devolver las imágenes ordenadas
     res.json(imagenesOrdenadas);
@@ -1558,7 +1560,7 @@ const obtenerImagenCard = async (req, res) => {
   try {
     // Conexión al servidor SFTP
     sftp = await conectarSFTPCondor();
-    const remotePath = '/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/'; // Cambia a la ruta donde están las imágenes
+    const remotePath = "/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/"; // Cambia a la ruta donde están las imágenes
 
     // Obtener la lista de archivos en el directorio remoto
     const archivosRemotos = await sftp.list(remotePath);
@@ -1567,7 +1569,9 @@ const obtenerImagenCard = async (req, res) => {
     const imagenesEncontradas = {};
 
     // Crear un conjunto para facilitar la búsqueda de imágenes
-    const archivosRemotosSet = new Set(archivosRemotos.map(archivo => archivo.name.split('.')[0])); // Guardamos solo el nombre sin extensión
+    const archivosRemotosSet = new Set(
+      archivosRemotos.map((archivo) => archivo.name.split(".")[0])
+    ); // Guardamos solo el nombre sin extensión
 
     for (const nombreArchivo of archivosBuscados) {
       const archivoEsperado = `${nombreArchivo}_card`;
@@ -1575,15 +1579,19 @@ const obtenerImagenCard = async (req, res) => {
       // Verificar si el nombre del archivo esperado está en el conjunto
       if (archivosRemotosSet.has(archivoEsperado)) {
         // Obtener el archivo que coincide con el nombre esperado, sin importar la extensión
-        const archivoRemoto = archivosRemotos.find(archivo => archivo.name.startsWith(archivoEsperado));
+        const archivoRemoto = archivosRemotos.find((archivo) =>
+          archivo.name.startsWith(archivoEsperado)
+        );
 
         if (archivoRemoto) {
           const remoteFilePath = `${remotePath}${archivoRemoto.name}`;
           const buffer = await sftp.get(remoteFilePath);
-          const base64Image = buffer.toString('base64');
+          const base64Image = buffer.toString("base64");
 
           // Guardar la imagen en el objeto
-          imagenesEncontradas[nombreArchivo] = { [archivoEsperado]: base64Image };
+          imagenesEncontradas[nombreArchivo] = {
+            [archivoEsperado]: base64Image,
+          };
         }
       }
     }
@@ -1601,7 +1609,6 @@ const obtenerImagenCard = async (req, res) => {
     if (sftp) sftp.end();
   }
 };
-
 
 // const obtenerImagenesPatri = async (req, res) => {
 //   let connection;
@@ -1790,11 +1797,26 @@ async function procesarImagen(archivo, carrouselKey, sftp, nombre) {
   });
 
   // Subir el archivo al servidor SFTP
-  const remotePath = `/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/${newFilename}`;
+  const remotePath = `/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/${nombre}`;
   try {
-    await sftp.fastPut(newPath, remotePath);
+    const remoteDirExists = await sftp.exists(remotePath);
+    if (!remoteDirExists) {
+      await sftp.mkdir(remotePath, true); // Crea la carpeta en el servidor SFTP
+      console.log(`Carpeta creada en el servidor SFTP: ${remotePath}`);
+    }
+  } catch (error) {
+    console.error(
+      `Error comprobando o creando la carpeta ${remotePath}:`,
+      error
+    );
+    throw error;
+  }
+
+  const rutaArchivo = `${remotePath}/${newFilename}`;
+  try {
+    await sftp.fastPut(newPath, rutaArchivo);
     console.log(
-      `Archivo ${newFilename} subido al servidor SFTP en: ${remotePath}`
+      `Archivo ${newFilename} subido al servidor SFTP en: ${rutaArchivo}`
     );
   } catch (error) {
     console.error(`Error subiendo ${newFilename} al servidor SFTP:`, error);
@@ -1983,6 +2005,6 @@ module.exports = {
   existeEnPermisosPersona,
   editarPatrimonioImagenes,
   crearPatrimonioImagenes,
-obtenerImagenesPatri,
-obtenerImagenCard
+  obtenerImagenesPatri,
+  obtenerImagenCard,
 };

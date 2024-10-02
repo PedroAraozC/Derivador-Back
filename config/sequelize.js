@@ -8,7 +8,8 @@ const sequelize = new Sequelize(
   process.env.PASSWORD_CIU_DIGITAL,
   {
     host: process.env.HOST_CIU_DIGITAL,
-    port: process.env.PORT_CIU_DIGITAL,
+    // port: process.env.PORT_CIU_DIGITAL,
+    port: 3306,
     dialect: "mysql",
     pool: {
       max: 30,

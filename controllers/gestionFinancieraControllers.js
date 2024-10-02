@@ -4,6 +4,7 @@ const DetMovimiento = require("../models/Financiera/DetMovimiento");
 const Movimiento = require("../models/Financiera/Movimiento");
 const Expediente = require("../models/Financiera/Expediente");
 const { obtenerFechaEnFormatoDate } = require("../utils/helpers");
+const DetMovimientoNomenclador = require("../models/Financiera/DetMovimientoNomenclador");
 
 const listarAnexos = async (req, res) => {
   let connection;
@@ -1109,7 +1110,8 @@ const partidaExistente = async (req, res) => {
 const agregarMovimiento = async (req, res) => {
   let transaction;
   try {
-    const { movimiento, detMovimiento,expediente, presupuesto } = req.body;
+    const { movimiento, detMovimiento,expediente, presupuesto, items, encuadreLegal } = req.body;
+console.log(items);
 
     transaction = await sequelize.transaction();
 
@@ -1132,7 +1134,8 @@ const agregarMovimiento = async (req, res) => {
       tipomovimiento_id: movimiento.tipomovimiento_id,
       tipoinstrumento_id: expediente.tipoDeInstrumento,
       instrumento_nro: expediente.numeroInstrumento,
-      presupuesto_id: presupuesto
+      presupuesto_id: presupuesto,
+      encuadrelegal_id: encuadreLegal
     };
 
     const nuevoMovimiento = await Movimiento.create(movimientoObj, {
@@ -1152,6 +1155,22 @@ const agregarMovimiento = async (req, res) => {
         { transaction }
       );
     }
+
+    for (const item of items) {
+      await DetMovimientoNomenclador.create(
+        {
+          movimiento_id: movimientoId,
+          nomenclador_id:item.nomenclador_id,
+          descripcion: item.descripcion,
+          cantidad: item.cantidad,
+          precio: item.precio,
+          total: item.total,
+          detPresupuesto_id: item.detPresupuesto_id
+        },
+        { transaction }
+      );
+    }
+
     await transaction.commit();
 
     res.status(200).json({ message: "Movimiento creado con éxito" });
@@ -1169,7 +1188,7 @@ const agregarMovimiento = async (req, res) => {
 const agregarMovimientoDefinitivaPreventiva = async (req, res) => {
   let transaction;
   try {
-    const { movimiento, detMovimiento,expediente, presupuesto , proveedor} = req.body;
+    const { movimiento, detMovimiento,expediente, presupuesto , proveedor, items, encuadreLegal} = req.body;
 
     transaction = await sequelize.transaction();
 
@@ -1181,7 +1200,8 @@ const agregarMovimientoDefinitivaPreventiva = async (req, res) => {
       presupuesto_id: presupuesto,
       tipoinstrumento_id: expediente.tipoDeInstrumento,
       instrumento_nro: expediente.numeroInstrumento,
-      proveedor_id: proveedor.id
+      proveedor_id: proveedor.id,
+      encuadrelegal_id: encuadreLegal
     };
 
     const nuevoMovimiento = await Movimiento.create(movimientoObj, {
@@ -1201,6 +1221,22 @@ const agregarMovimientoDefinitivaPreventiva = async (req, res) => {
         { transaction }
       );
     }
+
+    for (const item of items) {
+      await DetMovimientoNomenclador.create(
+        {
+          movimiento_id: movimientoId,
+          nomenclador_id:item.nomenclador_id,
+          descripcion: item.descripcion,
+          cantidad: item.cantidad,
+          precio: item.precio,
+          total: item.total,
+          detPresupuesto_id: item.detPresupuesto_id
+        },
+        { transaction }
+      );
+    }
+
     await transaction.commit();
 
     res.status(200).json({ message: "Movimiento creado con éxito" });
@@ -1330,7 +1366,7 @@ const obtenerPresupuestosParaMovimientoPresupuestario = async (req, res) => {
 
 
 const modificarMovimiento = async (req, res) => {
-  const {  movimiento, detMovimiento, proveedor } = req.body;
+  const {  movimiento, detMovimiento, proveedor, items, encuadreLegal } = req.body;
 
   let connection;
   try {
@@ -1338,6 +1374,7 @@ const modificarMovimiento = async (req, res) => {
     await connection.beginTransaction();
       // Paso 1: Eliminar los detalles de movimiento existentes para el movimiento
       await connection.query('DELETE FROM detmovimiento WHERE detmovimiento.movimiento_id = ?', [movimiento.id]);
+      await connection.query('DELETE FROM detmovimiento_nomenclador WHERE detmovimiento_nomenclador.movimiento_id = ?', [movimiento.id]);
 
       // Paso 2: Insertar los nuevos detalles de movimiento
       const insertPromises = detMovimiento.map(detalle => {
@@ -1345,10 +1382,20 @@ const modificarMovimiento = async (req, res) => {
           [movimiento.id,detalle.detPresupuesto_id,detalle.importe]);
       });
 
-  
+      const insertPromisesNomenclador = items.map(item => {
+        return connection.query('INSERT INTO detmovimiento_nomenclador (movimiento_id, nomenclador_id, descripcion,cantidad,precio,total,detPresupuesto_id) VALUES (?, ?, ?, ?, ?, ?, ?)', 
+        [movimiento.id,item.nomenclador_id,item.descripcion,item.cantidad,item.precio,item.total,item.detPresupuesto_id]);
+    });
+    
+    await Promise.all([...insertPromises, ...insertPromisesNomenclador]);
+    
+    if(proveedor.id !== ""){
       await connection.query("UPDATE movimiento SET proveedor_id = ? WHERE movimiento_id = ?",[proveedor.id, movimiento.id])
+    }
 
-      await Promise.all(insertPromises);
+    if(encuadreLegal != null){
+      await connection.query("UPDATE movimiento SET encuadrelegal_id = ? WHERE movimiento_id = ?",[encuadreLegal, movimiento.id])
+    }
 
       await connection.commit();
       res.status(200).json({ message: 'Movimiento actualizado correctamente' });
@@ -1384,7 +1431,7 @@ const buscarExpediente = async (req, res) => {
 
     // Primera consulta: Obtener los detalles del expediente
     const query1 = `
-    SELECT e.*, m.presupuesto_id,m.movimiento_id,m.movimiento_fecha,m.tipomovimiento_id,m.movimiento_id2,m.tipoinstrumento_id,m.instrumento_nro, prov.*, d.detmovimiento_id,d.detpresupuesto_id,d.detmovimiento_importe, dp.partida_id,dp.presupuesto_anteproyecto,dp.presupuesto_aprobado,dp.presupuesto_credito,dp.presupuesto_ampliaciones,dp.presupuesto_disminuciones, i.item_det,i.item_codigo, i.anexo_id, i.finalidad_id, i.funcion_id, i.item_fechainicio,i.item_fechafin,i.organismo_id
+    SELECT e.*, m.presupuesto_id,m.movimiento_id,m.movimiento_fecha,m.tipomovimiento_id,m.movimiento_id2,m.tipoinstrumento_id,m.instrumento_nro,m.encuadrelegal_id, prov.*, d.detmovimiento_id,d.detpresupuesto_id,d.detmovimiento_importe, dp.partida_id,dp.presupuesto_anteproyecto,dp.presupuesto_aprobado,dp.presupuesto_credito,dp.presupuesto_ampliaciones,dp.presupuesto_disminuciones, i.item_det,i.item_codigo, i.anexo_id, i.finalidad_id, i.funcion_id, i.item_fechainicio,i.item_fechafin,i.organismo_id
     FROM expediente AS e
     LEFT JOIN movimiento AS m ON e.expediente_id = m.expediente_id
     LEFT JOIN proveedores AS prov ON m.proveedor_id = prov.proveedor_id
@@ -1494,7 +1541,7 @@ const buscarExpedienteParaModificarDefinitiva = async (req, res) => {
     const anio = req.query.anio;
 
 
-    const query = `SELECT e.expediente_id,e.item_id,e.expediente_numero,e.expediente_anio,e.expediente_causante,e.expediente_asunto,e.expediente_fecha,e.expediente_detalle , m.presupuesto_id,m.movimiento_id,m.movimiento_fecha,m.tipomovimiento_id,m.movimiento_id2,m.tipoinstrumento_id,m.instrumento_nro,prov.*,
+    const query = `SELECT e.expediente_id,e.item_id,e.expediente_numero,e.expediente_anio,e.expediente_causante,e.expediente_asunto,e.expediente_fecha,e.expediente_detalle , m.presupuesto_id,m.movimiento_id,m.encuadrelegal_id,m.movimiento_fecha,m.tipomovimiento_id,m.movimiento_id2,m.tipoinstrumento_id,m.instrumento_nro,prov.*,
 ti.tipoinstrumento_det, d.detmovimiento_id,d.detpresupuesto_id,d.detpresupuesto_id2,d.detmovimiento_importe,dp.partida_id,dp.presupuesto_anteproyecto,dp.presupuesto_aprobado,dp.presupuesto_credito,dp.presupuesto_ampliaciones,dp.presupuesto_disminuciones,
 i.item_det,i.item_codigo, i.anexo_id, i.finalidad_id, i.funcion_id, i.item_fechainicio,i.item_fechafin,i.organismo_id
 FROM expediente AS e 
@@ -1510,6 +1557,31 @@ WHERE e.expediente_numero = ? AND m.tipomovimiento_id = ? AND e.expediente_anio 
 
 
     const [result] = await connection.execute(query, [numero, tipomovimiento_id, anio]);
+
+    console.log(result);
+
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+}
+
+const buscarExpedienteParaModificarNomenclador = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql();
+    const movimiento_id = req.query.movimiento_id;
+
+
+    const query = `SELECT * FROM detmovimiento_nomenclador AS det JOIN nomenclador AS nom ON det.nomenclador_id = nom.nomenclador_id JOIN partidas AS p ON nom.partida_id = p.partida_id WHERE movimiento_id = ?`;
+
+
+    const [result] = await connection.execute(query, [movimiento_id]);
 
     console.log(result);
 
@@ -1959,7 +2031,9 @@ const obtenerPerfilPorCuil = async (req, res) => {
       console.error(error);
       res.status(500).json({ message: error.message || 'Algo salió mal :(' });
   } finally {
+    if(connection){
       await connection.end();
+    }
   }
 };
 
@@ -2386,6 +2460,32 @@ const obtenerNomencladores = async (req, res) => {
   }
 };
 
+const obtenerEncuadres = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql(); // Conexión a la base de datos
+
+    // Consulta para obtener los nomencladores y realizar el JOIN con la tabla partidas
+    const sqlEncuadres = `
+      SELECT * FROM encuadrelegal`;
+
+    // Ejecutar la consulta
+    const [encuadres] = await connection.execute(sqlEncuadres);
+
+    // Enviar los resultados como respuesta
+    res.status(200).json({ encuadres });
+  } catch (error) {
+    // Manejo de errores detallado
+    console.error('Error al obtener los encuadres:', error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    // Cerrar la conexión a la base de datos
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
 const agregarNomenclador = async (req, res) => {
   let connection;
   try {
@@ -2507,6 +2607,132 @@ const eliminarNomenclador = async (req, res) => {
   }
 };
 
+
+//////////////////////////ENCUADRE LEGAL ///////////////////////////////////////
+
+const obtenerEncuadresLegales = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql(); // Conexión a la base de datos
+
+    const sqlEncuadresLegales = `SELECT * FROM encuadrelegal`;
+    const [encuadres] = await connection.execute(sqlEncuadresLegales);
+
+    if (encuadres.length > 0) {
+      res.status(200).json({ encuadres });
+    } else {
+      res.status(204).json({ message: "No hay datos disponibles" });
+    }
+  } catch (error) {
+    console.error('Error al obtener los encuadres legales:', error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
+const agregarEncuadreLegal = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql(); // Conexión a la base de datos
+
+    const { encuadrelegal_det } = req.body;
+
+    if (!encuadrelegal_det) {
+      return res.status(400).json({ message: "El detalle del encuadre legal es requerido", ok: false });
+    }
+
+    const sqlInsertEncuadre = `
+      INSERT INTO encuadrelegal (encuadrelegal_det)
+      VALUES (?)
+    `;
+
+    const [result] = await connection.execute(sqlInsertEncuadre, [encuadrelegal_det.toUpperCase()]);
+
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ message: "No se pudo agregar el encuadre legal", ok: false });
+    }
+
+    res.status(201).json({ message: "Encuadre legal agregado correctamente", ok: true });
+  } catch (error) {
+    console.error('Error al agregar el encuadre legal:', error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
+const editarEncuadreLegal = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql(); // Conexión a la base de datos
+
+    const { encuadrelegal_id, encuadrelegal_det } = req.body;
+
+    if (!encuadrelegal_id || !encuadrelegal_det) {
+      return res.status(400).json({ message: "Todos los campos son requeridos", ok: false });
+    }
+
+    const sqlUpdateEncuadre = `
+      UPDATE encuadrelegal
+      SET encuadrelegal_det = ?
+      WHERE encuadrelegal_id = ?
+    `;
+
+    const [result] = await connection.execute(sqlUpdateEncuadre, [encuadrelegal_det.toUpperCase(), encuadrelegal_id]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Encuadre legal no encontrado", ok: false });
+    }
+
+    res.status(200).json({ message: "Encuadre legal actualizado correctamente", ok: true });
+  } catch (error) {
+    console.error('Error al actualizar el encuadre legal:', error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
+const eliminarEncuadreLegal = async (req, res) => {
+  let connection;
+  try {
+    connection = await conectar_BD_GAF_MySql(); // Conexión a la base de datos
+
+    const { idEliminar } = req.params;
+
+    if (!idEliminar) {
+      return res.status(400).json({ message: "El ID del encuadre legal es requerido", ok: false });
+    }
+
+    const sqlEliminarEncuadre = `
+      DELETE FROM encuadrelegal WHERE encuadrelegal_id = ?
+    `;
+
+    const [result] = await connection.execute(sqlEliminarEncuadre, [idEliminar]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Encuadre legal no encontrado", ok: false });
+    }
+
+    res.status(200).json({ message: "Encuadre legal eliminado correctamente", ok: true });
+  } catch (error) {
+    console.error('Error al eliminar el encuadre legal:', error);
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
+  }
+};
+
+
 module.exports = {
   listarAnexos,
   agregarAnexo,
@@ -2571,7 +2797,8 @@ module.exports = {
   modificarMovimientoParaTransferenciaEntrePartidas,
   buscarExpedienteParaModificarPorTransferenciaEntrePartidas,
   obtenerNomencladores,
-  agregarNomenclador,editarNomenclador,eliminarNomenclador,listarPartidasConCodigoGasto
+  agregarNomenclador,editarNomenclador,eliminarNomenclador,listarPartidasConCodigoGasto,buscarExpedienteParaModificarNomenclador, obtenerEncuadres,
+ obtenerEncuadresLegales,agregarEncuadreLegal,editarEncuadreLegal,eliminarEncuadreLegal
 };
 
 
