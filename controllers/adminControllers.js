@@ -1487,7 +1487,7 @@ const obtenerImagenesPatri = async (req, res) => {
   try {
     // Conexión al servidor SFTP
     sftp = await conectarSFTPCondor();
-    const remotePath = "/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/"; // Cambia a la ruta donde están las imágenes
+    const remotePath = `/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/${nombreArchivo}/`; // Cambia a la ruta donde están las imágenes
 
     // Obtener la lista de archivos en el directorio remoto
     const archivosRemotos = await sftp.list(remotePath);
@@ -1560,120 +1560,54 @@ const obtenerImagenCard = async (req, res) => {
   try {
     // Conexión al servidor SFTP
     sftp = await conectarSFTPCondor();
-    const remotePath = "/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/"; // Cambia a la ruta donde están las imágenes
-
-    // Obtener la lista de archivos en el directorio remoto
-    const archivosRemotos = await sftp.list(remotePath);
+    const remotePath = "/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/"; // Ruta principal donde están las carpetas
 
     // Crear un objeto para almacenar las imágenes encontradas
     const imagenesEncontradas = {};
 
-    // Crear un conjunto para facilitar la búsqueda de imágenes
-    const archivosRemotosSet = new Set(
-      archivosRemotos.map((archivo) => archivo.name.split(".")[0])
-    ); // Guardamos solo el nombre sin extensión
-
     for (const nombreArchivo of archivosBuscados) {
-      const archivoEsperado = `${nombreArchivo}_card`;
+      const carpetaPatrimonio = `${remotePath}${nombreArchivo}/`; // Ruta de la carpeta del patrimonio
+      const archivoEsperado = `${nombreArchivo}_card`; // Nombre del archivo esperado
 
-      // Verificar si el nombre del archivo esperado está en el conjunto
-      if (archivosRemotosSet.has(archivoEsperado)) {
-        // Obtener el archivo que coincide con el nombre esperado, sin importar la extensión
-        const archivoRemoto = archivosRemotos.find((archivo) =>
-          archivo.name.startsWith(archivoEsperado)
-        );
+      // Verificar si la carpeta del patrimonio existe
+      const existeCarpeta = await sftp.exists(carpetaPatrimonio);
+      if (!existeCarpeta) {
+        console.log(`La carpeta ${carpetaPatrimonio} no existe.`);
+        continue; // Pasar al siguiente patrimonio
+      }
+      console.log(archivoEsperado, "archivoEsperado");
 
-        if (archivoRemoto) {
-          const remoteFilePath = `${remotePath}${archivoRemoto.name}`;
-          const buffer = await sftp.get(remoteFilePath);
-          const base64Image = buffer.toString("base64");
+      // Obtener la lista de archivos en la carpeta del patrimonio
+      const archivosRemotos = await sftp.list(carpetaPatrimonio);
+      console.log(archivosRemotos, "archivosRemotos");
+      // Buscar el archivo que coincide con el nombre esperado
+      const archivoRemoto = archivosRemotos.find((archivo) =>
+        archivo.name.startsWith(archivoEsperado)
+      );
 
-          // Guardar la imagen en el objeto
-          imagenesEncontradas[nombreArchivo] = {
-            [archivoEsperado]: base64Image,
-          };
-        }
+      if (archivoRemoto) {
+        const remoteFilePath = `${carpetaPatrimonio}${archivoRemoto.name}`;
+        const buffer = await sftp.get(remoteFilePath);
+        const base64Image = buffer.toString("base64");
+
+        // Guardar la imagen en el objeto
+        imagenesEncontradas[nombreArchivo] = {
+          [archivoEsperado]: base64Image,
+        };
       }
     }
 
-    // Verificar si se encontraron imágenes
-    if (Object.keys(imagenesEncontradas).length === 0) {
-      return res.status(404).json({ error: "No se encontraron imágenes" });
-    }
-
-    res.json(imagenesEncontradas);
+    // Devolver las imágenes encontradas
+    res.status(200).json({ imagenesEncontradas });
   } catch (error) {
-    console.error("Error fetching images:", error);
-    res.status(500).json({ error: "Error fetching images" });
+    console.error("Error al obtener imágenes:", error);
+    res
+      .status(500)
+      .json({ message: error.message || "Error al obtener imágenes." });
   } finally {
     if (sftp) sftp.end();
   }
 };
-
-// const obtenerImagenesPatri = async (req, res) => {
-//   let connection;
-//   try {
-//     connection = await conectarSFTPCondor();
-//     const { nombreArchivo } = req.query;
-// console.log(nombreArchivo)
-//     if (!nombreArchivo) {
-//       return res.status(400).send("No image specified");
-//     }
-
-//     // Define los nombres de los archivos a buscar
-//     const fileNames = [
-//       `${nombreArchivo}_card`,
-//       `${nombreArchivo}_1`,
-//       `${nombreArchivo}_2`,
-//       `${nombreArchivo}_3`
-//     ].map(name => `${name}.jpg`); // Cambia la extensión según corresponda
-
-//     console.log(`Requested file names: ${fileNames}`);
-
-//     // Array para almacenar los streams de archivos
-//     const fileStreams = [];
-
-//     // Intenta obtener cada archivo
-//     for (const fileName of fileNames) {
-//       const remoteImagePath = `/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/${fileName}`;
-//       console.log(`Requested remote image path: ${remoteImagePath}`);
-
-//       // Crea un flujo de lectura para el archivo
-//       const fileStream = connection.createReadStream(remoteImagePath);
-
-//       fileStream.on('error', (err) => {
-//         console.warn("Image not found:", remoteImagePath, "Error details:", err);
-//       });
-
-//       // Almacena el flujo de archivos
-//       fileStreams.push(fileStream);
-//     }
-
-//     // Espera a que todos los flujos de archivos estén listos
-//     Promise.all(fileStreams.map(stream => new Promise((resolve, reject) => {
-//       stream.on('data', () => resolve());
-//       stream.on('error', () => reject());
-//     })))
-//     .then(() => {
-//       // Envía los archivos como respuesta
-//       res.setHeader('Content-Type', 'application/json');
-//       res.send(fileStreams.map((stream, index) => {
-//         return {
-//           filename: fileNames[index],
-//           stream: stream // Este campo se puede eliminar si solo necesitas los nombres
-//         };
-//       }));
-//     })
-//     .catch((error) => {
-//       console.error("Error processing file streams:", error);
-//       res.status(500).send("Internal server error");
-//     });
-
-//   } catch (error) {
-//     console.error("Algo salió mal :(", error);
-//     res.status(500).send("Internal server error");
-//   }
-// };
 
 const editarPatrimonio = async (req, res) => {
   let connection;
@@ -1698,7 +1632,7 @@ const editarPatrimonio = async (req, res) => {
     const nombre_archivo = nombre_patrimonio;
 
     const sql =
-      "UPDATE patrimonio SET nombre_patrimonio = ?, anio_emplazamiento = ?, descripcion = ?, origen = ?, id_categoria = ?, id_tipologia = ?, id_material = ?, id_estado = ?, id_autor = ?, id_ubicacion = ?, latylon = ?, habilita = ? WHERE id_patrimonio = ?";
+      "UPDATE patrimonio SET nombre_patrimonio = ?, anio_emplazamiento = ?, descripcion = ?, origen = ?, id_categoria = ?, id_tipologia = ?, id_material = ?, id_estado = ?, id_autor = ?, id_ubicacion = ?, latylon = ?, nombre_archivo = ?, habilita = ? WHERE id_patrimonio = ?";
     const values = [
       nombre_patrimonio,
       anio_emplazamiento,
@@ -1711,6 +1645,7 @@ const editarPatrimonio = async (req, res) => {
       id_autor,
       id_ubicacion,
       latylon,
+      nombre_archivo,
       habilita,
       id_patrimonio,
     ];
@@ -1823,6 +1758,103 @@ async function procesarImagen(archivo, carrouselKey, sftp, nombre) {
     throw error;
   }
 }
+
+const renombrarPatrimonio = async (req, res) => {
+  let sftp;
+  let db;
+  db = await conectarSMTPatrimonio();
+
+  try {
+    const { id_patrimonio, nombre_antiguo, nombre_nuevo } = req.body;
+
+    // Verificar si los valores de nombre están definidos
+    if (!nombre_antiguo || !nombre_nuevo) {
+      return res
+        .status(400)
+        .json({ message: "Faltan datos para renombrar el patrimonio." });
+    }
+
+    // Verificar si el patrimonio existe
+    const [patrimonio] = await db.query(
+      "SELECT nombre_archivo FROM patrimonio WHERE id_patrimonio = ?",
+      [id_patrimonio]
+    );
+    if (!patrimonio.length) {
+      return res.status(404).json({ message: "Patrimonio no encontrado" });
+    }
+
+    // Conectar a SFTP
+    sftp = await conectarSFTPCondor();
+
+    // Definir el nombre de la carpeta original y la nueva
+    const oldFolderPath = `/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/${nombre_antiguo}`;
+    const newFolderPath = `/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/${nombre_nuevo}`;
+
+    const oldFolderExists = await sftp.exists(oldFolderPath);
+
+    if (!oldFolderExists) {
+      // Si no existe la carpeta antigua, crear la nueva
+      console.log(
+        `La carpeta ${oldFolderPath} no existe. Creando la carpeta con el nuevo nombre...`
+      );
+      await sftp.mkdir(newFolderPath, true); // Crear la carpeta nueva
+      console.log(`Carpeta ${newFolderPath} creada exitosamente.`);
+    } else {
+      // Verificar si la carpeta nueva ya existe
+      const newFolderExists = await sftp.exists(newFolderPath);
+      if (newFolderExists) {
+        // Si existe, eliminarla
+        console.log(`La carpeta ${newFolderPath} ya existe. Eliminándola...`);
+        await sftp.rmdir(newFolderPath, true); // Eliminar la carpeta nueva
+        console.log(`Carpeta ${newFolderPath} eliminada exitosamente.`);
+      }
+
+      // Renombrar la carpeta antigua a la nueva
+      await sftp.rename(oldFolderPath, newFolderPath);
+      console.log(`Carpeta renombrada de ${nombre_antiguo} a ${nombre_nuevo}`);
+
+      // Verificar si hay archivos en la carpeta
+      const files = await sftp.list(newFolderPath);
+
+      if (!files || files.length === 0) {
+        console.log("La carpeta existe pero no tiene archivos.");
+      } else {
+        console.log("Archivos listados:", files);
+        // Renombrar archivos si contienen el nombre antiguo
+        for (let file of files) {
+          if (file.name && file.name.includes(nombre_antiguo)) {
+            const oldFilePath = `${newFolderPath}/${file.name}`;
+            const newFilename = file.name.replace(nombre_antiguo, nombre_nuevo);
+            const newFilePath = `${newFolderPath}/${newFilename}`;
+
+            await sftp.rename(oldFilePath, newFilePath);
+            console.log(`Archivo renombrado: ${file.name} a ${newFilename}`);
+          } else {
+            console.log(`Archivo ${file.name} no contiene el nombre antiguo.`);
+          }
+        }
+      }
+    }
+
+    // Actualizar el nombre en la base de datos
+    await db.query(
+      "UPDATE patrimonio SET nombre_patrimonio = ? WHERE id_patrimonio = ?",
+      [nombre_nuevo, id_patrimonio]
+    );
+
+    res
+      .status(200)
+      .json({ message: "Carpeta y archivos renombrados correctamente." });
+  } catch (error) {
+    console.error("Error al renombrar patrimonio:", error);
+    res
+      .status(500)
+      .json({ message: error.message || "Error al renombrar el patrimonio." });
+  } finally {
+    if (sftp) sftp.end();
+  }
+};
+
 const listarPatrimonioBack = async (req, res) => {
   const connection = await conectarSMTPatrimonio();
   try {
@@ -2007,4 +2039,5 @@ module.exports = {
   crearPatrimonioImagenes,
   obtenerImagenesPatri,
   obtenerImagenCard,
+  renombrarPatrimonio,
 };
