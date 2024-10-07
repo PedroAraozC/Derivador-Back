@@ -26,6 +26,7 @@ const macroRoutes = require("./routes/macroRoutes")
 const turnosRoutes = require("./routes/turnosRoutes");
 const patrimonioRoutes = require("./routes/patrimonioRoutes");
 const gerenciaDatosRoutes=require("./routes/gerenciaDatosRoutes");
+const panelGestionRoutes=require("./routes/panelGestionRoutes.js");
 
 //pedro Back
 const boletinRoutes = require("./routes/boletinRoutes");
@@ -50,6 +51,7 @@ app.use("/macro",macroRoutes)
 app.use("/turnos", turnosRoutes);
 app.use("/patrimonio", patrimonioRoutes);
 app.use("/gerenciaDatos",gerenciaDatosRoutes);
+app.use("/panel_gestion", panelGestionRoutes);
 
 //pedro back
 app.use("/boletin", boletinRoutes);

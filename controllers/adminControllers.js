@@ -717,7 +717,7 @@ const listarProcesos = async (req, res) => {
     }
 
     const sql =
-      "SELECT pt.*, p.nombre_proceso, p.descripcion FROM permiso_tusuario pt LEFT JOIN proceso p ON pt.id_proceso = p.id_proceso WHERE id_tusuario = ? ORDER BY p.descripcion ASC";
+      "SELECT pt.*, p.nombre_proceso, p.descripcion, p.id_opcion FROM permiso_tusuario pt LEFT JOIN proceso p ON pt.id_proceso = p.id_proceso WHERE id_tusuario = ? AND p.id_opcion > 2 ORDER BY p.descripcion ASC";
     const values = [id];
 
     // Ejecutar la consulta SQL para obtener los procesos
