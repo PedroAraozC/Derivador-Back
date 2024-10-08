@@ -769,7 +769,8 @@ const actualizarPermisosTUsuario = async (req, res) => {
 
 // --------------------PANEL PARA TIPO DE USUARIO DERIVADOR----------------------
 
-//-----------CONTRATACIONES--------------
+// -------------------CONTRATACIONES--------------
+
 const listarTipoContratacion = async (req, res) => {
   const connection = await conectarSMTContratacion();
   try {
@@ -1208,9 +1209,10 @@ const editarContratacion = async (req, res) => {
     connection?.end();
   }
 };
-//-----------CONTRATACIONES--------------
 
-//-----------PATRIMOINIO MUNICIPAL--------------
+// -------------------CONTRATACIONES--------------
+
+// -------------------PATRIMOINIO MUNICIPAL--------------
 
 const agregarCategoriaPatrimonio = async (req, res) => {
   let connection;
@@ -1923,7 +1925,135 @@ const deshabilitarPatrimonio = async (req, res) => {
     connection.end();
   }
 };
-//-----------PATRIMOINIO MUNICIPAL--------------
+const editarCategoriaPatrimonio = async (req, res) => {
+  const { id, nombre_categoria, habilita } = req.body;
+  const sql =
+    "UPDATE categoria set habilita = ?, nombre_categoria = ? WHERE id_categoria = ?";
+  const values = [habilita, nombre_categoria, id];
+  let connection;
+
+  try {
+    connection = await conectarSMTPatrimonio();
+    const [result] = await connection.execute(sql, values);
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Categoría editada con éxito" });
+    } else {
+      res.status(400).json({ message: "Categoría no encontrada" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+};
+const editarTipologiaPatrimonio = async (req, res) => {
+  const { id, nombre_tipologia, habilita } = req.body;
+  const sql =
+    "UPDATE tipologia set habilita = ?, nombre_tipologia = ? WHERE id_tipologia = ?";
+  const values = [habilita, nombre_tipologia, id];
+  let connection;
+
+  try {
+    connection = await conectarSMTPatrimonio();
+    const [result] = await connection.execute(sql, values);
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Tipología editada con éxito" });
+    } else {
+      res.status(400).json({ message: "Tipología no encontrada" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+};
+const editarMaterialPatrimonio = async (req, res) => {
+  const { id, nombre_material, habilita } = req.body;
+  const sql =
+    "UPDATE material set habilita = ?, nombre_material = ? WHERE id_material = ?";
+  const values = [habilita, nombre_material, id];
+  let connection;
+
+  try {
+    connection = await conectarSMTPatrimonio();
+    const [result] = await connection.execute(sql, values);
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Material editada con éxito" });
+    } else {
+      res.status(400).json({ message: "Material no encontrada" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+};
+const editarEstadoPatrimonio = async (req, res) => {
+  const { id, nombre_estado, habilita } = req.body;
+  const sql =
+    "UPDATE estado set habilita = ?, nombre_estado = ? WHERE id_estado = ?";
+  const values = [habilita, nombre_estado, id];
+  let connection;
+
+  try {
+    connection = await conectarSMTPatrimonio();
+    const [result] = await connection.execute(sql, values);
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Estado editada con éxito" });
+    } else {
+      res.status(400).json({ message: "Estado no encontrada" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+};
+
+const editarAutorPartimonio = async (req, res) => {
+  const { id, nombre_autor, habilita, descripcion_autor } = req.body;
+  const sql =
+    "UPDATE autor set habilita = ?, nombre_autor = ?, descripcion_autor = ? WHERE id_autor = ?";
+  const values = [habilita, nombre_autor, descripcion_autor, id];
+  let connection;
+
+  try {
+    connection = await conectarSMTPatrimonio();
+    const [result] = await connection.execute(sql, values);
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Autor editada con éxito" });
+    } else {
+      res.status(400).json({ message: "Autor no encontrada" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+};
+const editarUbicacionPatrimonio = async (req, res) => {
+  const { id, nombre_ubicacion, habilita } = req.body;
+  console.log(req.body)
+  const sql = "UPDATE ubicacion set habilita = ?, nombre_ubicacion = ? WHERE id_ubicacion = ?";
+  const values = [habilita, nombre_ubicacion, id];
+  let connection;
+
+  try {
+    connection = await conectarSMTPatrimonio();
+    const [result] = await connection.execute(sql, values);
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Ubicación editada con éxito" });
+    } else {
+      res.status(400).json({ message: "Ubicación no encontrada" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+};
+
+// -------------------PATRIMOINIO MUNICIPAL--------------
 
 module.exports = {
   agregarOpcion,
@@ -1981,4 +2111,10 @@ module.exports = {
   obtenerImagenesPatri,
   obtenerImagenCard,
   renombrarPatrimonio,
+  editarCategoriaPatrimonio,
+  editarTipologiaPatrimonio,
+  editarMaterialPatrimonio,
+  editarEstadoPatrimonio,
+  editarAutorPartimonio,
+  editarUbicacionPatrimonio,
 };
