@@ -2035,7 +2035,7 @@ const editarUbicacionPatrimonio = async (req, res) => {
   const { id, nombre_ubicacion, habilita } = req.body;
   console.log(req.body)
   const sql = "UPDATE ubicacion set habilita = ?, nombre_ubicacion = ? WHERE id_ubicacion = ?";
-  const values = [habilita, nombre_ubicacion, id];
+  const values = [habilita, nombre_ubicacion, id]; 
   let connection;
 
   try {
