@@ -38,7 +38,8 @@ const enviarEmail = (codigo, email, cuil) => {
       from: "SMT-Ciudadano Digital <no-reply-cdigital@smt.gob.ar>",
       to: email,
       subject: "Código de validación",
-      text: `Tu código de validación es: ${codigo}. Para visualizar su credencial de Ciudadano Digital ingrese al siguiente link: https://ciudaddigital.smt.gob.ar/#/credencialesCiudadano/${cuil}`,
+      // text: `Tu código de validación es: ${codigo}. Para visualizar su credencial de Ciudadano Digital ingrese al siguiente link: https://ciudaddigital.smt.gob.ar/#/credencialesCiudadano/${cuil}`,
+      html: `<p>Tu código de validación es: <strong style="font-size: 24px;">${codigo}</strong></p>`,
     };
 
     transporter.sendMail(mailOptions, (errorEmail, info) => {
@@ -52,6 +53,43 @@ const enviarEmail = (codigo, email, cuil) => {
     });
   } catch (error) {
     console.log("error al enviar email");
+  }
+};
+
+const enviarEmailMulta = (req, res) => {
+  try {
+    // console.log("a", req.body);
+    const { user, message, recipient, subject } = req.body;
+    const mailOptions = {
+      from: `SMT - Ciudadano Digital <no-reply-cdigital@smt.gob.ar>`,
+      to: "tmfconsultas@smt.gob.ar",
+      subject: `Consulta de Multas de Tránsito Ciudadano: ${user.nombre_persona}, ${user.apellido_persona} ${user.documento_persona}`,
+      // html: `<p><strong style="font-size: 24px;">${message}</strong></p>`,
+      html: `<p>El Ciudadano Digital: <strong>${user.nombre_persona}, ${user.apellido_persona} </strong></p>
+      <p>CUIL: <strong>${user.documento_persona}</strong></p>
+      <p>TELEFONO: <strong>${user.telefono_persona}</strong></p>
+      <p>Solicita el estado de multas de los siguentes dominios: <strong>${message}</strong></p>
+      <p>Este correo debe ser respondido al email: <strong>${user.email_persona}</strong></p>`,
+    };
+
+    transporter.sendMail(mailOptions, (errorEmail, info) => {
+      if (errorEmail) {
+        console.log("error al enviar correo");
+        return res.status(500).json({
+          mge: "Error al enviar el correo electrónico:",
+          ok: false,
+          error: errorEmail,
+        });
+      } else {
+        console.log("email enviado");
+        return res
+          .status(200)
+          .json({ mge: "Correo electrónico enviado correctamente:", ok: true });
+      }
+    });
+  } catch (error) {
+    console.log("Error al enviar email");
+    console.error("Error al enviar email de multas:", error);
   }
 };
 
@@ -227,45 +265,58 @@ const obtenerUsuarios = async (req, res) => {
 
 const obtenerPermisos = async (req, res) => {
   let connection;
+
   try {
     connection = await conectarBDEstadisticasMySql();
 
-    //CAMBIE EL CONTROLADOR PARA USAR SOLO LOS PERMISOS POR EL TIPO DE USUARIO YA QUE TIENE MENOS REGISTROS Y PUEDEN DARSE
-    // MAS FACIL LA BAJA Y EL ALTA DE ESTOS PERMISOS, SOLO QUEDA PROBARLOS Y DEJAR BIEN DEFINIDOS LOS TIPOS DE USUARIO QUE
-    // VAN A EXISTIR PARA QUE CADA UNO TENGA LOS PERMISOS NECESARIOS
-    // TAMBIEN HAY QUE VER SI ESTE DERIVADOR SERÁ SOLAMENTE EL BACK OFFICE Y DEJARLO SOLAMENTE CON LOS PANELES ADMIN
+    const { idTusuario, idPersona } = req.params;
 
-    if (req.params.id) {
+    // Verificar si ambos parámetros están presentes
+    if (!idTusuario || !idPersona) {
+      return res.status(400).json({ message: "Faltan parámetros en la URL" });
+    }
+
+    // Verificar si el idPersona existe en permiso_persona
+    const [permisoPersona] = await connection.execute(
+      "SELECT * FROM permiso_persona WHERE id_persona = ?",
+      [idPersona] // Aquí pasamos el parámetro como un array
+    );
+
+    if (permisoPersona.length > 0) {
+      // Si existe en permiso_persona, obtenemos la información de permisos
       const [user] = await connection.execute(
-        // `SELECT pp.*, pro.descripcion, pro.nombre_proceso, o.id_opcion, o.nombre_opcion
-        // FROM permiso_persona pp
-        // LEFT JOIN proceso pro ON pp.id_proceso = pro.id_proceso
-        // LEFT JOIN opcion o ON pro.id_opcion = o.id_opcion
-        // WHERE pp.id_persona = ?
-        // ORDER BY pro.id_proceso ASC`,
+        `SELECT pu.*, pro.descripcion, pro.nombre_proceso, o.id_opcion, o.nombre_opcion
+        FROM permiso_persona pu
+        LEFT JOIN proceso pro ON pu.id_proceso = pro.id_proceso 
+        LEFT JOIN opcion o ON pro.id_opcion = o.id_opcion
+        WHERE pu.id_persona = ?
+        ORDER BY o.id_opcion ASC`,
+        [idPersona] // Pasamos idPersona como un array
+      );
+      return res.status(200).json({ message: "Existe", usuario: user });
+    } else {
+      // Si no existe en permiso_persona, verificamos en permiso_tusuario
+      const [user] = await connection.execute(
         `SELECT pu.*, pro.descripcion, pro.nombre_proceso, o.id_opcion, o.nombre_opcion
         FROM permiso_tusuario pu
         LEFT JOIN proceso pro ON pu.id_proceso = pro.id_proceso 
         LEFT JOIN opcion o ON pro.id_opcion = o.id_opcion
         WHERE pu.id_tusuario = ?
         ORDER BY o.id_opcion ASC`,
-        [req.params.id]
+        [idTusuario] // Pasamos idTusuario como un array
       );
 
-      if (user.length === 0)
+      if (user.length === 0) {
         throw new CustomError("Usuario no encontrado", 404);
-      res.status(200).json({ usuario: user });
-    } else {
-      const [users] = await connection.execute(
-        `SELECT persona.*, tipo_usuario.nombre_tusuario AS tipoDeUsuario FROM persona JOIN tipo_usuario ON persona.id_tusuario = tipo_usuario.id_tusuario`
-      );
-      // await connection.end();
-      res.status(200).json({ usuarios: users });
+      }
+
+      return res.status(200).json({ usuario: user });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    return res
+      .status(500)
+      .json({ message: error.message || "Algo salió mal :(" });
   } finally {
-    // Cerrar la conexión a la base de datos
     if (connection) {
       await connection.end();
     }
@@ -278,14 +329,11 @@ const obtenerOpcionesHabilitadas = async (req, res) => {
     connection = await conectarBDEstadisticasMySql();
 
     const [opciones] = await connection.execute(
-      `SELECT pu.*, pro.descripcion, pro.nombre_proceso, o.id_opcion, o.nombre_opcion
-      FROM permiso_tusuario pu
-      LEFT JOIN proceso pro ON pu.id_proceso = pro.id_proceso 
-      LEFT JOIN opcion o ON pro.id_opcion = o.id_opcion
-      WHERE pu.id_tusuario = 1
-      ORDER BY o.id_opcion ASC`
+      `SELECT o.*, p.nombre_proceso, p.id_proceso 
+        FROM opcion o
+        LEFT JOIN proceso p ON o.id_opcion = p.id_opcion
+        ORDER BY o.nombre_opcion, p.nombre_proceso`
     );
-    // await connection.end();
     res.status(200).json({ opciones });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -355,7 +403,7 @@ const editarUsuarioCompleto = async (req, res) => {
 
     const fechaFormateada = moment(fechaStr).format("YYYY-MM-DD");
     //const hashedPassword = await bcrypt.hash(clave, 10);
-// console.log(fechaFormateada)
+    // console.log(fechaFormateada)
     // Establecer la conexión a la base de datos MySQL
     connection = await conectarBDEstadisticasMySql();
 
@@ -903,4 +951,5 @@ module.exports = {
   editarClave,
   restablecerClave,
   desactivarUsuario,
+  enviarEmailMulta,
 };

@@ -4,17 +4,25 @@ const { DataTypes } = require('sequelize');
 const { sequelize } = require('../../config/sequelize');
 // const sequelize = require('../sequelize');
 
-const DetMovimiento = sequelize.define('DetMovimiento', {
-  detmovimiento_id: {
+const DetMovimientoNomenclador = sequelize.define('DetMovimientoNomenclador', {
+  detmovimiento_nomenclador_id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true
   },
-  detpresupuesto_id: {
-    type: DataTypes.INTEGER,
+  cantidad: {
+    type: DataTypes.DECIMAL,
     allowNull: false
   },
-  detmovimiento_importe: {
+  precio: {
+    type: DataTypes.DECIMAL,
+    allowNull: false
+  },
+  total: {
+    type: DataTypes.DECIMAL,
+    allowNull: false
+  },
+  descripcion: {
     type: DataTypes.STRING,
     allowNull: false
   },
@@ -22,14 +30,18 @@ const DetMovimiento = sequelize.define('DetMovimiento', {
     type: DataTypes.INTEGER,
     allowNull: false
   },
-  detpresupuesto_id2:{
+  nomenclador_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  detPresupuesto_id:{
     type: DataTypes.INTEGER,
     allowNull: true
   }
 },
 {
-    tableName:'detmovimiento',
+    tableName:'detmovimiento_nomenclador',
     timestamps: false
 });
 
-module.exports = DetMovimiento;
+module.exports = DetMovimientoNomenclador;

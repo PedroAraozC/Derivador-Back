@@ -6,8 +6,8 @@ const connectDB = require("./config/dbUsuariosMongoDB");
 const bodyParser = require('body-parser');
 const https = require('https');
 const fs = require('fs');
-
 const app = express();
+
 app.use(cors());
 dotenv.config();
 // connectDB();
@@ -25,7 +25,14 @@ const adminRoutes = require("./routes/adminRoutes");
 const macroRoutes = require("./routes/macroRoutes")
 const turnosRoutes = require("./routes/turnosRoutes");
 const patrimonioRoutes = require("./routes/patrimonioRoutes");
+const gerenciaDatosRoutes=require("./routes/gerenciaDatosRoutes");
+const panelGestionRoutes=require("./routes/panelGestionRoutes.js");
 
+//pedro Back
+const boletinRoutes = require("./routes/boletinRoutes");
+const normaRoutes = require("./routes/normaRoutes");
+const origenRoutes = require("./routes/origenRoutes.js");
+//
 const PORT = process.env.PORT;
 
 app.use(morgan("dev"));
@@ -43,18 +50,25 @@ app.use('/admin', adminRoutes)
 app.use("/macro",macroRoutes)
 app.use("/turnos", turnosRoutes);
 app.use("/patrimonio", patrimonioRoutes);
+app.use("/gerenciaDatos",gerenciaDatosRoutes);
+app.use("/panel_gestion", panelGestionRoutes);
+
+//pedro back
+app.use("/boletin", boletinRoutes);
+app.use("/norma", normaRoutes);
+app.use("/origen", origenRoutes);
+//
 
 // const options = {
-//   key: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),
-//   cert: fs.readFileSync('/opt/psa/var/certificates/scfg0cbqs'),
-//   // ca: fs.readFileSync('/opt/psa/var/certificates/scfqdiDyQ') // si tienes un archivo CA bundle
-// };
+//     key: fs.readFileSync('./scfg0cbqs'),
+//     cert: fs.readFileSync('./scfg0cbqs'),
+//     //ca: fs.readFileSync('/opt/psa/var/certificates/scfqdiDyQ') // si tienes un archivo CA bundle
+//   };
+  
+//   https.createServer(options, app).listen(5000, () => {
+//     console.log(`server listening on port 5000`);
+//   });
 
-// https.createServer(options, app).listen(PORT, () => {
-//   console.log(`server listening on port ${PORT}`);
-// });
-
-
-app.listen(3000, () => {
-  console.log(`server listening on port 3000`);
-});
+  app.listen(3050, () => {
+    console.log(`server listening on port 3050`);
+  });

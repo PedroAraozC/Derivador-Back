@@ -1,2 +1,5 @@
 *.env
 /node_modules
+/tempUploads
+/pdf
+*scfg0cbqs

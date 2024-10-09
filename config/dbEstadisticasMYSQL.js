@@ -8,6 +8,12 @@ const conectarBDEstadisticasMySql = async () => {
             user: process.env.USER_CIU_DIGITAL,
             password: process.env.PASSWORD_CIU_DIGITAL,
             database: process.env.DB_CIU_DIGITAL,
+            // host: "209.126.107.166",
+            // host: "localhost",
+            // port: "3306",
+            // user: "admin_db",
+            // password: "Mun1SMTucu24",
+            // database: "ciudadano_digital",
         });
         return connection
     } catch (error) {
@@ -18,7 +24,7 @@ const conectarSMTContratacion = async () => {
     try {
         const connection = await mysql.createConnection({
             host: process.env.HOST_CIU_DIGITAL,
-             port: process.env.PORT_CIU_DIGITAL,
+            port: process.env.PORT_CIU_DIGITAL,
             user: process.env.USER_CIU_DIGITAL,
             password: process.env.PASSWORD_CIU_DIGITAL,
             database: process.env.DB_CIU_CONTRATACION,
@@ -92,4 +98,34 @@ const conectar_BD_EDUCACION_MySql = async () => {
     }
 }
 
-module.exports = { conectarBDEstadisticasMySql, conectar_BD_GAF_MySql, conectar_BD_EDUCACION_MySql, conectarSMTContratacion, conectarSMTPatrimonio} 
+const conectar_BD_GED_MySql = async () => {
+    try {
+        const connection = await mysql.createConnection({
+            host: process.env.HOST_CIU_DIGITAL,
+            user: process.env.USER_CIU_DIGITAL,
+            port: process.env.PORT_CIU_DIGITAL,
+            password: process.env.PASSWORD_CIU_DIGITAL,
+            database: process.env.DB_GED,
+        });
+        return connection
+    } catch (error) {
+        console.log(error.message);
+    }
+}
+
+const conectar_BD_Gestion_MySql = async () => {
+    try {
+        const connection = await mysql.createConnection({
+            host: process.env.HOST_CIU_DIGITAL,
+            user: process.env.USER_CIU_DIGITAL,
+            port: process.env.PORT_CIU_DIGITAL,
+            password: process.env.PASSWORD_CIU_DIGITAL,
+            database: process.env.DB_GESTION,
+        });
+        return connection
+    } catch (error) {
+        console.log(error.message);
+    }
+}
+
+module.exports = { conectarBDEstadisticasMySql, conectar_BD_GAF_MySql, conectar_BD_EDUCACION_MySql, conectarSMTContratacion, conectarSMTPatrimonio,conectar_BD_GED_MySql, conectar_BD_Gestion_MySql} 
