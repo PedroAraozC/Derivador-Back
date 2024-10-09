@@ -1,5 +1,4 @@
 const { conectarBDEstadisticasMySql } = require("../config/dbEstadisticasMYSQL");
-const User = require("../models/User");
 
 const verifyRole = async (req, res, next) => {
   try {

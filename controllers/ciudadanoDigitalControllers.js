@@ -1,23 +1,27 @@
 const { conectarBDEstadisticasMySql } = require("../config/dbEstadisticasMYSQL");
 
 const listarOpciones =async(req,res)=>{
+    let connection;
     try {
     
-        const connection = await conectarBDEstadisticasMySql();
+        connection = await conectarBDEstadisticasMySql();
 
         const [opciones] = await connection.execute(
-            'SELECT * FROM opcion'
+            'SELECT * FROM opcion WHERE habilita=1'
         );
         res.status(200).json({opciones})
     } catch (error) {
         res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    } finally {
+        connection.end()
     }
 }
 
 const listarProcesos =async(req,res)=>{
+    let connection;
     try {
     
-        const connection = await conectarBDEstadisticasMySql();
+        connection = await conectarBDEstadisticasMySql();
 
         const [procesos] = await connection.execute(
             'SELECT proceso.*, opcion.nombre_opcion AS opcion FROM proceso JOIN opcion ON proceso.id_opcion = opcion.id_opcion'
@@ -25,20 +29,25 @@ const listarProcesos =async(req,res)=>{
         res.status(200).json({procesos})
     } catch (error) {
         res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    } finally {
+        connection.end()
     }
 }
 
 const listarTiposDeUsuarios =async(req,res)=>{
+    let connection;
     try {
     
-        const connection = await conectarBDEstadisticasMySql();
+        connection = await conectarBDEstadisticasMySql();
 
         const [procesos] = await connection.execute(
-            'SELECT * FROM tipo_usuario'
+            'SELECT * FROM tipo_usuario WHERE habilita=1'
         );
         res.status(200).json({procesos})
     } catch (error) {
         res.status(500).json({ message: error.message || "Algo salió mal :(" });
+    } finally {
+        connection.end()
     }
 }
 
@@ -49,7 +58,7 @@ const obtenerPaisesMYSQL = async (req, res) => {
         connection = await conectarBDEstadisticasMySql();
 
         // Realizar la consulta a la base de datos
-        const [rows, fields] = await connection.query('SELECT * FROM pais');
+        const [rows, fields] = await connection.query('SELECT * FROM pais WHERE habilita=1');
 
         // Verificar si se encontraron resultados
         if (rows && rows.length > 0) {
@@ -82,7 +91,7 @@ const obtenerProvinciasMYSQL = async (req, res) => {
         connection = await conectarBDEstadisticasMySql();
 
         // Realizar la consulta a la base de datos
-        const [rows, fields] = await connection.query('SELECT * FROM provincia');
+        const [rows, fields] = await connection.query('SELECT * FROM provincia WHERE habilita=1');
 
         // Verificar si se encontraron resultados
         if (rows && rows.length > 0) {
@@ -115,7 +124,7 @@ const obtenerGeneroMYSQL = async (req, res) => {
         connection = await conectarBDEstadisticasMySql();
 
         // Realizar la consulta a la base de datos
-        const [rows, fields] = await connection.query('SELECT * FROM genero');
+        const [rows, fields] = await connection.query('SELECT * FROM genero WHERE habilita=1');
 
         // Verificar si se encontraron resultados
         if (rows && rows.length > 0) {
@@ -147,7 +156,7 @@ const obtenerDocumentoMYSQL = async (req, res) => {
         connection = await conectarBDEstadisticasMySql();
 
         // Realizar la consulta a la base de datos
-        const [rows, fields] = await connection.query('SELECT * FROM tipo_documento');
+        const [rows, fields] = await connection.query('SELECT * FROM tipo_documento WHERE habilita=1');
 
         // Verificar si se encontraron resultados
         if (rows && rows.length > 0) {

@@ -36,6 +36,7 @@ const obtenerRoles =async(req,res)=>{
         const [roles] = await connection.execute(
             'SELECT * FROM tipoDeUsuario'
         );
+           await connection.end();
         res.status(200).json({roles})
     } catch (error) {
         res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -59,6 +60,7 @@ const editarRol = async (req,res) =>{
      
         if (tipoDeUsuario.length == 0 || tipoDeUsuario[0].id == rolId) {
           const [result] = await connection.execute(sql, values);
+             await connection.end();
           // El resultado puede contener información sobre la cantidad de filas afectadas, etc.
           console.log("Filas actualizadas:", result.affectedRows);
           res
@@ -86,6 +88,7 @@ const borrarRol = async (req, res) => {
     try {
       const connection = await conectarBDEstadisticasMySql();
       const [result] = await connection.execute(sql, values);
+         await connection.end();
       if (result.affectedRows > 0) {
         res.status(200).json({ message: "Rol eliminado con éxito"});
       } else {

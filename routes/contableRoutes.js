@@ -4,8 +4,8 @@ const auth = require("../middlewares/auth");
 const verifyRole = require("../middlewares/verifyRole");
 const router = Router();
 
-router.get("/listarProcedimientos",auth,verifyRole, obtenerProcedimientos);
-router.post('/ejecutarProcedimiento',auth,verifyRole, ejecutarProcedimiento)
+router.get("/listarProcedimientos",auth, obtenerProcedimientos);
+router.post('/ejecutarProcedimiento',auth, ejecutarProcedimiento)
 
 
 module.exports = router;
