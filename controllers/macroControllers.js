@@ -22,9 +22,9 @@ const obtenerCategorias = async (req, res) => {
     console.log("Conectado a MySQL");
 
     const [results, fields] = await connection.execute(
-    ` SELECT categoria_reclamo.id_categoria,categoria_reclamo.nombre_categoria FROM categoria_reclamo WHERE categoria_reclamo.habilita = 1 `
+      ` SELECT categoria_reclamo.id_categoria,categoria_reclamo.nombre_categoria FROM categoria_reclamo WHERE categoria_reclamo.habilita = 1 `
     );
-    // console.log(fields); 
+    // console.log(fields);
     // Enviar la respuesta
     res.status(200).json({ results });
 
@@ -43,26 +43,25 @@ const obtenerCategorias = async (req, res) => {
 };
 
 const funcionPrueba = async (req, res) => {
-  
   try {
     const telefono = req.query.telefono;
-    const cuil = req.query.cuil;  
+    const cuil = req.query.cuil;
     const connection = await conectarBDEstadisticasMySql();
- console.log(cuil, "cuil");
-      const [results, fields] = await connection.execute (
-      ` SELECT * FROM persona WHERE documento_persona = ? AND telefono_persona = ?` , [cuil, telefono]  
-      )
-res.status(200).json({results})
-   
+    console.log(cuil, "cuil");
+    const [results, fields] = await connection.execute(
+      ` SELECT * FROM persona WHERE documento_persona = ? AND telefono_persona = ?`,
+      [cuil, telefono]
+    );
+    res.status(200).json({ results });
+
     console.log(results, "results");
     await connection.end();
     console.log("conexión cerrada");
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
-    
   }
-}
+};
 
 const obtenerTiposDeReclamoPorCategoria = async (req, res) => {
   const connection = await conectarMySql();
@@ -138,7 +137,7 @@ const ingresarReclamo = async (req, res) => {
 
         const [derivacionReclamo, fieldsDerivacionReclamo] =
           await connection.execute(
-            "SELECT derivacion_reclamo.* FROM derivacion_reclamo WHERE derivacion_reclamo.id_treclamo = ? AND derivacion_reclamo.habilita = ?",
+            "SELECT derivacion_reclamo.* FROM derivacion_reclamo WHERE id_treclamo = ? AND derivacion_reclamo.habilita = ?",
             [id_treclamo, 1]
           );
 
@@ -167,55 +166,60 @@ const ingresarReclamo = async (req, res) => {
 
         const reclamoId = nuevoReclamo.id_reclamo;
 
-        await MovimientoReclamo.create(
-          {
-            id_reclamo: reclamoId,
-            id_derivacion: derivacionReclamo[0].id_derivacion,
-            id_oficina: derivacionReclamo[0].id_oficina_deriva,
-            id_estado: 1,
-            id_motivo: 1,
-            detalle_movi: "Inicio del trámite",
-            fecha_ingreso: "0000-00-00 00:00:00",
-            fecha_egreso: "0000-00-00 00:00:00",
-            oficina_graba: 5000,
-          },
-          { transaction }
-        );
-
-        const [oficinaYReparticion, fieldsOficinaYReparticion] =
-          await connection.execute(
-            "SELECT oficina_reparti.nombre_oficina,reparti.nombre_reparti FROM oficina_reparti JOIN reparti ON oficina_reparti.id_reparti = reparti.id_reparti WHERE oficina_reparti.id_oficina = ?",
-            [derivacionReclamo[0].id_oficina_deriva]
+        if (derivacionReclamo != "") {
+          await MovimientoReclamo.create(
+            {
+              id_reclamo: reclamoId,
+              id_derivacion: derivacionReclamo[0].id_derivacion,
+              id_oficina: derivacionReclamo[0].id_oficina_deriva,
+              id_estado: 1,
+              id_motivo: 1,
+              detalle_movi: "Inicio del trámite",
+              fecha_ingreso: "0000-00-00 00:00:00",
+              fecha_egreso: "0000-00-00 00:00:00",
+              oficina_graba: 5000,
+            },
+            { transaction }
           );
 
-        await transaction.commit();
+          const [oficinaYReparticion, fieldsOficinaYReparticion] =
+            await connection.execute(
+              "SELECT oficina_reparti.nombre_oficina,reparti.nombre_reparti FROM oficina_reparti JOIN reparti ON oficina_reparti.id_reparti = reparti.id_reparti WHERE oficina_reparti.id_oficina = ?",
+              [derivacionReclamo[0].id_oficina_deriva]
+            );
 
-        if (req.body.foto?.length > 0) {
-          try {
-            const resUpdateImage = await guardarImagen(req.body, reclamoId);
-            console.log(resUpdateImage);
-          } catch (error) {
-            console.error("Error:", error);
-            res.status(500).json({ error: "Error de servidor imagenes" });
+          await transaction.commit();
+
+          if (req.body.foto?.length > 0) {
+            try {
+              const resUpdateImage = await guardarImagen(req.body, reclamoId);
+              console.log(resUpdateImage);
+            } catch (error) {
+              console.error("Error:", error);
+              res.status(500).json({ error: "Error de servidor imagenes" });
+            }
           }
-        }
 
-        res.status(200).json({
-          message: "Reclamo generado con éxito",
-          Numero_Reclamo: reclamoId,
-          Estado: "Iniciado",
-          Repartición_Derivada: oficinaYReparticion[0].nombre_reparti,
-          Oficina_Receptora: oficinaYReparticion[0].nombre_oficina,
-        });
+          res.status(200).json({
+            message: "Reclamo generado con éxito",
+            Numero_Reclamo: reclamoId,
+            Estado: "Iniciado",
+            Repartición_Derivada: oficinaYReparticion[0].nombre_reparti,
+            Oficina_Receptora: oficinaYReparticion[0].nombre_oficina,
+          });
+        } else
+          res.status(400).json({
+            message: "Este tipo de reclamo no está habilitado.",
+          });
       } else {
         res.status(400).json({
           message:
-            "Las coordenadas proporcionadas están fuera del rango permitido",
+            "Las coordenadas proporcionadas están fuera del rango permitido.",
         });
       }
     } else {
       res.status(400).json({
-        message: "El tipo de reclamo y la categoría no se corresponden",
+        message: "El tipo de reclamo y la categoría no se corresponden.",
       });
     }
 
