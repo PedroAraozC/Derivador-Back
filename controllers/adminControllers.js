@@ -227,21 +227,31 @@ const cambiarTipoDeUsuario = async (req, res) => {
 
     if (resultUpdate.affectedRows > 0) {
       // Si el UPDATE fue exitoso, verificamos si el id_persona tiene permisos asignados
-      const sqlCheckPermiso = "SELECT * FROM permiso_persona WHERE id_persona = ?";
-      const [permisos] = await connection.execute(sqlCheckPermiso, [id_persona]);
+      const sqlCheckPermiso =
+        "SELECT * FROM permiso_persona WHERE id_persona = ?";
+      const [permisos] = await connection.execute(sqlCheckPermiso, [
+        id_persona,
+      ]);
 
       if (permisos.length > 0) {
         // Si existen permisos, los eliminamos
         const sqlDelete = "DELETE FROM permiso_persona WHERE id_persona = ?";
         await connection.execute(sqlDelete, [id_persona]);
 
-        res.status(200).json({ message: "Tipo de usuario modificado y permisos eliminados." });
+        res.status(200).json({
+          message: "Tipo de usuario modificado y permisos eliminados.",
+        });
       } else {
         // Si no existen permisos, devolvemos un mensaje indicando que no había permisos
-        res.status(200).json({ message: "Tipo de usuario modificado, pero no había permisos para eliminar." });
+        res.status(200).json({
+          message:
+            "Tipo de usuario modificado, pero no había permisos para eliminar.",
+        });
       }
     } else {
-      res.status(404).json({ message: "No se encontró la persona con el id proporcionado." });
+      res.status(404).json({
+        message: "No se encontró la persona con el id proporcionado.",
+      });
     }
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
@@ -324,9 +334,9 @@ const existeEnPermisosPersona = async (req, res) => {
   const values = [id];
   let connection;
   connection = await conectarBDEstadisticasMySql();
-  if( id == undefined){
-    res.status(500).json("No llego el id")
-    return
+  if (id == undefined) {
+    res.status(500).json("No llego el id");
+    return;
   }
   try {
     const [result] = await connection.execute(sql, values);
@@ -621,17 +631,24 @@ const agregarTipoDeUsuario = async (req, res) => {
     await connection.beginTransaction(); // Comienza la transacción
 
     // Insertar el nuevo tipo de usuario
-    const sqlInsertTUsuario = "INSERT INTO tipo_usuario (nombre_tusuario, observacion, habilita) VALUES (?, ?, ?)";
+    const sqlInsertTUsuario =
+      "INSERT INTO tipo_usuario (nombre_tusuario, observacion, habilita) VALUES (?, ?, ?)";
     const valuesTUsuario = [nombre_tusuario, observacion, habilita];
-    const [resultTUsuario] = await connection.execute(sqlInsertTUsuario, valuesTUsuario);
+    const [resultTUsuario] = await connection.execute(
+      sqlInsertTUsuario,
+      valuesTUsuario
+    );
     const nuevoIdTUsuario = resultTUsuario.insertId;
 
     // Obtener todos los procesos existentes
-    const [procesos] = await connection.execute("SELECT id_proceso FROM proceso");
+    const [procesos] = await connection.execute(
+      "SELECT id_proceso FROM proceso"
+    );
 
     // Crear las asociaciones en la tabla de permisos
     for (const proceso of procesos) {
-      const sqlInsertPermiso = "INSERT INTO permiso_tusuario (id_proceso, id_tusuario, ver, agregar, modificar, habilita) VALUES (?, ?, ?, ?, ?, ?)";
+      const sqlInsertPermiso =
+        "INSERT INTO permiso_tusuario (id_proceso, id_tusuario, ver, agregar, modificar, habilita) VALUES (?, ?, ?, ?, ?, ?)";
       const valuesPermiso = [proceso.id_proceso, nuevoIdTUsuario, 0, 0, 0, 1];
       await connection.execute(sqlInsertPermiso, valuesPermiso);
     }
@@ -752,7 +769,8 @@ const actualizarPermisosTUsuario = async (req, res) => {
 
 // --------------------PANEL PARA TIPO DE USUARIO DERIVADOR----------------------
 
-//-----------CONTRATACIONES--------------
+// -------------------CONTRATACIONES--------------
+
 const listarTipoContratacion = async (req, res) => {
   const connection = await conectarSMTContratacion();
   try {
@@ -1191,29 +1209,27 @@ const editarContratacion = async (req, res) => {
     connection?.end();
   }
 };
-//-----------CONTRATACIONES--------------
 
-//-----------PATRIMOINIO MUNICIPAL--------------
+// -------------------CONTRATACIONES--------------
+
+// -------------------PATRIMOINIO MUNICIPAL--------------
 
 const agregarCategoriaPatrimonio = async (req, res) => {
   let connection;
   try {
     const { nombre_categoria, habilita } = req.body;
 
-    // Verificar que los valores requeridos estén definidos
     if (nombre_categoria === undefined || habilita === undefined) {
       throw new Error("Los parámetros de la solicitud son inválidos");
     }
 
-    // Query para insertar una nueva categoria
     const sql =
       "INSERT INTO categoria (nombre_categoria, habilita) VALUES (?, ?)";
     const values = [nombre_categoria, habilita];
 
-    // Ejecutar la consulta SQL para insertar la nueva opción
     connection = await conectarSMTPatrimonio();
     const [result] = await connection.execute(sql, values);
-    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+    const nuevoId = result.insertId;
 
     res
       .status(201)
@@ -1230,20 +1246,17 @@ const agregarTipologiaPatrimonio = async (req, res) => {
   try {
     const { nombre_tipologia, habilita } = req.body;
 
-    // Verificar que los valores requeridos estén definidos
     if (nombre_tipologia === undefined || habilita === undefined) {
       throw new Error("Los parámetros de la solicitud son inválidos");
     }
 
-    // Query para insertar una nueva tipologia
     const sql =
       "INSERT INTO tipologia (nombre_tipologia, habilita) VALUES (?, ?)";
     const values = [nombre_tipologia, habilita];
 
-    // Ejecutar la consulta SQL para insertar la nueva opción
     connection = await conectarSMTPatrimonio();
     const [result] = await connection.execute(sql, values);
-    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+    const nuevoId = result.insertId;
 
     res
       .status(201)
@@ -1260,20 +1273,17 @@ const agregarMaterialPatrimonio = async (req, res) => {
   try {
     const { nombre_material, habilita } = req.body;
 
-    // Verificar que los valores requeridos estén definidos
     if (nombre_material === undefined || habilita === undefined) {
       throw new Error("Los parámetros de la solicitud son inválidos");
     }
 
-    // Query para insertar una nueva tipologia
     const sql =
       "INSERT INTO material (nombre_material, habilita) VALUES (?, ?)";
     const values = [nombre_material, habilita];
 
-    // Ejecutar la consulta SQL para insertar la nueva opción
     connection = await conectarSMTPatrimonio();
     const [result] = await connection.execute(sql, values);
-    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+    const nuevoId = result.insertId;
 
     res.status(201).json({ id: nuevoId, message: "Material creado con éxito" });
   } catch (error) {
@@ -1288,19 +1298,16 @@ const agregarEstadoPatrimonio = async (req, res) => {
   try {
     const { nombre_estado, habilita } = req.body;
 
-    // Verificar que los valores requeridos estén definidos
     if (nombre_estado === undefined || habilita === undefined) {
       throw new Error("Los parámetros de la solicitud son inválidos");
     }
 
-    // Query para insertar una nuevo estado
     const sql = "INSERT INTO estado (nombre_estado, habilita) VALUES (?, ?)";
     const values = [nombre_estado, habilita];
 
-    // Ejecutar la consulta SQL para insertar la nueva opción
     connection = await conectarSMTPatrimonio();
     const [result] = await connection.execute(sql, values);
-    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+    const nuevoId = result.insertId;
 
     res.status(201).json({ id: nuevoId, message: "Estado creado con éxito" });
   } catch (error) {
@@ -1315,20 +1322,17 @@ const agregarAutorPatrimonio = async (req, res) => {
   try {
     const { nombre_autor, descripcion_autor, habilita } = req.body;
 
-    // Verificar que los valores requeridos estén definidos
     if (nombre_autor === undefined || habilita === undefined) {
       throw new Error("Los parámetros de la solicitud son inválidos");
     }
 
-    // Query para insertar una nuevo estado
     const sql =
       "INSERT INTO autor (nombre_autor, descripcion_autor, habilita) VALUES (?, ?, ?)";
     const values = [nombre_autor, descripcion_autor, habilita];
 
-    // Ejecutar la consulta SQL para insertar el nuevo autor
     connection = await conectarSMTPatrimonio();
     const [result] = await connection.execute(sql, values);
-    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+    const nuevoId = result.insertId;
 
     res.status(201).json({ id: nuevoId, message: "Autor creado con éxito" });
   } catch (error) {
@@ -1343,20 +1347,17 @@ const agregarUbicacionPatrimonio = async (req, res) => {
   try {
     const { nombre_ubicacion, habilita } = req.body;
 
-    // Verificar que los valores requeridos estén definidos
     if (nombre_ubicacion === undefined || habilita === undefined) {
       throw new Error("Los parámetros de la solicitud son inválidos");
     }
 
-    // Query para insertar una nuevo estado
     const sql =
       "INSERT INTO ubicacion (nombre_ubicacion, habilita) VALUES (?, ?)";
     const values = [nombre_ubicacion, habilita];
 
-    // Ejecutar la consulta SQL para insertar el nuevo autor
     connection = await conectarSMTPatrimonio();
     const [result] = await connection.execute(sql, values);
-    const nuevoId = result.insertId; // Obtener el id generado por la base de datos
+    const nuevoId = result.insertId;
 
     res.status(201).json({ id: nuevoId, message: "Autor creado con éxito" });
   } catch (error) {
@@ -1368,6 +1369,7 @@ const agregarUbicacionPatrimonio = async (req, res) => {
 
 const agregarPatrimonio = async (req, res) => {
   let connection;
+
   try {
     const {
       nombre_patrimonio,
@@ -1381,35 +1383,16 @@ const agregarPatrimonio = async (req, res) => {
       id_autor,
       id_ubicacion,
       latylon,
-      imagen_carrousel_1,
-      imagen_carrousel_2,
-      imagen_carrousel_3,
       habilita,
     } = req.body;
 
-    const archivo = req.file;
-    console.log("Archivo:", archivo);
+    console.log(req);
 
-    if (!archivo) {
-      return res.status(400).json({ message: "Por favor, adjunta un archivo" });
-    }
+    const nombre_archivo = nombre_patrimonio;
 
-    // Obtener el nombre del archivo cargado
-    const nombre_archivo = archivo.filename;
-    console.log("Nombre archivo:", nombre_archivo);
-    // Obtener el último id_patrimonio de la tabla
-    connection = await conectarSMTPatrimonio();
-    const [lastIdResult] = await connection.query(
-      "SELECT MAX(id_patrimonio) AS max_id FROM patrimonio"
-    );
-    console.log("Last ID result:", lastIdResult);
-    let nextId = lastIdResult[0].max_id + 1; // Generar el próximo id_patrimonio
-    console.log("Next ID:", nextId);
-    // Query para insertar una nuevo patrimonio
     const sql =
-      "INSERT INTO patrimonio (id_patrimonio, nombre_patrimonio, anio_emplazamiento, descripcion, origen, id_categoria, id_tipologia, id_material, id_estado, id_autor, id_ubicacion, latylon, nombre_archivo, habilita, imagen_carrousel_1, imagen_carrousel_2, imagen_carrousel_3 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO patrimonio (nombre_patrimonio, anio_emplazamiento, descripcion, origen, id_categoria, id_tipologia, id_material, id_estado, id_autor, id_ubicacion, latylon, nombre_archivo, habilita) VALUES (?, ?, ?, ?, ?, ? , ?, ?, ?, ?, ?, ?, ?)";
     const values = [
-      nextId,
       nombre_patrimonio,
       anio_emplazamiento,
       descripcion,
@@ -1423,64 +1406,170 @@ const agregarPatrimonio = async (req, res) => {
       latylon,
       nombre_archivo,
       habilita,
-      imagen_carrousel_1,
-      imagen_carrousel_2,
-      imagen_carrousel_3,
     ];
-    console.log(values);
-    // Ejecutar la consulta SQL para insertar la nueva convocatoria
-    await connection.execute(sql, values);
-    // const ftpClient = await conectarFTPCiudadano();
-    const sftpClient = await conectarSFTPCondor();
-    // const remoteFilePath = `/Fotos-Patrimonio/${nombre_archivo}`;
-    const remoteFilePath = `/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/${nombre_archivo}`;
-    const localFilePath = path.join("./pdf", nombre_archivo);
-    console.log("Remote file path:", remoteFilePath);
-    console.log("Local file path:", localFilePath);
-    // Subir la imagen al servidor FTP
-    // await ftpClient.uploadFrom(localFilePath, remoteFilePath);
-    await sftpClient.put(localFilePath, remoteFilePath);
 
-    // Eliminar la imagen local después de subirla
-    fs.unlinkSync(localFilePath);
-    // await ftpClient.close();
-    await sftpClient.end();
+    connection = await conectarSMTPatrimonio();
+    const [patrimonio] = await connection.execute(sql, values);
     res.status(201).json({
-      message: "Patrimonio creado con éxito",
-      id: nextId,
-      num_patrimonio: nextId,
+      message: "Patrimonio subido con éxito",
     });
   } catch (error) {
-    console.error("Error:", error);
-    // res.status(500).json({ message: error.message || "Algo salió mal :(" });
-    res.status(500).json(error);
-  } finally {
-    connection.end();
+    console.error("Error al subir el patrimonio:", error);
+    if (error.response) {
+      console.error("Error del servidor:", error.response.data);
+    }
   }
 };
 
-const obtenerImagenes = (req, res) => {
-  const imageDirectory = path.join(
-    __dirname,
-    "/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio"
-  );
-  const { image } = req.query;
+const crearPatrimonioImagenes = async (req, res) => {
+  let sftp;
 
-  if (!image) {
-    return res.status(400).send("No image specified");
-  }
+  try {
+    const { nombre_patrimonio } = req.body;
+    const newImage = req.files;
+    console.log(newImage);
+    const archivosKeys = Object.keys(newImage);
 
-  const imagePath = path.join(imageDirectory, image);
+    sftp = await conectarSFTPCondor();
+    for (let key of archivosKeys) {
+      let archivo = newImage[key];
 
-  // Verifica si la imagen existe y envíala como respuesta
-  fs.access(imagePath, fs.constants.F_OK, (err) => {
-    if (err) {
-      console.error("Image not found:", imagePath);
-      return res.status(404).send("Image not found");
+      if (key.includes("imagen_card")) {
+        await procesarImagen(archivo, "_card", sftp, nombre_patrimonio);
+      }
+      if (key.includes("imagen_carrousel_1")) {
+        await procesarImagen(archivo, "_1", sftp, nombre_patrimonio);
+      }
+      if (key.includes("imagen_carrousel_2")) {
+        await procesarImagen(archivo, "_2", sftp, nombre_patrimonio);
+      }
+      if (key.includes("imagen_carrousel_3")) {
+        await procesarImagen(archivo, "_3", sftp, nombre_patrimonio);
+      }
     }
 
-    res.sendFile(imagePath);
-  });
+    res.status(200).json({ message: "Imagen actualizada correctamente." });
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    if (sftp) sftp.end();
+  }
+};
+const obtenerImagenesPatri = async (req, res) => {
+  let sftp;
+  const nombreArchivo = req.query.nombreArchivo;
+  console.log(nombreArchivo, "Nombre archivo recibido ImagenesPatri");
+
+  const archivosBuscados = [
+    `${nombreArchivo}_card`,
+    `${nombreArchivo}_1`,
+    `${nombreArchivo}_2`,
+    `${nombreArchivo}_3`,
+  ];
+
+  try {
+    sftp = await conectarSFTPCondor();
+    const remotePath = `/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/${nombreArchivo}/`;
+
+    const archivosRemotos = await sftp.list(remotePath);
+
+    const imagenesEncontradas = {};
+
+    for (const archivoRemoto of archivosRemotos) {
+      const nombreSinExtension = archivoRemoto.name.split(".")[0];
+
+      if (archivosBuscados.includes(nombreSinExtension)) {
+        const remoteFilePath = `${remotePath}${archivoRemoto.name}`;
+        const buffer = await sftp.get(remoteFilePath);
+
+        const base64Image = buffer.toString("base64");
+
+        imagenesEncontradas[nombreSinExtension] = {
+          nombre: archivoRemoto.name,
+          imagen: base64Image,
+        };
+      }
+    }
+
+    if (Object.keys(imagenesEncontradas).length === 0) {
+      const imagenBase = archivosRemotos.find((archivoRemoto) => {
+        const nombreSinExtension = archivoRemoto.name.split(".")[0];
+        return nombreSinExtension === nombreArchivo; // Buscar la imagen base
+      });
+
+      if (imagenBase) {
+        const remoteFilePath = `${remotePath}${imagenBase.name}`;
+        const buffer = await sftp.get(remoteFilePath);
+        const base64Image = buffer.toString("base64");
+        imagenesEncontradas[nombreArchivo] = {
+          nombre: imagenBase.name,
+          imagen: base64Image,
+        };
+      }
+    }
+
+    const imagenesOrdenadas = archivosBuscados
+      .map((nombreBuscado) => imagenesEncontradas[nombreBuscado])
+      .filter(Boolean);
+
+    res.json(imagenesOrdenadas);
+  } catch (error) {
+    console.error("Error fetching images:", error);
+    res.status(500).json({ error: "Error fetching images" });
+  } finally {
+    if (sftp) {
+      sftp.end();
+    }
+  }
+};
+
+const obtenerImagenCard = async (req, res) => {
+  let sftp;
+  const archivosBuscados = req.query.archivosBuscados;
+  console.log(archivosBuscados, "Nombres de archivos recibidos ImagenCard");
+
+  try {
+    sftp = await conectarSFTPCondor();
+    const remotePath = "/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/";
+
+    const imagenesEncontradas = {};
+
+    for (const nombreArchivo of archivosBuscados) {
+      const carpetaPatrimonio = `${remotePath}${nombreArchivo}/`;
+      const archivoEsperado = `${nombreArchivo}_card`;
+
+      const existeCarpeta = await sftp.exists(carpetaPatrimonio);
+      if (!existeCarpeta) {
+        console.log(`La carpeta ${carpetaPatrimonio} no existe.`);
+        continue;
+      }
+      // console.log(archivoEsperado, "archivoEsperado ImagenCard");
+
+      const archivosRemotos = await sftp.list(carpetaPatrimonio);
+
+      const archivoRemoto = archivosRemotos.find((archivo) =>
+        archivo.name.startsWith(archivoEsperado)
+      );
+      // console.log(archivoRemoto, "archivoRemoto ImagenCard");
+      if (archivoRemoto) {
+        const remoteFilePath = `${carpetaPatrimonio}${archivoRemoto.name}`;
+        const buffer = await sftp.get(remoteFilePath);
+        const base64Image = buffer.toString("base64");
+
+        imagenesEncontradas[nombreArchivo] = {
+          [archivoEsperado]: base64Image,
+        };
+      }
+    }
+    res.status(200).json({ imagenesEncontradas });
+  } catch (error) {
+    console.error("Error al obtener imágenes:", error);
+    res.status(500).json({
+      message: error.message || "Error al obtener imágenes.ImagenCard",
+    });
+  } finally {
+    if (sftp) sftp.end();
+  }
 };
 
 const editarPatrimonio = async (req, res) => {
@@ -1498,59 +1587,15 @@ const editarPatrimonio = async (req, res) => {
       id_autor,
       id_ubicacion,
       latylon,
-      imagen_carrousel_1,
-      imagen_carrousel_2,
-      imagen_carrousel_3,
       habilita,
-      id,
+      id_patrimonio,
       oldName,
     } = req.body;
 
-    const archivo = req.file;
-    const nombre_archivo = `${nombre_patrimonio.replace(/\s+/g, "").trim()}.jpg`;
+    const nombre_archivo = nombre_patrimonio;
 
-    if (archivo) {
-      const nombreViejo = `${oldName.replace(/\s+/g, "").trim()}.jpg`;
-      const archivoViejo = nombre_archivo.replace(/\//g, "-");
-      const sftpClient = await conectarSFTPCondor();
-      const localFilePath = path.join("./pdf", archivoViejo);
-      const remoteFilePath = `/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/${archivoViejo}`;
-
-      try {
-        // Verificar si el archivo local existe
-        if (!fs.existsSync(localFilePath)) {
-          throw new Error(`El archivo local no existe: ${localFilePath}`);
-        }
-
-        // Intentar eliminar el archivo remoto si existe
-        try {
-          await sftpClient.delete(remoteFilePath);
-          console.log(`Archivo remoto ${remoteFilePath} eliminado exitosamente`);
-        } catch (deleteError) {
-          if (deleteError.code !== 550) { // 550 indica que el archivo no existe
-            throw new Error(`Error al eliminar el archivo remoto: ${deleteError.message}`);
-          }
-          console.log(`Archivo remoto ${remoteFilePath} no existe, procediendo a la subida del nuevo archivo`);
-        }
-
-        // Subir el nuevo archivo
-        await sftpClient.put(localFilePath, remoteFilePath);
-        console.log(`Archivo ${archivoViejo} subido exitosamente al servidor`);
-
-        // Eliminar archivo local después de subir
-        fs.unlinkSync(localFilePath);
-        console.log(`Archivo local ${localFilePath} eliminado exitosamente`);
-
-      } catch (error) {
-        console.error('Error durante la operación SFTP:', error);
-        return res.status(500).json({ message: 'Error durante la operación de archivo' });
-      } finally {
-        await sftpClient.end();
-      }
-    }
-    // Query para actualizar la patrimonio
     const sql =
-      "UPDATE patrimonio SET nombre_patrimonio = ?, anio_emplazamiento = ?, descripcion = ?, origen = ?, id_categoria = ?, id_tipologia = ?, id_material = ?, id_estado = ?, id_autor = ?, id_ubicacion = ?, latylon = ?, imagen_carrousel_1 = ?, imagen_carrousel_2 = ?, imagen_carrousel_3 = ?, habilita = ?, nombre_archivo = ? WHERE id_patrimonio = ?";
+      "UPDATE patrimonio SET nombre_patrimonio = ?, anio_emplazamiento = ?, descripcion = ?, origen = ?, id_categoria = ?, id_tipologia = ?, id_material = ?, id_estado = ?, id_autor = ?, id_ubicacion = ?, latylon = ?, nombre_archivo = ?, habilita = ? WHERE id_patrimonio = ?";
     const values = [
       nombre_patrimonio,
       anio_emplazamiento,
@@ -1563,46 +1608,196 @@ const editarPatrimonio = async (req, res) => {
       id_autor,
       id_ubicacion,
       latylon,
-      imagen_carrousel_1,
-      imagen_carrousel_2,
-      imagen_carrousel_3,
-      habilita,
       nombre_archivo,
-      id,
+      habilita,
+      id_patrimonio,
     ];
-    // Verificar si la patrimonio ya existe con otra ID
-    connection = await conectarSMTPatrimonio();
-    const [patrimonio] = await connection.execute(
-      "SELECT * FROM patrimonio WHERE (nombre_patrimonio = ? AND descripcion = ? AND id_categoria = ? AND id_tipologia = ? AND latylon = ? AND habilita = ?) AND id_patrimonio != ?",
-      [
-        nombre_patrimonio,
-        descripcion,
-        id_categoria,
-        id_tipologia,
-        latylon,
-        habilita,
-        id,
-      ]
-    );
 
-    if (patrimonio.length === 0) {
-      // No existe otra patrimonio con los mismos datos, se puede proceder con la actualización
-      const [result] = await connection.execute(sql, values);
-      console.log("Filas actualizadas:", result.affectedRows);
-      res
-        .status(200)
-        .json({ message: "Patrimonio modificado con éxito", result });
-    } else {
-      // Ya existe otra patrimonio con los mismos datos, devolver un error
-      res.status(400).json({
-        message: "Ya existe un Patrimonio con los mismos datos",
-        patrimonio: patrimonio[0],
-      });
+    connection = await conectarSMTPatrimonio();
+    const [patrimonio] = await connection.execute(sql, values);
+    res.status(201).json({
+      message: "Patrimonio editado con éxito",
+    });
+  } catch (error) {
+    console.error("Error al editar el patrimonio:", error);
+    if (error.response) {
+      console.error("Error del servidor:", error.response.data);
     }
+  } finally {
+    connection.end();
+  }
+};
+
+const editarPatrimonioImagenes = async (req, res) => {
+  let sftp;
+  let db;
+  db = await conectarSMTPatrimonio();
+
+  try {
+    const { id_patrimonio, nombre_patrimonio } = req.body;
+    const newImage = req.files;
+    console.log(newImage);
+    const archivosKeys = Object.keys(newImage);
+
+    const [patrimonio] = await db.query(
+      "SELECT nombre_archivo FROM patrimonio WHERE id_patrimonio = ?",
+      [id_patrimonio]
+    );
+    if (!patrimonio.length) {
+      return res.status(404).json({ message: "Patrimonio no encontrado" });
+    }
+
+    sftp = await conectarSFTPCondor();
+    for (let key of archivosKeys) {
+      let archivo = newImage[key];
+
+      if (key.includes("imagen_card")) {
+        await procesarImagen(archivo, "_card", sftp, nombre_patrimonio);
+      }
+      if (key.includes("imagen_carrousel_1")) {
+        await procesarImagen(archivo, "_1", sftp, nombre_patrimonio);
+      }
+      if (key.includes("imagen_carrousel_2")) {
+        await procesarImagen(archivo, "_2", sftp, nombre_patrimonio);
+      }
+      if (key.includes("imagen_carrousel_3")) {
+        await procesarImagen(archivo, "_3", sftp, nombre_patrimonio);
+      }
+    }
+
+    res.status(200).json({ message: "Imagen actualizada correctamente." });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
-    connection.end();
+    if (sftp) sftp.end();
+  }
+};
+
+async function procesarImagen(archivo, carrouselKey, sftp, nombre) {
+  const extension = path.extname(archivo.originalFilename);
+  const newFilename = `${nombre}${carrouselKey}${extension}`;
+  const newPath = path.join(__dirname, "../tempUploads/", newFilename);
+
+  await new Promise((resolve, reject) => {
+    fs.rename(archivo.filepath, newPath, (err) => {
+      if (err) {
+        console.error(`Error renombrando el archivo ${carrouselKey}:`, err);
+        return reject(err);
+      }
+      console.log(`Archivo ${carrouselKey} renombrado a: ${newFilename}`);
+      resolve();
+    });
+  });
+
+  const remotePath = `/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/${nombre}`;
+  try {
+    const remoteDirExists = await sftp.exists(remotePath);
+    if (!remoteDirExists) {
+      await sftp.mkdir(remotePath, true);
+      console.log(`Carpeta creada en el servidor SFTP: ${remotePath}`);
+    }
+  } catch (error) {
+    console.error(
+      `Error comprobando o creando la carpeta ${remotePath}:`,
+      error
+    );
+    throw error;
+  }
+
+  const rutaArchivo = `${remotePath}/${newFilename}`;
+  try {
+    await sftp.fastPut(newPath, rutaArchivo);
+    console.log(
+      `Archivo ${newFilename} subido al servidor SFTP en: ${rutaArchivo}`
+    );
+  } catch (error) {
+    console.error(`Error subiendo ${newFilename} al servidor SFTP:`, error);
+    throw error;
+  }
+}
+
+const renombrarPatrimonio = async (req, res) => {
+  let sftp;
+  let db;
+  db = await conectarSMTPatrimonio();
+
+  try {
+    const { id_patrimonio, nombre_antiguo, nombre_nuevo } = req.body;
+
+    if (!nombre_antiguo || !nombre_nuevo) {
+      return res
+        .status(400)
+        .json({ message: "Faltan datos para renombrar el patrimonio." });
+    }
+
+    const [patrimonio] = await db.query(
+      "SELECT nombre_archivo FROM patrimonio WHERE id_patrimonio = ?",
+      [id_patrimonio]
+    );
+    if (!patrimonio.length) {
+      return res.status(404).json({ message: "Patrimonio no encontrado" });
+    }
+
+    sftp = await conectarSFTPCondor();
+
+    const oldFolderPath = `/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/${nombre_antiguo}`;
+    const newFolderPath = `/var/www/vhosts/cidituc.smt.gob.ar/Fotos-Patrimonio/${nombre_nuevo}`;
+
+    const oldFolderExists = await sftp.exists(oldFolderPath);
+
+    if (!oldFolderExists) {
+      console.log(
+        `La carpeta ${oldFolderPath} no existe. Creando la carpeta con el nuevo nombre...`
+      );
+      await sftp.mkdir(newFolderPath, true);
+      console.log(`Carpeta ${newFolderPath} creada exitosamente.`);
+    } else {
+      const newFolderExists = await sftp.exists(newFolderPath);
+      if (newFolderExists) {
+        console.log(`La carpeta ${newFolderPath} ya existe. Eliminándola...`);
+        await sftp.rmdir(newFolderPath, true);
+        console.log(`Carpeta ${newFolderPath} eliminada exitosamente.`);
+      }
+
+      await sftp.rename(oldFolderPath, newFolderPath);
+      console.log(`Carpeta renombrada de ${nombre_antiguo} a ${nombre_nuevo}`);
+
+      const files = await sftp.list(newFolderPath);
+
+      if (!files || files.length === 0) {
+        console.log("La carpeta existe pero no tiene archivos.");
+      } else {
+        console.log("Archivos listados:", files);
+        for (let file of files) {
+          if (file.name && file.name.includes(nombre_antiguo)) {
+            const oldFilePath = `${newFolderPath}/${file.name}`;
+            const newFilename = file.name.replace(nombre_antiguo, nombre_nuevo);
+            const newFilePath = `${newFolderPath}/${newFilename}`;
+
+            await sftp.rename(oldFilePath, newFilePath);
+            console.log(`Archivo renombrado: ${file.name} a ${newFilename}`);
+          } else {
+            console.log(`Archivo ${file.name} no contiene el nombre antiguo.`);
+          }
+        }
+      }
+    }
+
+    await db.query(
+      "UPDATE patrimonio SET nombre_patrimonio = ? WHERE id_patrimonio = ?",
+      [nombre_nuevo, id_patrimonio]
+    );
+
+    res
+      .status(200)
+      .json({ message: "Carpeta y archivos renombrados correctamente." });
+  } catch (error) {
+    console.error("Error al renombrar patrimonio:", error);
+    res
+      .status(500)
+      .json({ message: error.message || "Error al renombrar el patrimonio." });
+  } finally {
+    if (sftp) sftp.end();
   }
 };
 
@@ -1671,14 +1866,17 @@ const listarMaterialPatrimonioBack = async (req, res) => {
 };
 
 const listarCategoriaPatrimonioBack = async (req, res) => {
-  const connection = await conectarSMTPatrimonio();
+  let connection;
   try {
+    connection = await conectarSMTPatrimonio(); // Asignar conexión
     const [categorias] = await connection.execute("SELECT * FROM categoria");
     res.status(200).json({ categorias });
   } catch (error) {
     res.status(500).json({ message: error.message || "Algo salió mal :(" });
   } finally {
-    connection.end();
+    if (connection) {
+      await connection.end();
+    }
   }
 };
 
@@ -1697,19 +1895,18 @@ const listarTipologiaPatrimonioBack = async (req, res) => {
 const deshabilitarPatrimonio = async (req, res) => {
   let connection;
   connection = await conectarSMTPatrimonio();
-  
+
   try {
     const { id_patrimonio } = req.body;
-    // console.log(req.body.id_patrimonio, "hola");
     if (id_patrimonio === undefined || req.body == "") {
       return res
         .status(400)
         .json({ message: "El ID de patrimonio es requerido" });
     }
-  
+
     const sql = "UPDATE patrimonio set habilita = 0 WHERE id_patrimonio = ?";
     const values = [id_patrimonio];
-   
+
     const [result] = await connection.execute(sql, values);
     if (result.affectedRows > 0) {
       res.status(200).json({ message: "patrimonio deshabilitado con éxito" });
@@ -1728,10 +1925,137 @@ const deshabilitarPatrimonio = async (req, res) => {
     connection.end();
   }
 };
-//-----------PATRIMOINIO MUNICIPAL--------------
+const editarCategoriaPatrimonio = async (req, res) => {
+  const { id, nombre_categoria, habilita } = req.body;
+  const sql =
+    "UPDATE categoria set habilita = ?, nombre_categoria = ? WHERE id_categoria = ?";
+  const values = [habilita, nombre_categoria, id];
+  let connection;
+
+  try {
+    connection = await conectarSMTPatrimonio();
+    const [result] = await connection.execute(sql, values);
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Categoría editada con éxito" });
+    } else {
+      res.status(400).json({ message: "Categoría no encontrada" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+};
+const editarTipologiaPatrimonio = async (req, res) => {
+  const { id, nombre_tipologia, habilita } = req.body;
+  const sql =
+    "UPDATE tipologia set habilita = ?, nombre_tipologia = ? WHERE id_tipologia = ?";
+  const values = [habilita, nombre_tipologia, id];
+  let connection;
+
+  try {
+    connection = await conectarSMTPatrimonio();
+    const [result] = await connection.execute(sql, values);
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Tipología editada con éxito" });
+    } else {
+      res.status(400).json({ message: "Tipología no encontrada" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+};
+const editarMaterialPatrimonio = async (req, res) => {
+  const { id, nombre_material, habilita } = req.body;
+  const sql =
+    "UPDATE material set habilita = ?, nombre_material = ? WHERE id_material = ?";
+  const values = [habilita, nombre_material, id];
+  let connection;
+
+  try {
+    connection = await conectarSMTPatrimonio();
+    const [result] = await connection.execute(sql, values);
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Material editada con éxito" });
+    } else {
+      res.status(400).json({ message: "Material no encontrada" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+};
+const editarEstadoPatrimonio = async (req, res) => {
+  const { id, nombre_estado, habilita } = req.body;
+  const sql =
+    "UPDATE estado set habilita = ?, nombre_estado = ? WHERE id_estado = ?";
+  const values = [habilita, nombre_estado, id];
+  let connection;
+
+  try {
+    connection = await conectarSMTPatrimonio();
+    const [result] = await connection.execute(sql, values);
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Estado editada con éxito" });
+    } else {
+      res.status(400).json({ message: "Estado no encontrada" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+};
+
+const editarAutorPartimonio = async (req, res) => {
+  const { id, nombre_autor, habilita, descripcion_autor } = req.body;
+  const sql =
+    "UPDATE autor set habilita = ?, nombre_autor = ?, descripcion_autor = ? WHERE id_autor = ?";
+  const values = [habilita, nombre_autor, descripcion_autor, id];
+  let connection;
+
+  try {
+    connection = await conectarSMTPatrimonio();
+    const [result] = await connection.execute(sql, values);
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Autor editada con éxito" });
+    } else {
+      res.status(400).json({ message: "Autor no encontrada" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+};
+const editarUbicacionPatrimonio = async (req, res) => {
+  const { id, nombre_ubicacion, habilita } = req.body;
+  console.log(req.body)
+  const sql = "UPDATE ubicacion set habilita = ?, nombre_ubicacion = ? WHERE id_ubicacion = ?";
+  const values = [habilita, nombre_ubicacion, id]; 
+  let connection;
+
+  try {
+    connection = await conectarSMTPatrimonio();
+    const [result] = await connection.execute(sql, values);
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: "Ubicación editada con éxito" });
+    } else {
+      res.status(400).json({ message: "Ubicación no encontrada" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message || "Algo salió mal :(" });
+  } finally {
+    connection.end();
+  }
+};
+
+// -------------------PATRIMOINIO MUNICIPAL--------------
 
 module.exports = {
-  obtenerImagenes,
   agregarOpcion,
   borrarOpcion,
   agregarProceso,
@@ -1782,4 +2106,15 @@ module.exports = {
   actualizarPermisosEspecificos,
   listarProcesosSinId,
   existeEnPermisosPersona,
+  editarPatrimonioImagenes,
+  crearPatrimonioImagenes,
+  obtenerImagenesPatri,
+  obtenerImagenCard,
+  renombrarPatrimonio,
+  editarCategoriaPatrimonio,
+  editarTipologiaPatrimonio,
+  editarMaterialPatrimonio,
+  editarEstadoPatrimonio,
+  editarAutorPartimonio,
+  editarUbicacionPatrimonio,
 };

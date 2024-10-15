@@ -5,9 +5,9 @@ async function conectarSFTPCondor() {
   try {
     const client = new sftp();
     await client.connect({
-      host: process.env.HOST_SFTP_PAT,
-      user: process.env.USER_SFTP_PAT,
-      password: process.env.PASSWORD_SFTP_PAT,
+      host: process.env.HOST_FTP_LICITACIONES,
+      user: process.env.USER_FTP_LICITACIONES,
+      password: process.env.PASSWORD_FTP_LICITACIONES,
       secure: false,
     });
     console.log("Conectado al servidor SFTP");
