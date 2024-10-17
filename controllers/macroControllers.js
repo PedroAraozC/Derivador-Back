@@ -15,6 +15,7 @@ const bcrypt = require("bcryptjs");
 const CustomError = require("../utils/customError");
 const jwt = require("jsonwebtoken");
 const QRCode = require("qrcode");
+const { conectarBaseDeDatosSanidad } = require("../config/dbSQLSanidad");
 
 const obtenerCategorias = async (req, res) => {
   const connection = await conectarMySql();
@@ -765,6 +766,67 @@ const credencial = async (req, res) => {
   }
 };
 
+const obtenerDatosCarnetSanidad = async (req, res) => {
+  const userCuil = req.params.dni;
+  const connection = await conectarBaseDeDatosSanidad();
+  try {
+    if (userCuil.length < 12 && userCuil > 6) {
+      const dni = userCuil.toString().slice(2, -1);
+      console.log(dni);
+      console.log("Conectado a MySQL Sanidadd");
+
+      const result = await connection.query(
+        `select a.ndocu, a.nombre, a.apellido, 
+         convert(char(10), a.fnac, 103) as fnac_muestra, 
+         convert(char(10), b.fotorgado, 103) as fotorgado_muestra, 
+         convert(char(10), b.fvencimiento, 103) as fvencimiento_muestra,
+         case
+          when b.estado = 3 then 'EN DEPOSITO'
+          when b.fvencimiento IS NOT NULL and b.fvencimiento < getdate() and b.estado = 1 then 'CARNET VENCIDO'
+          when b.fvencimiento IS NOT NULL and b.fvencimiento > getdate() and b.estado = 1 then 'CARNET VIGENTE'
+          when b.estado = 0 then 'INCONCLUSO' 
+         end as situacion 
+         from solicitante a
+         left join mae_carnet b on b.ndocu = a.ndocu
+      where a.ndocu = ${dni}`
+      );
+      // console.log(fields);
+
+      if (result.rowsAffected > 0) {
+        console.log(result.rowsAffected);
+        
+        console.log(result.recordset[0])
+        
+        let ciudadano= {
+          nombre: result.recordset[0].nombre,
+          apellido: result.recordset[0].apellido,
+          dni: result.recordset[0].ndocu,
+          // sexo: id_genero,
+          nacimiento: result.recordset[0].fnac_muestra,
+          situacion: result.recordset[0].situacion,
+          vencimiento: result.recordset[0].fvencimiento_muestra,
+        }; // Suponiendo que solo hay un usuario con ese DNI
+        console.log(ciudadano);
+        res.status(200).json({ ciudadano });
+      
+      } else {
+        res.status(404).json({
+          results: `No se encontró carnet de sanidad para el DNI: ${dni}`,
+        });
+      }
+    } else {
+      res.status(400).json({
+        results: `Ingrese un número de DNI válido`,
+      });
+    }
+
+    // Enviar la respuesta
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Error de servidor" });
+  }
+};
+
 module.exports = {
   obtenerCategorias,
   obtenerTiposDeReclamoPorCategoria,
@@ -782,4 +844,5 @@ module.exports = {
   existeLoginApp,
   obtenerTokenAutorizacion,
   credencial,
+  obtenerDatosCarnetSanidad,
 };
