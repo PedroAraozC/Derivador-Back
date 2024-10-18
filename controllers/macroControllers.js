@@ -768,59 +768,79 @@ const credencial = async (req, res) => {
 
 const obtenerDatosCarnetSanidad = async (req, res) => {
   const userCuil = req.params.dni;
+
+  const cuilRegex = /^\d{11}$/;
+  if (!cuilRegex.test(userCuil)) {
+    return res.status(400).json({ error: "Ingrese un número de CUIL válido." });
+  }
+
   const connection = await conectarBaseDeDatosSanidad();
   try {
-    if (userCuil.length < 12 && userCuil > 6) {
-      const dni = userCuil.toString().slice(2, -1);
-      console.log(dni);
-      console.log("Conectado a MySQL Sanidadd");
+    const dni = userCuil.toString().slice(2, -1);
 
-      const result = await connection.query(
-        `select a.ndocu, a.nombre, a.apellido, 
-         convert(char(10), a.fnac, 103) as fnac_muestra, 
-         convert(char(10), b.fotorgado, 103) as fotorgado_muestra, 
-         convert(char(10), b.fvencimiento, 103) as fvencimiento_muestra,
-         case
-          when b.estado = 3 then 'EN DEPOSITO'
-          when b.fvencimiento IS NOT NULL and b.fvencimiento < getdate() and b.estado = 1 then 'CARNET VENCIDO'
-          when b.fvencimiento IS NOT NULL and b.fvencimiento > getdate() and b.estado = 1 then 'CARNET VIGENTE'
-          when b.estado = 0 then 'INCONCLUSO' 
-         end as situacion 
-         from solicitante a
-         left join mae_carnet b on b.ndocu = a.ndocu
-      where a.ndocu = ${dni}`
-      );
-      // console.log(fields);
+    const query = `
+      SELECT a.ndocu, a.nombre, a.apellido, 
+             CONVERT(char(10), a.fnac, 103) AS fnac_muestra, 
+             CONVERT(char(10), a.calle, 103) AS calle,
+             CONVERT(char(10), a.ncalle, 103) AS nro_calle,
+             CONVERT(char(10), a.piso, 103) AS piso,
+             CONVERT(char(10), a.dpto, 103) AS dpto,
+             CONVERT(char(10), b.localidadl, 103) AS localidad,
+             CONVERT(char(10), b.fotorgado, 103) AS fotorgado_muestra, 
+             CONVERT(char(10), b.fvencimiento, 103) AS fvencimiento_muestra,
+             CONVERT(char(10), b.os, 103) AS obraSocial,
+             CONVERT(char(10), b.deriva, 103) AS deriva,
+             CONVERT(char(10), b.dom_fliar, 103) AS dom_fliar,
+             CONVERT(char(10), b.e_cronicas, 103) AS enfermedad_cronica,
+             CONVERT(char(10), b.medicamento, 103) AS medicamento_recibe,
+             CONVERT(char(10), b.notolera, 103) AS no_tolera,
+             CONVERT(char(10), b.donante, 103) AS donante,
+             b.img_foto,
+             CASE
+               WHEN b.estado = 3 THEN 'EN DEPOSITO'
+               WHEN b.fvencimiento IS NOT NULL AND b.fvencimiento < GETDATE() AND b.estado = 1 THEN 'CARNET VENCIDO'
+               WHEN b.fvencimiento IS NOT NULL AND b.fvencimiento > GETDATE() AND b.estado = 1 THEN 'CARNET VIGENTE'
+               WHEN b.estado = 0 THEN 'INCONCLUSO' 
+             END AS situacion
+      FROM solicitante a
+      LEFT JOIN mae_carnet b ON b.ndocu = a.ndocu
+      WHERE a.ndocu = ${dni}
+    `;
 
-      if (result.rowsAffected > 0) {
-        console.log(result.rowsAffected);
-        
-        console.log(result.recordset[0])
-        
-        let ciudadano= {
-          nombre: result.recordset[0].nombre,
-          apellido: result.recordset[0].apellido,
-          dni: result.recordset[0].ndocu,
-          // sexo: id_genero,
-          nacimiento: result.recordset[0].fnac_muestra,
-          situacion: result.recordset[0].situacion,
-          vencimiento: result.recordset[0].fvencimiento_muestra,
-        }; // Suponiendo que solo hay un usuario con ese DNI
-        console.log(ciudadano);
-        res.status(200).json({ ciudadano });
-      
-      } else {
-        res.status(404).json({
-          results: `No se encontró carnet de sanidad para el DNI: ${dni}`,
-        });
-      }
+    const result = await connection.query(query);
+
+    if (result.rowsAffected > 0) {
+      const datos = result.recordset[0];
+
+      let ciudadano = {
+        nombre: datos.nombre,
+        apellido: datos.apellido,
+        dni: datos.ndocu,
+        cuil: userCuil,
+        nacimiento: datos.fnac_muestra,
+        calle: datos.calle,
+        ncalle: datos.nro_calle,
+        piso: datos.piso,
+        dpto: datos.dpto,
+        domicilioFliar: datos.dom_fliar,
+        enfermedadCronica: datos.enfermedad_cronica,
+        medicamentoRecibe: datos.medicamento_recibe,
+        noTolera: datos.no_tolera,
+        donante: datos.donante,
+        localidad: datos.localidad,
+        situacion: datos.situacion,
+        obraSocial: datos.obraSocial,
+        deriva: datos.deriva,
+        vencimiento: datos.fvencimiento_muestra,
+        img: datos.img_foto,
+      };
+      // console.log(ciudadano);
+      res.status(200).json({ ciudadano });
     } else {
-      res.status(400).json({
-        results: `Ingrese un número de DNI válido`,
+      res.status(404).json({
+        results: `No se encontró carnet de sanidad para el DNI: ${dni}`,
       });
     }
-
-    // Enviar la respuesta
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Error de servidor" });
